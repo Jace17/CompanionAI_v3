@@ -1,14 +1,11 @@
 // Planning/LLM/LLMCommander.cs
 // ★ Team Commander — 라운드 시작 시 1회 팀 전체 전략 지시 (LLM 호출).
 // Convai NPC2NPC / Bannerlord AI Influence에서 영감.
+// ★ v3.114.0 (Phase F.2): UnityWebRequest → LLMHttpClient 마이그레이션.
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Text;
-using UnityEngine;
-using UnityEngine.Networking;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using CompanionAI_v3.Analysis;
 using CompanionAI_v3.Core;
@@ -213,78 +210,38 @@ namespace CompanionAI_v3.Planning.LLM
                     yield break;
                 }
 
-                // 2. 모델 결정
-                string model = ResolveModel();
+                // 2. 요청 구성 (LLMHttpClient.BuildChatRequest 위임)
+                string model = LLMHttpClient.ResolveModel();
+                var requestBody = LLMHttpClient.BuildChatRequest(
+                    model: model,
+                    systemMsg: systemMsg,
+                    userMsg: userMsg,
+                    numPredict: 150,  // narration 포함 (~30 토큰 추가)
+                    temperature: 0f,
+                    think: false,
+                    keepAlive: -1);
 
-                // 3. 요청 구성
-                var requestBody = new JObject
-                {
-                    ["model"] = model,
-                    ["messages"] = new JArray
-                    {
-                        new JObject { ["role"] = "system", ["content"] = systemMsg },
-                        new JObject { ["role"] = "user", ["content"] = userMsg }
-                    },
-                    ["stream"] = false,
-                    ["keep_alive"] = -1,
-                    ["options"] = new JObject
-                    {
-                        ["temperature"] = 0,
-                        ["num_predict"] = 150  // narration 포함 (~30 토큰 추가)
-                    },
-                    ["think"] = false
-                };
-
-                // 4. URL
-                string baseUrl = GetOllamaBaseUrl();
-                string url = baseUrl + "/api/chat";
+                // 3. baseUrl + 로그
+                string baseUrl = Main.Settings?.MachineSpirit?.ApiUrl;
+                if (string.IsNullOrEmpty(baseUrl)) baseUrl = "http://localhost:11434";
 
                 // ★ v3.110.4: 토큰 회귀 감지용 — user msg 길이 + 대략 토큰 (chars/4)
                 int userChars = userMsg?.Length ?? 0;
-                Main.LogDebug($"[LLMCommander] → {url}, model={model}, allies={allySituations.Count}, enemies={enemyCount}, userMsg={userChars}ch (~{userChars / 4}tok)");
+                Main.LogDebug($"[LLMCommander] → {LLMHttpClient.NormalizeBaseUrl(baseUrl)}/api/chat, model={model}, allies={allySituations.Count}, enemies={enemyCount}, userMsg={userChars}ch (~{userChars / 4}tok)");
 
-                // 5. HTTP 요청
-                string responseText = null;
-                string errorText = null;
+                // 4. HTTP 요청 (LLMHttpClient.PostChatAsync 위임)
+                LLMHttpClient.Response response = default(LLMHttpClient.Response);
+                yield return LLMHttpClient.PostChatAsync(
+                    baseUrl, requestBody, COMMANDER_TIMEOUT_SECONDS,
+                    r => response = r);
 
-                var request = new UnityWebRequest(url, "POST");
-                request.uploadHandler = new UploadHandlerRaw(
-                    Encoding.UTF8.GetBytes(requestBody.ToString(Formatting.None)));
-                request.downloadHandler = new DownloadHandlerBuffer();
-                request.SetRequestHeader("Content-Type", "application/json");
-                request.timeout = COMMANDER_TIMEOUT_SECONDS;
-
-                var op = request.SendWebRequest();
-
-                float deadline = Time.realtimeSinceStartup + COMMANDER_TIMEOUT_SECONDS + 1f;
-                while (!op.isDone)
-                {
-                    if (Time.realtimeSinceStartup > deadline)
-                    {
-                        errorText = "Commander timeout exceeded";
-                        request.Abort();
-                        break;
-                    }
-                    yield return null;
-                }
-
-                if (errorText == null)
-                {
-                    if (request.result == UnityWebRequest.Result.Success)
-                        responseText = request.downloadHandler.text;
-                    else
-                        errorText = $"HTTP {request.responseCode}: {request.error}";
-                }
-
-                request.Dispose();
-
-                // 6. 응답 파싱
+                // 5. 응답 파싱
                 CommanderDirective directive;
-
-                if (responseText != null)
+                if (response.Success)
                 {
-                    Main.LogDebug($"[LLMCommander] Raw ({responseText.Length} chars): {Truncate(responseText, 300)}");
-                    string content = ExtractContent(responseText);
+                    string raw = response.RawJson ?? "";
+                    Main.LogDebug($"[LLMCommander] Raw ({raw.Length} chars): {Truncate(raw, 300)}");
+                    string content = LLMHttpClient.ExtractContent(raw);
                     directive = CommanderDirective.Parse(content, enemyCount);
                     stopwatch.Stop();
                     LastCommanderTimeMs = stopwatch.ElapsedMilliseconds;
@@ -295,10 +252,12 @@ namespace CompanionAI_v3.Planning.LLM
                     stopwatch.Stop();
                     LastCommanderTimeMs = stopwatch.ElapsedMilliseconds;
                     directive = new CommanderDirective();
+                    string errorText = response.WasTimeout
+                        ? "Commander timeout exceeded"
+                        : $"HTTP {response.HttpStatusCode}: {response.ErrorMessage}";
                     Main.Log($"[LLMCommander] Failed: {errorText} — default directive ({LastCommanderTimeMs}ms)");
                 }
 
-                _isCommanding = false;
                 onResult?.Invoke(directive);
             }
             finally
@@ -413,39 +372,9 @@ namespace CompanionAI_v3.Planning.LLM
         }
 
         // ═══════════════════════════════════════════════════════════
-        // 헬퍼
+        // 헬퍼 (caller-specific only)
         // ═══════════════════════════════════════════════════════════
-
-        private static string ResolveModel()
-        {
-            var judgeModel = Main.Settings?.LLMJudgeModel;
-            if (!string.IsNullOrEmpty(judgeModel)) return judgeModel;
-            var msConfig = Main.Settings?.MachineSpirit;
-            if (msConfig != null && !string.IsNullOrEmpty(msConfig.Model)) return msConfig.Model;
-            return "gemma4:e4b";
-        }
-
-        private static string GetOllamaBaseUrl()
-        {
-            string url = Main.Settings?.MachineSpirit?.ApiUrl ?? "http://localhost:11434/v1";
-            url = url.TrimEnd('/');
-            if (url.EndsWith("/v1"))
-                url = url.Substring(0, url.Length - 3);
-            return url;
-        }
-
-        private static string ExtractContent(string rawResponse)
-        {
-            try
-            {
-                var outerJson = JObject.Parse(rawResponse);
-                return outerJson["message"]?["content"]?.ToString()?.Trim() ?? "";
-            }
-            catch
-            {
-                return rawResponse?.Trim() ?? "";
-            }
-        }
+        // ResolveModel / GetOllamaBaseUrl / ExtractContent → LLMHttpClient 통합 (v3.114.0 Phase F.2)
 
         private static string Truncate(string s, int maxLen)
         {
