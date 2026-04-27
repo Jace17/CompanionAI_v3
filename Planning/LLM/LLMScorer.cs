@@ -1,12 +1,11 @@
 // Planning/LLM/LLMScorer.cs
 // ★ LLM-as-Scorer: Ollama에 전투 상태를 보내고 가중치 JSON을 받음.
 // LLMJudge와 동일한 HTTP 패턴 (format 없음, think=false, temp=0).
+// ★ v3.114.0 (Phase F.2): HTTP 플러밍은 LLMHttpClient 로 통합. caller-specific
+//   요소(latch, watchdog, ScorerWeights 파싱, 로깅) 만 본 파일에 잔존.
 using System;
 using System.Collections;
 using System.Text;
-using UnityEngine;
-using UnityEngine.Networking;
-using Newtonsoft.Json.Linq;
 using CompanionAI_v3.Analysis;
 using CompanionAI_v3.Settings;
 
@@ -149,86 +148,47 @@ namespace CompanionAI_v3.Planning.LLM
                     yield break;
                 }
 
-                // 2. 모델 결정 (LLMJudge와 동일 경로)
-                string model = ResolveModel();
+                // 2. 모델 결정 (LLMHttpClient 통합 — LLMJudgeModel → MachineSpirit → fallback)
+                string model = LLMHttpClient.ResolveModel();
 
-                // 3. Ollama 요청 구성
+                // 3. Ollama 요청 구성 (LLMHttpClient.BuildChatRequest 위임)
                 // ★ CRITICAL: format 파라미터 없음 (Gemma4 빈 응답 문제)
                 // ★ CRITICAL: think=false (thinking 모드 비활성화)
-                var requestBody = new JObject
-                {
-                    ["model"] = model,
-                    ["messages"] = new JArray
-                    {
-                        new JObject { ["role"] = "system", ["content"] = systemMsg },
-                        new JObject { ["role"] = "user", ["content"] = userMsg }
-                    },
-                    ["stream"] = false,
-                    ["keep_alive"] = -1,
-                    ["options"] = new JObject
-                    {
-                        ["temperature"] = 0,
-                        ["num_predict"] = 120  // JSON 가중치 + reasoning 1문장 (~50 토큰)
-                    },
-                    ["think"] = false
-                };
+                // num_predict=120: JSON 가중치 + reasoning 1문장 (~50 토큰)
+                var requestBody = LLMHttpClient.BuildChatRequest(
+                    model: model,
+                    systemMsg: systemMsg,
+                    userMsg: userMsg,
+                    numPredict: 120,
+                    temperature: 0f,
+                    think: false,
+                    keepAlive: -1);
 
-                // 4. Ollama URL 결정
-                string baseUrl = GetOllamaBaseUrl();
-                string url = baseUrl + "/api/chat";
+                // 4. Ollama URL 결정 (LLMHttpClient 정규화)
+                string baseUrl = Main.Settings?.MachineSpirit?.ApiUrl;
+                string normalizedUrl = LLMHttpClient.NormalizeBaseUrl(baseUrl);
 
                 // ★ v3.110.4: 토큰 회귀 감지용 — user msg 길이 + 대략 토큰 (chars/4).
                 // 컴포넌트 누적(TEAM BRIEF, CMD, PAST, KB, E line)으로 예산 초과 시 응답 지연 증가.
                 int userChars = userMsg?.Length ?? 0;
-                Main.LogDebug($"[LLMScorer] -> {url}, model={model}, enemies={enemyCount}, userMsg={userChars}ch (~{userChars / 4}tok)");
+                Main.LogDebug($"[LLMScorer] -> {normalizedUrl}/api/chat, model={model}, enemies={enemyCount}, userMsg={userChars}ch (~{userChars / 4}tok)");
 
-                // 5. HTTP 요청
-                string responseText = null;
-                string errorText = null;
-
-                var request = new UnityWebRequest(url, "POST");
-                request.uploadHandler = new UploadHandlerRaw(
-                    Encoding.UTF8.GetBytes(requestBody.ToString(Newtonsoft.Json.Formatting.None)));
-                request.downloadHandler = new DownloadHandlerBuffer();
-                request.SetRequestHeader("Content-Type", "application/json");
-                request.timeout = SCORER_TIMEOUT_SECONDS;
-
-                var op = request.SendWebRequest();
-
-                // 타임아웃 대기
-                float deadline = Time.realtimeSinceStartup + SCORER_TIMEOUT_SECONDS + 1f;
-                while (!op.isDone)
-                {
-                    if (Time.realtimeSinceStartup > deadline)
-                    {
-                        errorText = "Scorer timeout exceeded";
-                        request.Abort();
-                        break;
-                    }
-                    yield return null;
-                }
-
-                if (errorText == null)
-                {
-                    if (request.result == UnityWebRequest.Result.Success)
-                    {
-                        responseText = request.downloadHandler.text;
-                    }
-                    else
-                    {
-                        errorText = $"HTTP {request.responseCode}: {request.error}";
-                    }
-                }
-
-                request.Dispose();
+                // 5. HTTP 요청 (LLMHttpClient.PostChatAsync 위임)
+                LLMHttpClient.Response response = default(LLMHttpClient.Response);
+                yield return LLMHttpClient.PostChatAsync(
+                    baseUrl,
+                    requestBody,
+                    SCORER_TIMEOUT_SECONDS,
+                    r => response = r);
 
                 // 6. 응답 파싱
                 ScorerWeights weights = new ScorerWeights();
 
-                if (responseText != null)
+                if (response.Success && !string.IsNullOrEmpty(response.RawJson))
                 {
+                    string responseText = response.RawJson;
                     Main.LogDebug($"[LLMScorer] Raw response ({responseText.Length} chars): {Truncate(responseText, 300)}");
-                    string content = ExtractContent(responseText);
+                    string content = LLMHttpClient.ExtractContent(responseText);
                     weights = ScorerWeights.Parse(content, enemyCount, displayMap);  // ★ v3.101.0: display → original 역매핑
 
                     stopwatch.Stop();
@@ -257,6 +217,9 @@ namespace CompanionAI_v3.Planning.LLM
                 {
                     stopwatch.Stop();
                     LastScorerTimeMs = stopwatch.ElapsedMilliseconds;
+                    string errorText = response.WasTimeout
+                        ? "Scorer timeout exceeded"
+                        : $"HTTP {response.HttpStatusCode}: {response.ErrorMessage}";
                     Main.Log($"[LLMScorer] Failed: {errorText} -- fallback to defaults ({LastScorerTimeMs}ms)");
                 }
 
@@ -313,54 +276,11 @@ namespace CompanionAI_v3.Planning.LLM
         }
 
         // ═══════════════════════════════════════════════════════════
-        // 응답 파싱
+        // 헬퍼
         // ═══════════════════════════════════════════════════════════
-
-        /// <summary>
-        /// Ollama /api/chat 응답에서 content 추출.
-        /// {"message":{"content":"{\"aoe_weight\":2.0}"}}
-        /// </summary>
-        private static string ExtractContent(string rawResponse)
-        {
-            try
-            {
-                var outerJson = JObject.Parse(rawResponse);
-                string content = outerJson["message"]?["content"]?.ToString();
-                return content?.Trim() ?? "";
-            }
-            catch
-            {
-                return "";
-            }
-        }
-
-        // ═══════════════════════════════════════════════════════════
-        // 헬퍼 (LLMJudge와 동일 패턴)
-        // ═══════════════════════════════════════════════════════════
-
-        /// <summary>Scorer에 사용할 모델 결정. LLM Judge 전용 설정 -> MachineSpirit 폴백.</summary>
-        private static string ResolveModel()
-        {
-            var judgeModel = Main.Settings?.LLMJudgeModel;
-            if (!string.IsNullOrEmpty(judgeModel))
-                return judgeModel;
-
-            var msConfig = Main.Settings?.MachineSpirit;
-            if (msConfig != null && !string.IsNullOrEmpty(msConfig.Model))
-                return msConfig.Model;
-
-            return "gemma4:e4b";
-        }
-
-        /// <summary>Ollama base URL 결정 (v1 suffix 제거).</summary>
-        private static string GetOllamaBaseUrl()
-        {
-            string url = Main.Settings?.MachineSpirit?.ApiUrl ?? "http://localhost:11434/v1";
-            url = url.TrimEnd('/');
-            if (url.EndsWith("/v1"))
-                url = url.Substring(0, url.Length - 3);
-            return url;
-        }
+        // ★ v3.114.0 (Phase F.2): ExtractContent / ResolveModel / GetOllamaBaseUrl
+        //   은 LLMHttpClient 로 이관 (4 caller 공통). 본 파일은 caller-specific
+        //   로깅 전용 Truncate 만 잔존.
 
         private static string Truncate(string s, int maxLen)
         {
