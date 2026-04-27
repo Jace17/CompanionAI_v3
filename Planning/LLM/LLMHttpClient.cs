@@ -132,18 +132,21 @@ namespace CompanionAI_v3.Planning.LLM
                 messages.Add(new JObject { ["role"] = "system", ["content"] = systemMsg });
             messages.Add(new JObject { ["role"] = "user", ["content"] = userMsg ?? "" });
 
+            // ★ v3.114.0 (Phase F.2 review): legacy 4 callers 의 JObject 삽입 순서 보존 —
+            //   options 가 think 보다 먼저. JSON wire-level byte-identity 유지 (Ollama 는 순서 무관하지만
+            //   네트워크 캡쳐 diff 시 마이그레이션 전후 동일).
             return new JObject
             {
                 ["model"] = model,
                 ["messages"] = messages,
                 ["stream"] = false,
                 ["keep_alive"] = keepAlive,
-                ["think"] = think,
                 ["options"] = new JObject
                 {
                     ["num_predict"] = numPredict,
                     ["temperature"] = temperature
-                }
+                },
+                ["think"] = think
             };
         }
 
