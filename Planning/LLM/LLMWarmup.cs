@@ -2,12 +2,9 @@
 // ★ v3.98.0: Ollama 모델 사전 로딩.
 // 게임 실행 후 LLM 전투 AI가 켜져 있으면 백그라운드로 모델을 미리 메모리에 올림.
 // keep_alive=-1이 모든 요청에 이미 설정되어 있어 한 번 올리면 유지됨.
+// ★ v3.114.0 (Phase F.2): UnityWebRequest/HttpWebRequest → LLMHttpClient 마이그레이션.
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
-using UnityEngine;
-using UnityEngine.Networking;
-using Newtonsoft.Json.Linq;
 
 namespace CompanionAI_v3.Planning.LLM
 {
@@ -18,7 +15,7 @@ namespace CompanionAI_v3.Planning.LLM
     /// 해결: 게임 시작/세팅 활성 시 더미 요청 1회 보내 메모리에 올려둠.
     ///
     /// 호출 지점: MachineSpirit.Update() 매 프레임 경량 체크
-    /// 스레드: UnityWebRequest 기반 비동기 — UI 블로킹 없음
+    /// 스레드: LLMHttpClient.PostChatAsync 기반 비동기 — UI 블로킹 없음
     /// </summary>
     public static class LLMWarmup
     {
@@ -75,6 +72,7 @@ namespace CompanionAI_v3.Planning.LLM
         /// <summary>
         /// 모델 warmup 코루틴. 이미 warmed이거나 warming 중이면 즉시 종료.
         /// 더미 요청: "ready" 메시지 + num_predict=1 → 거의 비용 없음.
+        /// ★ v3.114.0 (Phase F.2): LLMHttpClient.PostChatAsync 위임.
         /// </summary>
         public static IEnumerator WarmupModel(string baseUrl, string modelId)
         {
@@ -83,85 +81,53 @@ namespace CompanionAI_v3.Planning.LLM
             if (_warmedModels.Contains(modelId)) yield break;
 
             _isWarming = true;
-            Main.Log($"[LLMWarmup] Preloading model '{modelId}'...");
-
-            string url = NormalizeBaseUrl(baseUrl) + "/api/chat";
-
-            var body = new JObject
-            {
-                ["model"] = modelId,
-                ["messages"] = new JArray
-                {
-                    new JObject { ["role"] = "user", ["content"] = "ready" }
-                },
-                ["stream"] = false,
-                ["keep_alive"] = -1,
-                ["think"] = false,
-                ["options"] = new JObject
-                {
-                    ["num_predict"] = 1,
-                    ["temperature"] = 0
-                }
-            };
-
-            UnityWebRequest req = null;
             try
             {
-                req = new UnityWebRequest(url, "POST");
-                req.uploadHandler = new UploadHandlerRaw(
-                    Encoding.UTF8.GetBytes(body.ToString(Newtonsoft.Json.Formatting.None)));
-                req.downloadHandler = new DownloadHandlerBuffer();
-                req.SetRequestHeader("Content-Type", "application/json");
-                req.timeout = WARMUP_TIMEOUT_SECONDS;
+                Main.Log($"[LLMWarmup] Preloading model '{modelId}'...");
+
+                // Build request via LLMHttpClient.BuildChatRequest (Warmup pattern: user 메시지만, num_predict=1, keep_alive=-1)
+                var body = LLMHttpClient.BuildChatRequest(
+                    model: modelId,
+                    systemMsg: null,
+                    userMsg: "ready",
+                    numPredict: 1,
+                    temperature: 0f,
+                    think: false,
+                    keepAlive: -1);
+
+                LLMHttpClient.Response response = default(LLMHttpClient.Response);
+                yield return LLMHttpClient.PostChatAsync(
+                    baseUrl, body, WARMUP_TIMEOUT_SECONDS,
+                    r => response = r);
+
+                if (response.Success)
+                {
+                    _warmedModels.Add(modelId);
+                    Main.Log($"[LLMWarmup] Model '{modelId}' warmed in {response.ElapsedSeconds:F1}s");
+                }
+                else
+                {
+                    Main.LogDebug($"[LLMWarmup] Warmup failed for '{modelId}': {response.ErrorMessage} (HTTP {response.HttpStatusCode})");
+                    // 실패 시 _warmedModels에 추가하지 않음 → 다음 체크 시 재시도
+                }
             }
-            catch (System.Exception ex)
+            finally
             {
-                Main.LogDebug($"[LLMWarmup] request build failed: {ex.Message}");
                 _isWarming = false;
-                if (req != null) req.Dispose();
-                yield break;
             }
-
-            float startTime = Time.realtimeSinceStartup;
-            yield return req.SendWebRequest();
-            float elapsed = Time.realtimeSinceStartup - startTime;
-
-            if (req.result == UnityWebRequest.Result.Success)
-            {
-                _warmedModels.Add(modelId);
-                Main.Log($"[LLMWarmup] Model '{modelId}' warmed in {elapsed:F1}s");
-            }
-            else
-            {
-                Main.LogDebug($"[LLMWarmup] Warmup failed for '{modelId}': {req.error} (HTTP {req.responseCode})");
-                // 실패 시 _warmedModels에 추가하지 않음 → 다음 체크 시 재시도
-            }
-
-            req.Dispose();
-            _isWarming = false;
-        }
-
-        /// <summary>Ollama base URL 정규화 (/v1 suffix 제거).</summary>
-        private static string NormalizeBaseUrl(string baseUrl)
-        {
-            if (string.IsNullOrEmpty(baseUrl)) return "http://localhost:11434";
-            string url = baseUrl.TrimEnd('/');
-            if (url.EndsWith("/v1"))
-                url = url.Substring(0, url.Length - 3);
-            return url;
         }
 
         /// <summary>
         /// ★ v3.112.3: 게임/모드 종료 시 Ollama 에 모델 VRAM 해제 요청.
         /// keep_alive=-1 로 영구 유지 중인 모델을 즉시 언로드.
-        /// Sync HTTP (HttpWebRequest) — 셧다운 중 코루틴 불안정하므로 blocking 방식.
+        /// Sync HTTP — 셧다운 중 코루틴 불안정하므로 blocking 방식.
         /// 호출 경로: MachineSpirit.Shutdown() (UMM 토글) + Application.quitting (게임 종료).
+        /// ★ v3.114.0 (Phase F.2): LLMHttpClient.PostGenerateSync 위임.
         /// </summary>
         public static void UnloadAllModels(string baseUrl)
         {
             if (_warmedModels.Count == 0) return;
 
-            string url = NormalizeBaseUrl(baseUrl) + "/api/generate";
             var models = new List<string>(_warmedModels);
             _warmedModels.Clear();  // 재진입 시 웜업 다시 트리거되도록
 
@@ -181,29 +147,19 @@ namespace CompanionAI_v3.Planning.LLM
                     break;
                 }
 
-                try
-                {
-                    string body = "{\"model\":\"" + model + "\",\"keep_alive\":0}";
-                    var request = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(url);
-                    request.Method = "POST";
-                    request.ContentType = "application/json";
-                    request.Timeout = PerRequestTimeoutMs;
-                    request.ReadWriteTimeout = PerRequestTimeoutMs;
+                var response = LLMHttpClient.PostGenerateSync(
+                    baseUrl: baseUrl,
+                    model: model,
+                    keepAlive: 0,
+                    timeoutMs: PerRequestTimeoutMs);
 
-                    var data = System.Text.Encoding.UTF8.GetBytes(body);
-                    request.ContentLength = data.Length;
-                    using (var stream = request.GetRequestStream())
-                    {
-                        stream.Write(data, 0, data.Length);
-                    }
-                    using (var response = (System.Net.HttpWebResponse)request.GetResponse())
-                    {
-                        Main.Log($"[LLMWarmup] Unloaded model '{model}' (HTTP {(int)response.StatusCode}, {totalSw.ElapsedMilliseconds}ms)");
-                    }
-                }
-                catch (System.Exception ex)
+                if (response.Success)
                 {
-                    Main.LogDebug($"[LLMWarmup] Unload failed for '{model}' ({totalSw.ElapsedMilliseconds}ms): {ex.Message}");
+                    Main.Log($"[LLMWarmup] Unloaded model '{model}' (HTTP {response.HttpStatusCode}, {totalSw.ElapsedMilliseconds}ms)");
+                }
+                else
+                {
+                    Main.LogDebug($"[LLMWarmup] Unload failed for '{model}' ({totalSw.ElapsedMilliseconds}ms): {response.ErrorMessage}");
                     // budget 내에서 다음 모델 시도 — keep_alive=0 payload 는 TCP 송신만 되면 됨
                 }
             }
