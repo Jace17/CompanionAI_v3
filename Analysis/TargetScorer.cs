@@ -548,7 +548,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[TargetScorer] ScoreEnemy error: {ex.Message}");
+                Main.LogError(ex, $"[TargetScorer] ScoreEnemy error");
             }
 
             return score;
@@ -605,7 +605,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[TargetScorer] SelectBestEnemy error: {ex.Message}");
+                Main.LogError(ex, $"[TargetScorer] SelectBestEnemy error");
             }
 
             return candidates.FirstOrDefault();
@@ -675,7 +675,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[TargetScorer] ScoreAllyForHealing error: {ex.Message}");
+                Main.LogError(ex, $"[TargetScorer] ScoreAllyForHealing error");
             }
 
             return score;
@@ -712,7 +712,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[TargetScorer] SelectBestAllyForHealing error: {ex.Message}");
+                Main.LogError(ex, $"[TargetScorer] SelectBestAllyForHealing error");
             }
 
             return null;
@@ -749,7 +749,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[TargetScorer] SelectBestAllyForBuff error: {ex.Message}");
+                Main.LogError(ex, $"[TargetScorer] SelectBestAllyForBuff error");
             }
 
             return allies.FirstOrDefault();
@@ -809,7 +809,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[TargetScorer] TurnOrder cache error: {ex.Message}");
+                Main.LogError(ex, $"[TargetScorer] TurnOrder cache error");
             }
         }
 
@@ -928,7 +928,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[TargetScorer] EvaluateThreat error: {ex.Message}");
+                Main.LogError(ex, $"[TargetScorer] EvaluateThreat error");
                 return THREAT_FALLBACK;  // 폴백: 중간 위협도
             }
 
