@@ -1883,7 +1883,7 @@ namespace CompanionAI_v3.UI
                     .Select(unit => new CharacterInfo { Id = unit.UniqueId ?? "unknown", Name = unit.CharacterName ?? "Unnamed", Unit = unit })
                     .ToList();
             }
-            catch (Exception ex) { Main.LogDebug($"[MainUI] {ex.Message}"); return new List<CharacterInfo>(); }
+            catch (Exception ex) { Main.LogError(ex, $"[MainUI] GetPartyMembers error"); return new List<CharacterInfo>(); }
         }
 
         private class CharacterInfo

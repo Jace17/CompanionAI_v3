@@ -541,7 +541,7 @@ namespace CompanionAI_v3.Planning.LLM
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[LLMJudge] Parse error: {ex.Message}, raw={Truncate(rawResponse, 200)}");
+                Main.LogError(ex, $"[LLMJudge] Parse error, raw={Truncate(rawResponse, 200)}");
                 return 0;
             }
         }

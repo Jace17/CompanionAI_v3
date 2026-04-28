@@ -401,6 +401,7 @@ namespace CompanionAI_v3.GameInterface
                             return false;
                     }
                 }
+                // intentional: IsAoESafe 의 ally 루프, IsPlayerEnemy/IsInPlayerParty 의 transient null/race 흡수
                 catch (Exception ex) { Main.LogDebug($"[AoESafety] {ex.Message}"); }
             }
 
@@ -582,6 +583,7 @@ namespace CompanionAI_v3.GameInterface
                         }
                     }
                 }
+                // intentional: IsAoESafeForUnitTargetFromPosition 의 ally 루프, IsPlayerEnemy/IsInPlayerParty 접근 transient null 흡수
                 catch (Exception ex) { Main.LogDebug($"[AoESafety] {ex.Message}"); }
             }
 
@@ -1281,7 +1283,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                CompanionAI_v3.Main.LogDebug($"[AOE] Cluster-based search failed: {ex.Message}, using legacy");
+                CompanionAI_v3.Main.LogError(ex, $"[AOE] Cluster-based search failed, using legacy");
                 return FindBestAoEPosition(ability, caster, enemies, allies, minEnemiesRequired);
             }
         }

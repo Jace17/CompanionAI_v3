@@ -1586,6 +1586,7 @@ namespace CompanionAI_v3.Analysis
                         }
                     }
                 }
+                // intentional: IsAttackAbility 는 모든 능력에 대해 매 턴 호출, Blueprint?.EffectOnEnemy 접근이 씬 로드 중 transient null 가능
                 catch (Exception ex) { Main.LogDebug($"[Analyzer] {ex.Message}"); }
             }
 

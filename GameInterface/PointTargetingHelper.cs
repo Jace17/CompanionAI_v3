@@ -440,7 +440,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[PointTargetingHelper] GetEnemiesInChargePath ERROR: {ex.Message}, fallback to Bresenham");
+                Main.LogError(ex, $"[PointTargetingHelper] GetEnemiesInChargePath ERROR, fallback to Bresenham");
                 return GetEnemiesInChargePath(p1Pos, p2Pos, allEnemies, casterSize);
             }
 

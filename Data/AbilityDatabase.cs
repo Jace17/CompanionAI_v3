@@ -1419,6 +1419,7 @@ namespace CompanionAI_v3.Data
                             }
                         }
                     }
+                    // intentional: IsDefensiveStance 폴백 경로, BlueprintCache.GetCachedRunAction 의 transient null 흡수
                     catch (Exception ex) { Main.LogDebug($"[AbilityDB] {ex.Message}"); }
                 }
             }
@@ -1732,6 +1733,7 @@ namespace CompanionAI_v3.Data
                 float radius = blueprint.AoERadius;
                 if (radius > 0) return true;
             }
+            // intentional: IsAoE 는 능력 분류 핫 경로, Blueprint.AoERadius 의 transient null 흡수
             catch (Exception ex) { Main.LogDebug($"[AbilityDB] {ex.Message}"); }
 
             return false;
@@ -1753,6 +1755,7 @@ namespace CompanionAI_v3.Data
                 if (ability?.Blueprint?.AbilityParamsSource == WarhammerAbilityParamsSource.PsychicPower)
                     return true;
             }
+            // intentional: IsPsychic 능력 분류 핫 경로, Blueprint.AbilityParamsSource 접근 transient null 흡수
             catch (Exception ex) { Main.LogDebug($"[AbilityDB] {ex.Message}"); }
 
             // ★ v3.5.74: 문자열 기반 폴백 제거 - 게임 API만 신뢰

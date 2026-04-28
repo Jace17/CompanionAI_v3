@@ -782,6 +782,7 @@ namespace CompanionAI_v3.Analysis
                     }
                 }
             }
+            // intentional: ScoreAttack 은 (attack × target) 쌍마다 호출되는 핫 경로, Buffs.Enumerable / Blueprint 접근의 transient null 허용
             catch (Exception ex) { Main.LogDebug($"[UtilityScorer] {ex.Message}"); }
 
             // ★ 특수 타이밍 고려
