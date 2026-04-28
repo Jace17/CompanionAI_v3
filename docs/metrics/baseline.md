@@ -1,6 +1,9 @@
 # Baseline Index
 
-현재 활성 베이스라인: [baseline-2026-04-28.md](baseline-2026-04-28.md)
+현재 활성 베이스라인: [baseline-2026-04-28-phase1.md](baseline-2026-04-28-phase1.md) (Phase 1 후, silent catch 7 intentional)
+
+이전 베이스라인 (archive — 회귀 추적용):
+- [baseline-2026-04-28.md](baseline-2026-04-28.md) (v3.114.0, Phase 1 진입 전, silent catch 205)
 
 새 베이스라인 갱신 시:
 

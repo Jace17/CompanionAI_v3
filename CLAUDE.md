@@ -269,7 +269,7 @@ PatternType.Circle → 1.6m | PatternType.Ray/Cone/Sector → 0.3m (Directional)
 
 - **절대 금지**: `catch (Exception ex) { Main.LogDebug($"... {ex.Message}"); }`
   현재 205곳에 있음. 이 패턴은 **기본 로그 레벨에서 사라지고 스택 트레이스도 손실**되어 사실상 무음 실패.
-- **표준 패턴**: `catch (Exception ex) { Main.LogError(ex, $"context"); }` (Phase 1에서 시그니처 도입 예정)
+- **표준 패턴**: `catch (Exception ex) { Main.LogError(ex, $"context"); }` (Phase 1.0 도입 완료, Main.cs)
 - **Phase 2 이후 표준**: `catch (Exception ex) { Log.<Category>.Error(ex, $"context"); }`
 - 의도적으로 무시해야 하는 예외(매 프레임 hot path, 게임의 transient null 등)는 **왜 무시하는지 주석 필수**.
 
