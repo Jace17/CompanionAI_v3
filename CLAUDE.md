@@ -259,6 +259,75 @@ PatternType.Circle → 1.6m | PatternType.Ray/Cone/Sector → 0.3m (Directional)
 
 ---
 
+## 코드 위생 룰 (반드시 준수)
+
+> 근거: [CompanionAI_v3_분석_및_개선안.md](CompanionAI_v3_분석_및_개선안.md) (2026-04-28).
+> 메트릭 측정: `bash scripts/code-metrics.sh` (Phase 6 산출물).
+
+### 예외 처리
+
+- **절대 금지**: `catch (Exception ex) { Main.LogDebug($"... {ex.Message}"); }`
+  현재 205곳에 있음. 이 패턴은 **기본 로그 레벨에서 사라지고 스택 트레이스도 손실**되어 사실상 무음 실패.
+- **표준 패턴**: `catch (Exception ex) { Main.LogError(ex, $"context"); }` (Phase 1에서 시그니처 도입 예정)
+- **Phase 2 이후 표준**: `catch (Exception ex) { Log.<Category>.Error(ex, $"context"); }`
+- 의도적으로 무시해야 하는 예외(매 프레임 hot path, 게임의 transient null 등)는 **왜 무시하는지 주석 필수**.
+
+### 파일 크기
+
+- **신규 `.cs` 파일이 800 LOC 넘으면 작업 중단하고 분해 제안**.
+- 기존 파일에 새 기능 append 전에 **새 파일로 분리 가능한지 먼저 검토**.
+- `partial class`는 분해 부담을 줄이는 가교로만 사용 (영구 해법 아님 — Lesson 18 참조).
+- 1500 LOC 초과 신규 파일 작성 금지 (예외: 자동 생성 / 다국어 테이블).
+
+### 버전 주석
+
+- **절대 금지**: 새로운 `★ vX.Y: ...` 형태의 인라인 마커 추가.
+  현재 3,501개 누적. git이 해야 할 변경 이력 추적을 코드 주석이 떠맡고 있음.
+- 변경 이력은 **git commit 메시지 + LESSONS_LEARNED.md + 별도 CHANGELOG.md**에 둘 것.
+- 기존 `★` 마커는 해당 파일 편집 시 함께 제거 (Phase 4 자연 소멸).
+- "왜 이 코드가 이렇게 되어 있나"는 git blame 으로 추적 가능 — 코드는 *왜*에 대한 의미만 주석에 둔다.
+
+### 로깅
+
+- **현재**: `Main.Log / LogDebug / LogWarning / LogError` 평면 4함수 (1,721회 사용 중).
+- **Phase 2 목표**: `Log.<Category>.<Level>(...)` 카테고리 로깅. 카테고리 후보:
+  - `Engine` (Core, GameInterface, Execution)
+  - `Planning` (Planning/, Planning/Planners/, Planning/Plans/)
+  - `Analysis` (Analysis/)
+  - `Diagnostics` (Diagnostics/)
+  - `UI` (UI/)
+  - `Persistence` (Settings/, Data/)
+  - `MachineSpirit` (MachineSpirit/, Dialogue/)
+- **Phase 2 완료까지의 신규 코드는** `Main.Log*` 사용 OK (전환 비용 폭증 방지). 단, 새 모듈/큰 신규 기능은 Phase 2 진행 후 작업.
+
+### 중첩 깊이
+
+- **`if` 들여쓰기가 4단계(공백 16칸) 넘으면 early return / guard clause로 평탄화**.
+- 현재 4,054건 중첩이 누적. 신규 코드부터 차단.
+
+### 작업 단위
+
+- **한 PR/커밋에서 여러 파일에 걸쳐 동일 패턴(예: try/catch 추가)을 반복하지 말 것** — 추상화 누락 신호.
+- 같은 try/catch 블록을 두 곳 이상에 복사하면 **헬퍼로 추출 후 추가**.
+- "이 모듈 리팩토링하면서 새 기능 추가" 형태 금지 — **작업 분리** (PR 1: 리팩토링, PR 2: 신기능).
+
+### 코드 리뷰
+
+- "라운드 N" 형태의 같은 모델 + 같은 프롬프트 반복 리뷰는 **같은 사각지대**를 가짐.
+- 리뷰 시 **구체적 적대적 질문**을 사용:
+  - "이 파일에서 silent failure를 모두 찾아라"
+  - "1000 LOC 넘는 파일에서 분리 가능한 책임 영역을 찾아라"
+  - "이 catch 블록이 진짜로 모든 Exception을 잡아야 하는 이유를 설명하라"
+- **메트릭 기반 자동 검증(`scripts/code-metrics.sh`)을 LLM 리뷰보다 신뢰**.
+
+### 메트릭 회귀 가드
+
+- 작업 완료 전 `bash scripts/code-metrics.sh` 실행하여 **베이스라인 대비 악화가 없는지 확인**.
+- 베이스라인은 [docs/metrics/baseline.md](docs/metrics/baseline.md) (Phase 6 산출물).
+- 의도적 악화(예: 신규 모듈 추가로 LOC 증가)는 commit 메시지에 명시.
+
+---
+
 ## 참조 리소스
 
 - **게임 디컴파일**: `C:\Users\veria\Downloads\roguetrader_decompile\project`
