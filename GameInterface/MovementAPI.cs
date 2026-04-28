@@ -1318,10 +1318,17 @@ namespace CompanionAI_v3.GameInterface
             // ★ v3.110.12: 폴백 체인 단계 라벨링 — 어느 단계가 최종 선택했는지 추적 가능.
             // 5단계 우선순위: hittable-optimal > hittable-close > hittable-risky > los-optimal > los-risky
             string selectedBy = "none";
+            // ★ Tier 1: hittable-optimal (DistanceScore >= 20) OR hittable-safe (HideFullRatio >= 0.8 + DistanceScore > 0).
+            // Hide-safe 분기는 Argenta 케이스 같은 "Tier 2 노출 폴백" 차단용 — 안전한 hittable 자리가
+            // 있는데 DistanceScore 만 부족해서 Tier 2 로 떨어져 노출 타일이 선택되는 결함 방지.
+            const float HIDE_SAFE_RATIO = 0.8f;  // 80% 적이 ≥Full LOS 차단되는 자리 = 안전
             var best = CollectionHelper.MaxByWhere(scores,
-                s => s.CanStand && s.HittableEnemyCount > 0 && s.DistanceScore >= 20f,
+                s => s.CanStand && s.HittableEnemyCount > 0
+                     && (s.DistanceScore >= 20f
+                         || (s.HideFullRatio >= HIDE_SAFE_RATIO && s.DistanceScore > 0f)),
                 s => s.TotalScore);
-            if (best != null) selectedBy = "hittable-optimal";
+            if (best != null)
+                selectedBy = best.DistanceScore >= 20f ? "hittable-optimal" : "hittable-safe";
 
             if (best == null)
             {
