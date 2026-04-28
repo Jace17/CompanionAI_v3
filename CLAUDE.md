@@ -324,7 +324,7 @@ PatternType.Circle → 1.6m | PatternType.Ray/Cone/Sector → 0.3m (Directional)
 ### 메트릭 회귀 가드
 
 - 작업 완료 전 `bash scripts/code-metrics.sh` 실행하여 **베이스라인 대비 악화가 없는지 확인**.
-- 베이스라인은 `docs/metrics/baseline.md` (Phase 6 완료 후 생성 — 그 전까지는 N/A).
+- 베이스라인은 `docs/metrics/baseline.md` (인덱스 → 활성 dated 파일 가리킴; 현재 `baseline-2026-04-28.md`, v3.114.0 시점 동결).
 - 의도적 악화(예: 신규 모듈 추가로 LOC 증가)는 commit 메시지에 명시.
 
 ---
