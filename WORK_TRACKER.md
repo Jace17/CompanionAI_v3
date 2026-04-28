@@ -125,6 +125,7 @@
    - 예: `"[Analyzer] Extra turn CONFIRMED"`, `"Hide=33.6(F0.93/A0.93)"`, `"StayAway=0.70(17.6)"`
    - **빌드 클린 ≠ 실행 증명**. v3.111.0 Phase 5는 빌드 클린이었지만 `task.Wait` 데드락으로 0% 효과 — "완료 선언" 후 배포한 뒤 발견.
    - 기능 검증은 항상 로그 관찰까지 포함. 로그에 증거 없으면 완료 아님.
+7. **메트릭 회귀 없음** (Phase 6 이후): `bash scripts/code-metrics.sh` 결과가 `docs/metrics/baseline.md` 가 가리키는 활성 베이스라인 대비 모든 항목 동등 또는 개선. 의도적 악화 (예: 신규 모듈 추가로 LOC 증가)는 commit 메시지에 명시.
 
 ### 7. 코드 감사 기술 부채 정리 — ★ v3.22.0 완성
 
