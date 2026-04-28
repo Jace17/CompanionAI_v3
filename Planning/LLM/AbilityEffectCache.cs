@@ -133,7 +133,7 @@ namespace CompanionAI_v3.Planning.LLM
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[AbilityEffectCache] Load failed: {ex.Message}");
+                Main.LogError(ex, $"[AbilityEffectCache] Load failed");
             }
 
             return false;
@@ -155,7 +155,7 @@ namespace CompanionAI_v3.Planning.LLM
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[AbilityEffectCache] Save failed: {ex.Message}");
+                Main.LogError(ex, $"[AbilityEffectCache] Save failed");
             }
         }
 

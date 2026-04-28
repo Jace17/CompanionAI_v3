@@ -484,7 +484,7 @@ namespace CompanionAI_v3.Data
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[FamiliarAbilities] IsExtrapolationTarget error: {ex.Message}");
+                Main.LogError(ex, $"[FamiliarAbilities] IsExtrapolationTarget error");
                 return false;
             }
         }
@@ -569,7 +569,7 @@ namespace CompanionAI_v3.Data
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[FamiliarAbilities] IsWarpRelayTarget error: {ex.Message}");
+                Main.LogError(ex, $"[FamiliarAbilities] IsWarpRelayTarget error");
                 return false;
             }
         }
@@ -1326,7 +1326,7 @@ namespace CompanionAI_v3.Data
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[FamiliarAbilities] IsDamageDealingAbility error for {ability?.Name}: {ex.Message}");
+                Main.LogError(ex, $"[FamiliarAbilities] IsDamageDealingAbility error for {ability?.Name}");
                 return false;
             }
         }
@@ -1468,7 +1468,7 @@ namespace CompanionAI_v3.Data
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[FamiliarAbilities] IsDamagingPsychicAttack error: {ex.Message}");
+                Main.LogError(ex, $"[FamiliarAbilities] IsDamagingPsychicAttack error");
                 return false;
             }
         }
@@ -1661,7 +1661,7 @@ namespace CompanionAI_v3.Data
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[FamiliarAbilities] CollectFamiliarAbilities error: {ex.Message}");
+                Main.LogError(ex, $"[FamiliarAbilities] CollectFamiliarAbilities error");
             }
 
             return result;

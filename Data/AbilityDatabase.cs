@@ -1223,7 +1223,7 @@ namespace CompanionAI_v3.Data
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[AbilityDatabase] AutoDetectTiming error: {ex.Message}");
+                Main.LogError(ex, $"[AbilityDatabase] AutoDetectTiming error");
                 return AbilityTiming.Normal;
             }
         }
@@ -1376,7 +1376,7 @@ namespace CompanionAI_v3.Data
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[AbilityDB] IsTurnGrantAbility error for {ability.Name}: {ex.Message}");
+                Main.LogError(ex, $"[AbilityDB] IsTurnGrantAbility error for {ability.Name}");
             }
 
             return false;
@@ -1568,7 +1568,7 @@ namespace CompanionAI_v3.Data
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[AbilityDB] AnalyzeBuffEffect error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[AbilityDB] AnalyzeBuffEffect error");
                 return (false, false);
             }
         }

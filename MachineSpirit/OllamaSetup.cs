@@ -341,7 +341,7 @@ namespace CompanionAI_v3.MachineSpirit
                 }
                 catch (System.Exception ex)
                 {
-                    Main.LogDebug($"[MachineSpirit] Failed to parse Ollama models: {ex.Message}");
+                    Main.LogError(ex, $"[MachineSpirit] Failed to parse Ollama models");
                 }
             }
 

@@ -1515,7 +1515,7 @@ namespace CompanionAI_v3.UI
             }
             catch (System.Exception ex)
             {
-                Main.LogDebug($"[MachineSpirit] Failed to start ollama pull: {ex.Message}");
+                Main.LogError(ex, $"[MachineSpirit] Failed to start ollama pull");
                 _installStatus = $"Error: {ex.Message}";
                 startFailed = true;
             }

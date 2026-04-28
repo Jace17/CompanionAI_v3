@@ -121,7 +121,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[FamiliarPositioner] FindOptimalPosition error: {ex.Message}");
+                Main.LogError(ex, $"[FamiliarPositioner] FindOptimalPosition error");
                 return CreateDefaultPosition(master.Position);
             }
         }

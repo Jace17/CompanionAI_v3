@@ -727,7 +727,7 @@ namespace CompanionAI_v3.Planning.LLM
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[LLMJudge] Confidence parse error: {ex.Message}");
+                Main.LogError(ex, $"[LLMJudge] Confidence parse error");
                 return fallback;
             }
         }

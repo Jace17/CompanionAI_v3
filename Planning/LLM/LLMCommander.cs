@@ -118,7 +118,7 @@ namespace CompanionAI_v3.Planning.LLM
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[LLMCommander] Parse failed: {ex.Message}");
+                Main.LogError(ex, $"[LLMCommander] Parse failed");
             }
 
             return d;

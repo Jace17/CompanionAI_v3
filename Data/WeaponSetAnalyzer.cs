@@ -121,7 +121,7 @@ namespace CompanionAI_v3.Data
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[WeaponSetAnalyzer] Error analyzing sets: {ex.Message}");
+                Main.LogError(ex, $"[WeaponSetAnalyzer] Error analyzing sets");
                 return null;
             }
 

@@ -219,7 +219,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[Analyzer] Weapon set analysis failed: {ex.Message}");
+                Main.LogError(ex, $"[Analyzer] Weapon set analysis failed");
             }
         }
 
@@ -1547,7 +1547,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[Analyzer] AnalyzeFamiliar error: {ex.Message}");
+                Main.LogError(ex, $"[Analyzer] AnalyzeFamiliar error");
                 situation.HasFamiliar = false;
             }
         }

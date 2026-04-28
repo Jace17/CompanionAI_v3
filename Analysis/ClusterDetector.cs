@@ -201,7 +201,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[ClusterDetector] Error in FindClusters: {ex.Message}");
+                Main.LogError(ex, $"[ClusterDetector] Error in FindClusters");
                 for (int i = 0; i < _activeClusters.Count; i++)
                     ReturnCluster(_activeClusters[i]);
                 _activeClusters.Clear();
@@ -273,7 +273,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[ClusterDetector] Error in FindBestClusterForAbility: {ex.Message}");
+                Main.LogError(ex, $"[ClusterDetector] Error in FindBestClusterForAbility");
                 return null;
             }
         }
@@ -372,7 +372,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[ClusterDetector] Error in FindOptimalAoEPosition: {ex.Message}");
+                Main.LogError(ex, $"[ClusterDetector] Error in FindOptimalAoEPosition");
                 return cluster?.Center;
             }
         }
@@ -651,7 +651,7 @@ namespace CompanionAI_v3.Analysis
                 }
                 catch (Exception ex)
                 {
-                    Main.LogDebug($"[ClusterDetector] ApplyAllyPenalty error for {ally?.CharacterName}: {ex.Message}");
+                    Main.LogError(ex, $"[ClusterDetector] ApplyAllyPenalty error for {ally?.CharacterName}");
                 }
             }
         }

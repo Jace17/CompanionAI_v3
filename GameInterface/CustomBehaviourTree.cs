@@ -122,7 +122,7 @@ namespace CompanionAI_v3.GameInterface
                             if (Kingmaker.Settings.SettingsRoot.Game.TurnBased.CameraScrollToCurrentUnit.GetValue())
                                 Game.Instance.CameraController?.Follower?.Follow(unit);
                         }
-                        catch (Exception ex) { Main.LogDebug($"[CustomBehaviourTree] Pet camera follow failed: {ex.Message}"); }
+                        catch (Exception ex) { Main.LogError(ex, $"[CustomBehaviourTree] Pet camera follow failed"); }
                     }
                     return;
                 }
@@ -589,7 +589,7 @@ namespace CompanionAI_v3.GameInterface
                                         Game.Instance.CameraController?.Follower?.Follow(unit);
                                     }
                                 }
-                                catch (Exception ex) { Main.LogDebug($"[CustomBehaviourTree] Move camera follow failed: {ex.Message}"); }
+                                catch (Exception ex) { Main.LogError(ex, $"[CustomBehaviourTree] Move camera follow failed"); }
 
                                 Main.Log($"[CompanionAIDecisionNode] {unit.CharacterName}: Move to {result.Destination.Value}");
                                 return Status.Success;  // → Selector가 Movement 노드 실행
@@ -720,7 +720,7 @@ namespace CompanionAI_v3.GameInterface
                         }
                         catch (Exception ex)
                         {
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[CompanionAIDecisionNode] A* path error: {ex.Message}");
+                            if (Main.IsDebugEnabled) Main.LogError(ex, $"[CompanionAIDecisionNode] A* path error");
                         }
                     }
 

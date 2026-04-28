@@ -217,7 +217,7 @@ namespace CompanionAI_v3.Data
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[BlueprintCache] Error caching ability: {ex.Message}");
+                Main.LogError(ex, $"[BlueprintCache] Error caching ability");
                 return null;
             }
         }

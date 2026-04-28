@@ -54,7 +54,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsPsychicAbility failed for {ability?.Name}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsPsychicAbility failed for {ability?.Name}");
                 return false;
             }
         }
@@ -73,7 +73,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsMajorPsychicAbility failed for {ability?.Name}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsMajorPsychicAbility failed for {ability?.Name}");
                 return false;
             }
         }
@@ -93,7 +93,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsMinorPsychicAbility failed for {ability?.Name}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsMinorPsychicAbility failed for {ability?.Name}");
                 return false;
             }
         }

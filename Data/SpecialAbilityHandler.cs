@@ -253,7 +253,7 @@ namespace CompanionAI_v3.Data
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[SpecialAbility] HasDoT error: {ex.Message}");
+                Main.LogError(ex, $"[SpecialAbility] HasDoT error");
                 return false;
             }
         }
@@ -283,7 +283,7 @@ namespace CompanionAI_v3.Data
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[SpecialAbility] CountDOTStacks error: {ex.Message}");
+                Main.LogError(ex, $"[SpecialAbility] CountDOTStacks error");
                 return 0;
             }
         }
@@ -394,7 +394,7 @@ namespace CompanionAI_v3.Data
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[SpecialAbility] Chain prediction error: {ex.Message}");
+                Main.LogError(ex, $"[SpecialAbility] Chain prediction error");
             }
 
             return result;
@@ -481,7 +481,7 @@ namespace CompanionAI_v3.Data
                         count++;
                 }
             }
-            catch (Exception ex) { Main.LogDebug($"[SpecialAbility] CountDebuffs error: {ex.Message}"); }
+            catch (Exception ex) { Main.LogError(ex, $"[SpecialAbility] CountDebuffs error"); }
 
             return count;
         }

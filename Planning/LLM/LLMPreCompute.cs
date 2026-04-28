@@ -88,7 +88,7 @@ namespace CompanionAI_v3.Planning.LLM
                 }
                 catch (Exception ex)
                 {
-                    Main.LogDebug($"[LLMPreCompute] Situation analysis failed for {unit.CharacterName}: {ex.Message}");
+                    Main.LogError(ex, $"[LLMPreCompute] Situation analysis failed for {unit.CharacterName}");
                     _isPreComputing = false;
                     return;
                 }

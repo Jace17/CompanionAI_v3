@@ -110,7 +110,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetAbilityRange error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetAbilityRange error");
                 return GridCellSize * 2;  // ★ v3.8.63: 에러 시에도 근접 폴백 (15f보다 안전)
             }
         }
@@ -142,7 +142,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsUnlimitedRange failed for {ability?.Name}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsUnlimitedRange failed for {ability?.Name}");
                 return false;
             }
         }
@@ -182,7 +182,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] CanReachTargetFromPosition error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] CanReachTargetFromPosition error");
                 return true;  // 에러 시 허용 (안전하게)
             }
         }
@@ -278,7 +278,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetAbilityTypeInfo error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetAbilityTypeInfo error");
                 return new AbilityTypeInfo();
             }
         }
@@ -423,7 +423,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetClassificationData error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetClassificationData error");
                 return new AbilityClassificationData();
             }
         }
@@ -494,7 +494,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsUnitInDamagingAoE error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsUnitInDamagingAoE error");
             }
 
             return false;
@@ -533,7 +533,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsPositionInDamagingAoE error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsPositionInDamagingAoE error");
             }
 
             return false;
@@ -679,7 +679,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsUnitInPsychicNullZone error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsUnitInPsychicNullZone error");
                 return false;
             }
         }
@@ -701,7 +701,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsPositionInPsychicNullZone error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsPositionInPsychicNullZone error");
             }
             return false;
         }
@@ -724,7 +724,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] HasPsychicAbilities failed for {unit?.CharacterName}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] HasPsychicAbilities failed for {unit?.CharacterName}");
             }
             return false;
         }

@@ -56,7 +56,7 @@ namespace CompanionAI_v3.MachineSpirit
             }
             catch (System.Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[GameKnowledge] GetUnitInfo silent: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[GameKnowledge] GetUnitInfo silent");
                 return null;
             }
         }

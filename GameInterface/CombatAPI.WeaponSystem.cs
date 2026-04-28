@@ -28,7 +28,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] HasRangedWeapon failed for {unit?.CharacterName}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] HasRangedWeapon failed for {unit?.CharacterName}");
                 return false;
             }
         }
@@ -48,7 +48,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] HasMeleeWeapon failed for {unit?.CharacterName}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] HasMeleeWeapon failed for {unit?.CharacterName}");
                 return false;
             }
         }
@@ -80,7 +80,7 @@ namespace CompanionAI_v3.GameInterface
             catch (Exception ex)
             {
                 // ★ v3.4.01: P1-2 예외 상세 로깅
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] NeedsReloadAnyRanged error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] NeedsReloadAnyRanged error");
             }
 
             return false;
@@ -110,7 +110,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetCurrentAmmo failed for {unit?.CharacterName}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetCurrentAmmo failed for {unit?.CharacterName}");
                 return -1;
             }
         }
@@ -128,7 +128,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetMaxAmmo failed for {unit?.CharacterName}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetMaxAmmo failed for {unit?.CharacterName}");
                 return -1;
             }
         }
@@ -162,7 +162,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] HasMultipleWeaponSets failed for {unit?.CharacterName}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] HasMultipleWeaponSets failed for {unit?.CharacterName}");
                 return false;
             }
         }
@@ -196,7 +196,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetWeaponNameForSet failed for {unit?.CharacterName}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetWeaponNameForSet failed for {unit?.CharacterName}");
                 return null;
             }
         }
@@ -221,7 +221,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] AreBothWeaponSetsSame failed for {unit?.CharacterName}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] AreBothWeaponSetsSame failed for {unit?.CharacterName}");
                 return true;
             }
         }
@@ -409,7 +409,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[CombatAPI] CalculateWeaponRangeProfile error for {unit.CharacterName}: {ex.Message}");
+                Main.LogError(ex, $"[CombatAPI] CalculateWeaponRangeProfile error for {unit.CharacterName}");
                 return CreateDefaultProfile();
             }
 
@@ -498,7 +498,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] TryFindDirectionalAoEPrimaryAttack iteration failed for {unit?.CharacterName}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] TryFindDirectionalAoEPrimaryAttack iteration failed for {unit?.CharacterName}");
                 return (null, 0f);
             }
 

@@ -336,7 +336,7 @@ namespace CompanionAI_v3.Planning.Planners
                         }
                         catch (Exception ex)
                         {
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanGapCloser: Path validation error: {ex.Message}");
+                            if (Main.IsDebugEnabled) Main.LogError(ex, $"[{roleName}] PlanGapCloser: Path validation error");
                         }
 
                         // 2. 기존 검증
@@ -624,7 +624,7 @@ namespace CompanionAI_v3.Planning.Planners
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] FindGapCloserLanding grid search failed: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovementPlanner] FindGapCloserLanding grid search failed");
             }
 
             // ★ 폴백: MovementAPI 사용 (기존 로직)
@@ -1215,7 +1215,7 @@ namespace CompanionAI_v3.Planning.Planners
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] FindRetreatDashLanding grid search failed: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovementPlanner] FindRetreatDashLanding grid search failed");
             }
 
             return null;
@@ -1413,7 +1413,7 @@ namespace CompanionAI_v3.Planning.Planners
                         meleeRange = attackRange;
                 }
             }
-            catch (Exception ex) { if (Main.IsDebugEnabled) Main.LogDebug($"[MovePlanner] GetUnitMeleeRange: {ex.Message}"); }
+            catch (Exception ex) { if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovePlanner] GetUnitMeleeRange"); }
             return meleeRange;
         }
 

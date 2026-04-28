@@ -152,7 +152,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[BattlefieldGrid] TryGetGridGraph error: {ex.Message}");
+                Main.LogError(ex, $"[BattlefieldGrid] TryGetGridGraph error");
                 return false;
             }
         }

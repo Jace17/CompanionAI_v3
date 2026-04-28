@@ -392,7 +392,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] FindAllReachableTilesSync error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovementAPI] FindAllReachableTilesSync error");
                 return new Dictionary<GraphNode, WarhammerPathPlayerCell>();
             }
         }
@@ -496,7 +496,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] FindAllReachableTilesWithThreatsSync error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovementAPI] FindAllReachableTilesWithThreatsSync error");
                 return ConvertToAiCells(FindAllReachableTilesSync(unit, maxAP));
             }
         }
@@ -617,7 +617,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] CalculateThreatScore error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovementAPI] CalculateThreatScore error");
             }
 
             return threatScore;
@@ -701,7 +701,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] EvaluatePathRiskAi error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovementAPI] EvaluatePathRiskAi error");
                 return 0f;
             }
 
@@ -777,7 +777,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] CalculateHitChanceBonus error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovementAPI] CalculateHitChanceBonus error");
                 return 0f;
             }
         }
@@ -1776,7 +1776,7 @@ namespace CompanionAI_v3.GameInterface
                 }
                 catch (System.Exception ex)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] hide score silent: {ex.Message}");
+                    if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovementAPI] hide score silent");
                 }
 
                 // ★ v3.111.17 Phase C.3: StayingAwayBonus — 적 이동능력 반영 안전거리 점수.
@@ -1790,7 +1790,7 @@ namespace CompanionAI_v3.GameInterface
                 }
                 catch (System.Exception ex)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] retreat staying-away silent: {ex.Message}");
+                    if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovementAPI] retreat staying-away silent");
                 }
 
                 // ★ v3.8.78: LOS 기반 hittable count (기존 CountHittableEnemiesFromPosition 호출 제거)
@@ -2161,7 +2161,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] FindApproachAlongPath error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovementAPI] FindApproachAlongPath error");
                 return null;
             }
         }

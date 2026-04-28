@@ -395,7 +395,7 @@ namespace CompanionAI_v3.Data
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[Speech] Bark failed for {unit.CharacterName}: {ex.Message}");
+                Main.LogError(ex, $"[Speech] Bark failed for {unit.CharacterName}");
             }
         }
 
@@ -470,7 +470,7 @@ namespace CompanionAI_v3.Data
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[Speech] Victory bark failed: {ex.Message}");
+                Main.LogError(ex, $"[Speech] Victory bark failed");
             }
         }
 

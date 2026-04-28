@@ -33,7 +33,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsInThreateningArea error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsInThreateningArea error");
                 return false;
             }
         }
@@ -51,7 +51,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetThreateningEnemies error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetThreateningEnemies error");
                 return new List<BaseUnitEntity>();
             }
         }
@@ -87,7 +87,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] WillCauseAOO error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] WillCauseAOO error");
                 return false;
             }
         }
@@ -153,7 +153,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] CheckAOOStatus error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] CheckAOOStatus error");
                 return result;
             }
         }
@@ -372,7 +372,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetAbilityMPRecovery error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetAbilityMPRecovery error");
             }
 
             return 0f;
@@ -417,7 +417,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetAbilityAPRecovery error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetAbilityAPRecovery error");
             }
 
             return 0f;
@@ -473,7 +473,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] CanUseSpringAttackAbility error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] CanUseSpringAttackAbility error");
                 return false;
             }
         }
@@ -491,7 +491,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] HasSpringAttackPart failed for {unit?.CharacterName}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] HasSpringAttackPart failed for {unit?.CharacterName}");
                 return false;
             }
         }
@@ -519,7 +519,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetExistingStrategistZones error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetExistingStrategistZones error");
             }
 
             return zones;
@@ -538,7 +538,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsStrategistZoneAbility failed for {ability?.Name}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsStrategistZoneAbility failed for {ability?.Name}");
                 return false;
             }
         }
@@ -563,7 +563,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsPositionTooCloseToExistingZones error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsPositionTooCloseToExistingZones error");
                 return false;
             }
         }
@@ -621,7 +621,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] FindNonOverlappingZonePosition error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] FindNonOverlappingZonePosition error");
                 return null;
             }
         }

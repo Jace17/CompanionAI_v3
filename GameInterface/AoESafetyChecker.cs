@@ -646,7 +646,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[AoESafety] Chain check error: {ex.Message}");
+                Main.LogError(ex, $"[AoESafety] Chain check error");
                 return true;  // 에러 시 안전하게 허용 (기존 동작 유지)
             }
         }

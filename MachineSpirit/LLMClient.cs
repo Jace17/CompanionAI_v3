@@ -573,7 +573,7 @@ namespace CompanionAI_v3.MachineSpirit
                 }
                 catch (Exception ex)
                 {
-                    Main.LogDebug($"[MachineSpirit] Summary parse error: {ex.Message}");
+                    Main.LogError(ex, $"[MachineSpirit] Summary parse error");
                 }
             }
 

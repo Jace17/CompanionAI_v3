@@ -92,7 +92,7 @@ namespace CompanionAI_v3.Planning.LLM
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[InitiativeTracker] Failed: {ex.Message}");
+                Main.LogError(ex, $"[InitiativeTracker] Failed");
                 return new Dictionary<BaseUnitEntity, int>();
             }
         }

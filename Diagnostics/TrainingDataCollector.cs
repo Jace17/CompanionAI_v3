@@ -89,7 +89,7 @@ namespace CompanionAI_v3.Diagnostics
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[TrainingData] RecordTurn failed: {ex.Message}");
+                Main.LogError(ex, $"[TrainingData] RecordTurn failed");
             }
         }
 

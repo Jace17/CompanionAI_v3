@@ -217,7 +217,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[FindBetterPlace] Error: {ex.Message}");
+                Main.LogError(ex, $"[FindBetterPlace] Error");
                 return true;
             }
         }
@@ -466,7 +466,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (System.Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MainAIPatch] ranged weapon detect silent: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[MainAIPatch] ranged weapon detect silent");
             }
 
             return false;

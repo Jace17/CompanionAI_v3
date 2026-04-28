@@ -71,7 +71,7 @@ namespace CompanionAI_v3.GameInterface
                 // ★ v3.82.0: 적/비제어 유닛 턴 → LLM Scorer pre-compute 시도
                 // 다음 아군 턴을 위해 LLM 스코어링(가중치)을 미리 계산
                 try { Planning.LLM.LLMPreCompute.TryStartPreCompute(); }
-                catch (System.Exception ex) { Main.LogDebug($"[TurnEventHandler] PreCompute failed: {ex.Message}"); }
+                catch (System.Exception ex) { Main.LogError(ex, $"[TurnEventHandler] PreCompute failed"); }
                 return;
             }
 
@@ -156,7 +156,7 @@ namespace CompanionAI_v3.GameInterface
                 }
                 catch (System.Exception ex)
                 {
-                    Main.LogDebug($"[TurnEventHandler] Victory bark error: {ex.Message}");
+                    Main.LogError(ex, $"[TurnEventHandler] Victory bark error");
                 }
 
                 TurnOrchestrator.Instance.OnCombatEnd();

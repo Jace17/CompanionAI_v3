@@ -29,7 +29,7 @@ namespace CompanionAI_v3.MachineSpirit
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[VisionCapture] Failed: {ex.Message}");
+                Main.LogError(ex, $"[VisionCapture] Failed");
                 return null;
             }
             finally

@@ -1024,7 +1024,7 @@ namespace CompanionAI_v3.GameInterface
                     }
                     catch (Exception ex)
                     {
-                        Main.LogDebug($"[PointTargetingHelper] Charge path ERROR: {ex.Message}");
+                        Main.LogError(ex, $"[PointTargetingHelper] Charge path ERROR");
                         continue;
                     }
                 }

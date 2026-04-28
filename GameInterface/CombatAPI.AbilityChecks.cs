@@ -128,7 +128,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] MeetsCasterFactRequirements error for {ability?.Name}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] MeetsCasterFactRequirements error for {ability?.Name}");
                 return true; // 에러 시 일단 허용
             }
         }
@@ -312,7 +312,7 @@ namespace CompanionAI_v3.GameInterface
             catch (Exception ex)
             {
                 // ★ v3.4.01: P1-2 예외 상세 로깅
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsAbilityAvailable error for {ability.Name}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsAbilityAvailable error for {ability.Name}");
                 return false;
             }
         }
@@ -711,7 +711,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsOffensiveAbility failed: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsOffensiveAbility failed");
                 return false;
             }
         }

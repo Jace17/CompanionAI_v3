@@ -44,7 +44,7 @@ namespace CompanionAI_v3.Diagnostics
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[CombatReport] Live export failed: {ex.Message}");
+                Main.LogError(ex, $"[CombatReport] Live export failed");
             }
         }
 

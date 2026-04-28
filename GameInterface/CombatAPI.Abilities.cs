@@ -92,7 +92,7 @@ namespace CompanionAI_v3.GameInterface
             catch (Exception ex)
             {
                 // ★ v3.4.01: P1-2 예외 상세 로깅
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetAvailableAbilities error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetAvailableAbilities error");
             }
 
             // 캐시 저장
@@ -270,7 +270,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] FindAnyAttackAbility error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] FindAnyAttackAbility error");
             }
 
             return null;
@@ -285,7 +285,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetAbilityAPCost failed for {ability?.Name}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetAbilityAPCost failed for {ability?.Name}");
                 return 1f;
             }
         }
@@ -312,7 +312,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] HasBonusUsage failed for {ability?.Name}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] HasBonusUsage failed for {ability?.Name}");
                 return false;
             }
         }
@@ -358,7 +358,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] HasZeroAPAttack error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] HasZeroAPAttack error");
             }
 
             return false;
@@ -394,7 +394,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetZeroAPAttacks error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetZeroAPAttacks error");
             }
 
             return result;
@@ -442,7 +442,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] CanAnyZeroAPAttackReachEnemy error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] CanAnyZeroAPAttackReachEnemy error");
                 return true;  // 에러 시 안전하게 계속 진행 허용
             }
 
@@ -470,7 +470,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetAbilityMPCost failed for {ability?.Name}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetAbilityMPCost failed for {ability?.Name}");
                 return 0f;
             }
         }
@@ -491,7 +491,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] AbilityClearsMPAfterUse failed for {ability?.Name}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] AbilityClearsMPAfterUse failed for {ability?.Name}");
                 return false;
             }
         }
@@ -510,7 +510,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] AbilityClearsMPAfterUse(caster) failed: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] AbilityClearsMPAfterUse(caster) failed");
             }
             return true;
         }
@@ -556,7 +556,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetGapCloserMPCost error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetGapCloserMPCost error");
                 return float.MaxValue;
             }
         }
@@ -610,7 +610,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetAbilityExpectedMPCost error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetAbilityExpectedMPCost error");
                 return 0f;
             }
         }
@@ -648,7 +648,7 @@ namespace CompanionAI_v3.GameInterface
             catch (Exception ex)
             {
                 // ★ v3.4.01: P1-2 예외 상세 로깅
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] HasActiveBuff error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] HasActiveBuff error");
             }
 
             return false;
@@ -693,7 +693,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetBuffRemainingRounds error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetBuffRemainingRounds error");
             }
 
             return 0;  // 버프 없음
@@ -738,7 +738,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetAllActiveBuffNames error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetAllActiveBuffNames error");
             }
 
             return result;
@@ -762,7 +762,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] HasBuffOfType error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] HasBuffOfType error");
             }
 
             return false;
@@ -786,7 +786,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetPlasmaOverheatRank error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetPlasmaOverheatRank error");
             }
             return 0;
         }
@@ -834,7 +834,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsMarkedAsPrey error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsMarkedAsPrey error");
             }
             return false;
         }
@@ -971,7 +971,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsTargetImmuneToDamage error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsTargetImmuneToDamage error");
             }
             return false;
         }
@@ -1083,7 +1083,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsTargetUnconditionallyImmune error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsTargetUnconditionallyImmune error");
             }
             return false;
         }
@@ -1186,7 +1186,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] CanMeleeAttackCausePush error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] CanMeleeAttackCausePush error");
             }
             return false;
         }

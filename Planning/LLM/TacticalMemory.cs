@@ -109,7 +109,7 @@ namespace CompanionAI_v3.Planning.LLM
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[TacticalMemory] Load failed: {ex.Message}");
+                Main.LogError(ex, $"[TacticalMemory] Load failed");
             }
         }
 
@@ -124,7 +124,7 @@ namespace CompanionAI_v3.Planning.LLM
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[TacticalMemory] Save failed: {ex.Message}");
+                Main.LogError(ex, $"[TacticalMemory] Save failed");
             }
         }
 

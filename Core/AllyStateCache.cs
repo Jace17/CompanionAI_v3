@@ -155,7 +155,7 @@ namespace CompanionAI_v3.Core
                 }
                 catch (Exception ex)
                 {
-                    Main.LogDebug($"[AllyStateCache] DiscoverWRBuffs error: {ex.Message}");
+                    Main.LogError(ex, $"[AllyStateCache] DiscoverWRBuffs error");
                 }
             }
 
@@ -313,7 +313,7 @@ namespace CompanionAI_v3.Core
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[AllyStateCache] GetBuffMappings error for {ability.Name}: {ex.Message}");
+                Main.LogError(ex, $"[AllyStateCache] GetBuffMappings error for {ability.Name}");
             }
 
             _abilityToBuffs[abilityGuid] = mappings;
@@ -356,7 +356,7 @@ namespace CompanionAI_v3.Core
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[AllyStateCache] HasBuff error: {ex.Message}");
+                Main.LogError(ex, $"[AllyStateCache] HasBuff error");
             }
 
             return false;

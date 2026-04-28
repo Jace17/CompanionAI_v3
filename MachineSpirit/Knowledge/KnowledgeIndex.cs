@@ -233,7 +233,7 @@ namespace CompanionAI_v3.MachineSpirit.Knowledge
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[KnowledgeIndex] CollectAllGuids failed: {ex.Message}");
+                Main.LogError(ex, $"[KnowledgeIndex] CollectAllGuids failed");
             }
             return _allGuids;
         }
@@ -309,7 +309,7 @@ namespace CompanionAI_v3.MachineSpirit.Knowledge
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[KnowledgeIndex] Encyclopedia collection failed: {ex.Message}");
+                Main.LogError(ex, $"[KnowledgeIndex] Encyclopedia collection failed");
             }
 
             // Index collected pages with yielding (outside try/catch)
@@ -438,7 +438,7 @@ namespace CompanionAI_v3.MachineSpirit.Knowledge
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[KnowledgeIndex] Cache load failed: {ex.Message}");
+                Main.LogError(ex, $"[KnowledgeIndex] Cache load failed");
                 return false;
             }
         }
@@ -467,7 +467,7 @@ namespace CompanionAI_v3.MachineSpirit.Knowledge
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[KnowledgeIndex] Cache save failed: {ex.Message}");
+                Main.LogError(ex, $"[KnowledgeIndex] Cache save failed");
             }
         }
 

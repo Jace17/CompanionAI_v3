@@ -1181,7 +1181,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[UtilityScorer] EstimateHealAmount error: {ex.Message}");
+                Main.LogError(ex, $"[UtilityScorer] EstimateHealAmount error");
             }
 
             return HEAL_ESTIMATE_FALLBACK;  // 폴백: MaxHP의 30% 추정
@@ -1291,7 +1291,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[UtilityScorer] CalculateAverageHeal error: {ex.Message}");
+                Main.LogError(ex, $"[UtilityScorer] CalculateAverageHeal error");
                 return 0f;
             }
         }

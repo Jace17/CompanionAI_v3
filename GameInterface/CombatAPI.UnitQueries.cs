@@ -239,7 +239,7 @@ namespace CompanionAI_v3.GameInterface
             try { return unit.State.CanMove; }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] CanMove failed for {unit?.CharacterName}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] CanMove failed for {unit?.CharacterName}");
                 return false;
             }
         }
@@ -250,7 +250,7 @@ namespace CompanionAI_v3.GameInterface
             try { return unit.State.CanActInTurnBased; }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] CanAct failed for {unit?.CharacterName}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] CanAct failed for {unit?.CharacterName}");
                 return false;
             }
         }
@@ -309,7 +309,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsExtraTurn failed for {unit?.CharacterName}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsExtraTurn failed for {unit?.CharacterName}");
                 return false;
             }
         }
@@ -327,7 +327,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsCommandQueueEmpty failed for {unit?.CharacterName}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsCommandQueueEmpty failed for {unit?.CharacterName}");
                 return true;
             }
         }
@@ -345,7 +345,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsReadyForNextAction failed for {unit?.CharacterName}: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsReadyForNextAction failed for {unit?.CharacterName}");
                 return false;
             }
         }
@@ -360,7 +360,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetDistance failed: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetDistance failed");
                 return float.MaxValue;
             }
         }
@@ -411,7 +411,7 @@ namespace CompanionAI_v3.GameInterface
             catch (Exception ex)
             {
                 // ★ v3.4.01: P1-2 예외 상세 로깅
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetEnemies error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetEnemies error");
             }
 
             return enemies;
@@ -444,7 +444,7 @@ namespace CompanionAI_v3.GameInterface
             catch (Exception ex)
             {
                 // ★ v3.4.01: P1-2 예외 상세 로깅
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetAllies error: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetAllies error");
             }
 
             return allies;

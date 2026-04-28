@@ -884,7 +884,7 @@ namespace CompanionAI_v3.Core
             }
             catch (System.Exception ex)
             {
-                Main.LogDebug($"[TrainingData] StoreTrainingContext failed: {ex.Message}");
+                Main.LogError(ex, $"[TrainingData] StoreTrainingContext failed");
             }
         }
 
@@ -1025,7 +1025,7 @@ namespace CompanionAI_v3.Core
                             }
                             catch (Exception ex)
                             {
-                                Main.LogDebug($"[TacticalMemory] Recall failed: {ex.Message}");
+                                Main.LogError(ex, $"[TacticalMemory] Recall failed");
                             }
                         }
                     }
@@ -1450,7 +1450,7 @@ namespace CompanionAI_v3.Core
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[Orchestrator] BattlefieldGrid expand check failed: {ex.Message}");
+                Main.LogError(ex, $"[Orchestrator] BattlefieldGrid expand check failed");
             }
 
             // ★ v3.9.02: 우리 유닛 턴에서 게임 AI 타임아웃 확장
@@ -1466,7 +1466,7 @@ namespace CompanionAI_v3.Core
                     Main.LogDebug($"[Orchestrator] AI timeout extended: {currentTimeout}s → 300s");
                 }
             }
-            catch (Exception ex) { Main.LogDebug($"[Orchestrator] AI timeout extend failed: {ex.Message}"); }
+            catch (Exception ex) { Main.LogError(ex, $"[Orchestrator] AI timeout extend failed"); }
 
             Main.Log($"[Orchestrator] Turn started for {unit.CharacterName} (via event)");
         }
@@ -1556,7 +1556,7 @@ namespace CompanionAI_v3.Core
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[TacticalMemory] Record failed: {ex.Message}");
+                Main.LogError(ex, $"[TacticalMemory] Record failed");
             }
             _combatDominantWeights = null;
             _combatBestTurnScore = 0f;
@@ -1824,7 +1824,7 @@ namespace CompanionAI_v3.Core
                     Main.LogDebug($"[Orchestrator] AI timeout restored to {_originalAiTimeout}s");
                     _originalAiTimeout = -1f;
                 }
-                catch (Exception ex) { Main.LogDebug($"[Orchestrator] AI timeout restore failed: {ex.Message}"); }
+                catch (Exception ex) { Main.LogError(ex, $"[Orchestrator] AI timeout restore failed"); }
             }
         }
 

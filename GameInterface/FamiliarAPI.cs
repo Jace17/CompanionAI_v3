@@ -32,7 +32,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[FamiliarAPI] HasFamiliar error: {ex.Message}");
+                Main.LogError(ex, $"[FamiliarAPI] HasFamiliar error");
                 return false;
             }
         }
@@ -51,7 +51,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[FamiliarAPI] GetFamiliar error: {ex.Message}");
+                Main.LogError(ex, $"[FamiliarAPI] GetFamiliar error");
                 return null;
             }
         }
@@ -73,7 +73,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[FamiliarAPI] GetFamiliarType error: {ex.Message}");
+                Main.LogError(ex, $"[FamiliarAPI] GetFamiliarType error");
                 return null;
             }
         }
@@ -91,7 +91,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[FamiliarAPI] IsFamiliar error: {ex.Message}");
+                Main.LogError(ex, $"[FamiliarAPI] IsFamiliar error");
                 return false;
             }
         }
@@ -109,7 +109,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[FamiliarAPI] GetMaster error: {ex.Message}");
+                Main.LogError(ex, $"[FamiliarAPI] GetMaster error");
                 return null;
             }
         }
@@ -324,7 +324,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[FamiliarAPI] IsRavenOverchargeActive error: {ex.Message}");
+                Main.LogError(ex, $"[FamiliarAPI] IsRavenOverchargeActive error");
                 return false;
             }
         }
@@ -430,7 +430,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[FamiliarAPI] GetRavenSupportRange error: {ex.Message}");
+                Main.LogError(ex, $"[FamiliarAPI] GetRavenSupportRange error");
             }
 
             return DEFAULT_RAVEN_SUPPORT_RANGE;
@@ -534,7 +534,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[FamiliarAPI] GetMaxFamiliarAbilityRange error: {ex.Message}");
+                Main.LogError(ex, $"[FamiliarAPI] GetMaxFamiliarAbilityRange error");
                 return DEFAULT_RANGE;
             }
         }

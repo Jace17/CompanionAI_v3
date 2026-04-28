@@ -95,7 +95,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[KillSimulator] Error: {ex.Message}");
+                Main.LogError(ex, $"[KillSimulator] Error");
                 return null;
             }
         }
@@ -393,7 +393,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[KillSimulator] EstimateBuffMultiplier component analysis error: {ex.Message}");
+                Main.LogError(ex, $"[KillSimulator] EstimateBuffMultiplier component analysis error");
             }
 
             // ★ v3.7.65: 이름 기반 휴리스틱 제거 - 컴포넌트 기반 감지만 사용

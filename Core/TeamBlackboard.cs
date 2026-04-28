@@ -704,7 +704,7 @@ namespace CompanionAI_v3.Core
             catch (Exception ex)
             {
                 // API 접근 실패 시 폴백 (레거시 방식)
-                Main.LogDebug($"[Blackboard] Initiative API failed, using fallback: {ex.Message}");
+                Main.LogError(ex, $"[Blackboard] Initiative API failed, using fallback");
                 string id = unit.UniqueId ?? unit.CharacterName ?? "unknown";
                 return _actedThisRound.Contains(id);
             }

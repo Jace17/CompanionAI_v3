@@ -498,7 +498,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[TauntScorer] Error evaluating movement options: {ex.Message}");
+                Main.LogError(ex, $"[TauntScorer] Error evaluating movement options");
             }
 
             return options;

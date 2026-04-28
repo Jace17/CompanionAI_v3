@@ -3481,7 +3481,7 @@ namespace CompanionAI_v3.Planning.Plans
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Aerial Rush: Error dumping restrictions: {ex.Message}");
+                if (Main.IsDebugEnabled) Main.LogError(ex, $"[{RoleName}] Aerial Rush: Error dumping restrictions");
             }
 
             if (remainingAP < apCost)

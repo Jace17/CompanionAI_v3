@@ -148,7 +148,7 @@ namespace CompanionAI_v3.MachineSpirit
             }
             catch (System.Exception ex)
             {
-                Main.LogDebug($"[MachineSpirit] Ollama unload request failed: {ex.Message}");
+                Main.LogError(ex, $"[MachineSpirit] Ollama unload request failed");
             }
         }
 
@@ -186,7 +186,7 @@ namespace CompanionAI_v3.MachineSpirit
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[MachineSpirit] Save failed: {ex.Message}");
+                Main.LogError(ex, $"[MachineSpirit] Save failed");
             }
         }
 
@@ -215,7 +215,7 @@ namespace CompanionAI_v3.MachineSpirit
             }
             catch (Exception ex)
             {
-                Main.LogDebug($"[MachineSpirit] Load failed: {ex.Message}");
+                Main.LogError(ex, $"[MachineSpirit] Load failed");
             }
         }
 
