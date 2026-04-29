@@ -4,6 +4,7 @@ using HarmonyLib;
 using UnityModManagerNet;
 using CompanionAI_v3.Analysis;
 using CompanionAI_v3.Data;
+using CompanionAI_v3.Logging;
 using CompanionAI_v3.Settings;
 using CompanionAI_v3.UI;
 using CompanionAI_v3.GameInterface;
@@ -70,7 +71,7 @@ namespace CompanionAI_v3
             // UMM OnToggle 은 mod 비활성 시에만 호출됨 — 실제 게임 종료 경로는 별도 훅 필요.
             UnityEngine.Application.quitting += OnGameQuitting;
 
-            Log("CompanionAI v3.0 loaded successfully");
+            Log.Engine.Info("CompanionAI v3.0 loaded successfully");
             return true;
         }
 
@@ -82,12 +83,12 @@ namespace CompanionAI_v3
         {
             try
             {
-                Log("[Application.quitting] Shutting down Machine Spirit + unloading Ollama models");
+                Log.Engine.Info("[Application.quitting] Shutting down Machine Spirit + unloading Ollama models");
                 MSController.Shutdown();
             }
             catch (Exception ex)
             {
-                LogError($"OnGameQuitting failed: {ex.Message}");
+                Log.Engine.Error($"OnGameQuitting failed: {ex.Message}");
             }
         }
 
@@ -108,14 +109,14 @@ namespace CompanionAI_v3
                     // ★ v3.5.95: private 메서드 수동 패치 (세이브/로드)
                     SaveLoadPatch.ApplyManualPatches(_harmony);
 
-                    Log("Harmony patches applied");
+                    Log.Engine.Info("Harmony patches applied");
 
                     // ★ v3.0.76: 게임 턴 이벤트 구독
                     TurnEventHandler.Instance.Subscribe();
                 }
                 catch (Exception ex)
                 {
-                    LogError($"Failed to apply patches: {ex.Message}");
+                    Log.Engine.Error($"Failed to apply patches: {ex.Message}");
                     return false;
                 }
             }
@@ -133,11 +134,11 @@ namespace CompanionAI_v3
                     MSController.Shutdown();
 
                     _harmony?.UnpatchAll(modEntry.Info.Id);
-                    Log("Harmony patches removed");
+                    Log.Engine.Info("Harmony patches removed");
                 }
                 catch (Exception ex)
                 {
-                    LogError($"Failed to remove patches: {ex.Message}");
+                    Log.Engine.Error($"Failed to remove patches: {ex.Message}");
                 }
             }
 
@@ -164,60 +165,16 @@ namespace CompanionAI_v3
         #region Logging
 
         /// <summary>
-        /// ★ v3.8.78: 디버그 로깅 활성화 여부 (호출자 측 가드용)
-        /// Main.LogDebug($"...") 호출 전에 이 프로퍼티로 가드하면
-        /// 디버그 모드 OFF 시 $"..." 문자열 할당 자체를 방지
+        /// 디버그 로깅 활성화 여부 (호출자 측 가드용).
+        /// Log.&lt;Cat&gt;.Debug($"...") 호출 전에 이 프로퍼티로 가드하면
+        /// 디버그 모드 OFF 시 $"..." 문자열 할당 자체를 방지.
         /// </summary>
         public static bool IsDebugEnabled =>
             ModSettings.Instance?.EnableDebugLogging ?? false;
 
-        public static void Log(string message)
-        {
-            ModEntry?.Logger?.Log($"[CompanionAI] {message}");
-        }
-
-        public static void LogDebug(string message)
-        {
-            if (ModSettings.Instance?.EnableDebugLogging ?? false)
-            {
-                ModEntry?.Logger?.Log($"[CompanionAI][DEBUG] {message}");
-            }
-        }
-
-        public static void LogError(string message)
-        {
-            ModEntry?.Logger?.Error($"[CompanionAI][ERROR] {message}");
-        }
-
-        public static void LogError(Exception ex, string message)
-        {
-            if (ex == null)
-            {
-                ModEntry?.Logger?.Error($"[CompanionAI][ERROR] {message}");
-                return;
-            }
-
-            var sb = new System.Text.StringBuilder();
-            sb.Append($"[CompanionAI][ERROR] {message}");
-            sb.Append($" | {ex.GetType().Name}: {ex.Message}");
-            if (!string.IsNullOrEmpty(ex.StackTrace))
-            {
-                sb.AppendLine();
-                sb.Append("  Stack: ");
-                sb.Append(ex.StackTrace);
-            }
-            if (ex.InnerException != null)
-            {
-                sb.AppendLine();
-                sb.Append($"  Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
-            }
-            ModEntry?.Logger?.Error(sb.ToString());
-        }
-
-        public static void LogWarning(string message)
-        {
-            ModEntry?.Logger?.Warning($"[CompanionAI][WARN] {message}");
-        }
+        // ★ Phase 2 (commit 7193d64): Main.Log/LogDebug/LogWarning/LogError 메서드는
+        // Logging/Log.cs 의 Log.<Category>.<Level> 로 이전됨. IsDebugEnabled 는
+        // 외부 게이팅 가드 패턴 보존 위해 유지.
 
         #endregion
     }

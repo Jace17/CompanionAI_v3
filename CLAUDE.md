@@ -270,7 +270,7 @@ PatternType.Circle → 1.6m | PatternType.Ray/Cone/Sector → 0.3m (Directional)
 - **절대 금지**: `catch (Exception ex) { Main.LogDebug($"... {ex.Message}"); }`
   현재 205곳에 있음. 이 패턴은 **기본 로그 레벨에서 사라지고 스택 트레이스도 손실**되어 사실상 무음 실패.
 - **표준 패턴**: `catch (Exception ex) { Main.LogError(ex, $"context"); }` (Phase 1.0 도입 완료, Main.cs)
-- **Phase 2 이후 표준**: `catch (Exception ex) { Log.<Category>.Error(ex, $"context"); }`
+- **표준 (Phase 2 도입 완료, commit 7193d64)**: `catch (Exception ex) { Log.<Category>.Error(ex, $"context"); }`
 - 의도적으로 무시해야 하는 예외(매 프레임 hot path, 게임의 transient null 등)는 **왜 무시하는지 주석 필수**.
 
 ### 파일 크기
@@ -299,7 +299,8 @@ PatternType.Circle → 1.6m | PatternType.Ray/Cone/Sector → 0.3m (Directional)
   - `UI` (UI/)
   - `Persistence` (Settings/, Data/)
   - `MachineSpirit` (MachineSpirit/, Dialogue/)
-- **Phase 2 완료까지의 신규 코드는** `Main.Log*` 사용 OK (전환 비용 폭증 방지). 단, 새 모듈/큰 신규 기능은 Phase 2 진행 후 작업. **이 carve-out은 `Log.<Category>.<Level>` 도입 커밋과 함께 본 항목에서 삭제할 것.**
+- **표준 (Phase 2 완료)**: 모든 로그는 `Log.<Category>.<Level>(...)` 사용. `Main.Log*` 정의는 제거됨 (commit 7193d64 의 callsite 변환 + 본 commit 의 정의 제거).
+- 카테고리 선택: 폴더 기준 — `Engine` (Core/Execution/GameInterface), `Planning` (Planning/), `Analysis` (Analysis/), `MachineSpirit` (MachineSpirit/), `Persistence` (Settings/, Data/), `Diagnostics` (Diagnostics/), `UI` (UI/).
 
 ### 중첩 깊이
 
