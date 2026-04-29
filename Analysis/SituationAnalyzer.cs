@@ -15,6 +15,7 @@ using CompanionAI_v3.Core;
 using CompanionAI_v3.Data;
 using CompanionAI_v3.GameInterface;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Analysis
 {
@@ -104,19 +105,19 @@ namespace CompanionAI_v3.Analysis
                 // ★ v3.7.00: 사역마 분석 (Overseer 아키타입 지원)
                 AnalyzeFamiliar(situation, unit);
 
-                Main.LogDebug($"[Analyzer] {situation}");
+                Log.Analysis.Debug($"[Analyzer] {situation}");
             }
             catch (Exception ex)
             {
                 // ★ v3.5.36: 분석 실패 시 null 반환 - TurnOrchestrator에서 처리
                 // ★ v3.8.24: InnerException 출력 (TypeInitializationException 디버깅)
-                Main.LogError($"[Analyzer] Error analyzing situation: {ex.Message}");
+                Log.Analysis.Error($"[Analyzer] Error analyzing situation: {ex.Message}");
                 if (ex.InnerException != null)
                 {
-                    Main.LogError($"[Analyzer] Inner exception: {ex.InnerException.Message}");
-                    Main.LogError($"[Analyzer] Inner stack: {ex.InnerException.StackTrace}");
+                    Log.Analysis.Error($"[Analyzer] Inner exception: {ex.InnerException.Message}");
+                    Log.Analysis.Error($"[Analyzer] Inner stack: {ex.InnerException.StackTrace}");
                 }
-                Main.LogError($"[Analyzer] Stack: {ex.StackTrace}");
+                Log.Analysis.Error($"[Analyzer] Stack: {ex.StackTrace}");
                 return null;
             }
 
@@ -145,7 +146,7 @@ namespace CompanionAI_v3.Analysis
 
             if (Main.IsDebugEnabled && situation.IsExtraTurn)
             {
-                Main.LogDebug($"[Analyzer] {unit.CharacterName}: Extra turn CONFIRMED (InterruptingOrder>0) — AP={situation.CurrentAP:F1}, MP={situation.CurrentMP:F1}");
+                Log.Analysis.Debug($"[Analyzer] {unit.CharacterName}: Extra turn CONFIRMED (InterruptingOrder>0) — AP={situation.CurrentAP:F1}, MP={situation.CurrentMP:F1}");
             }
         }
 
@@ -210,7 +211,7 @@ namespace CompanionAI_v3.Analysis
 
                     var set0 = situation.WeaponSetData[0];
                     var set1 = situation.WeaponSetData[1];
-                    Main.Log($"[Analyzer] ★ {unit.CharacterName}: Weapon rotation available — " +
+                    Log.Analysis.Info($"[Analyzer] ★ {unit.CharacterName}: Weapon rotation available — " +
                         $"Set0={set0.PrimaryWeaponName ?? "?"} (R={set0.HasRangedWeapon},M={set0.HasMeleeWeapon}), " +
                         $"Set1={set1.PrimaryWeaponName ?? "?"} (R={set1.HasRangedWeapon},M={set1.HasMeleeWeapon}), " +
                         $"Active=Set{situation.CurrentWeaponSetIndex}" +
@@ -219,7 +220,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[Analyzer] Weapon set analysis failed");
+                Log.Analysis.Error(ex, $"[Analyzer] Weapon set analysis failed");
             }
         }
 
@@ -293,7 +294,7 @@ namespace CompanionAI_v3.Analysis
 
             if (enemiesTargetingAllies > 0)
             {
-                Main.LogDebug($"[Analyzer] Threat: {enemiesTargetingAllies} enemies targeting {alliesUnderThreat} allies");
+                Log.Analysis.Debug($"[Analyzer] Threat: {enemiesTargetingAllies} enemies targeting {alliesUnderThreat} allies");
             }
 
             // ★ v3.8.90: 적 오버워치 구역 감지
@@ -313,7 +314,7 @@ namespace CompanionAI_v3.Analysis
                 situation.EnemyOverwatchCount = overwatchCount;
                 situation.IsInEnemyOverwatchZone = overwatchCount > 0;
                 if (overwatchCount > 0 && Main.IsDebugEnabled)
-                    Main.LogDebug($"[Analyzer] {unit.CharacterName}: In {overwatchCount} enemy overwatch zone(s)");
+                    Log.Analysis.Debug($"[Analyzer] {unit.CharacterName}: In {overwatchCount} enemy overwatch zone(s)");
             }
             catch { }
         }
@@ -336,12 +337,12 @@ namespace CompanionAI_v3.Analysis
             // 해결: AvailableAttacks가 비어있으면 Hittable=0 (디버프는 디버프 Phase에서 사용)
             if (attacks == null || attacks.Count == 0)
             {
-                Main.LogDebug($"[Analyzer] No classified attacks, Hittable will be 0");
+                Log.Analysis.Debug($"[Analyzer] No classified attacks, Hittable will be 0");
                 attacks = new List<AbilityData>();  // 빈 리스트로 진행
             }
             else
             {
-                Main.LogDebug($"[Analyzer] Checking hittable with {attacks.Count} available attacks");
+                Log.Analysis.Debug($"[Analyzer] Checking hittable with {attacks.Count} available attacks");
             }
 
             // ★ v3.8.70: 위협 범위 체크 (CombatHelpers 공통 필터에서 사용)
@@ -358,7 +359,7 @@ namespace CompanionAI_v3.Analysis
                 // ★ v3.40.6: 데미지 면역 타겟은 hittable에서 제외
                 if (CombatAPI.IsTargetImmuneToDamage(enemy, unit))
                 {
-                    Main.LogDebug($"[Analyzer] {enemy.CharacterName} IMMUNE to damage — excluded from hittable");
+                    Log.Analysis.Debug($"[Analyzer] {enemy.CharacterName} IMMUNE to damage — excluded from hittable");
                     continue;
                 }
 
@@ -404,7 +405,7 @@ namespace CompanionAI_v3.Analysis
                             // Ray/Cone/Sector: caster에서 시작하여 patternRadius만큼 뻗음
                             // 적이 patternRadius 내에 있어야 실제로 맞음
                             effectiveRange = patternRadius;
-                            Main.LogDebug($"[Analyzer] {attack.Name}: Ray/Cone/Sector pattern, effective range={patternRadius:F0} tiles (not weapon range!)");
+                            Log.Analysis.Debug($"[Analyzer] {attack.Name}: Ray/Cone/Sector pattern, effective range={patternRadius:F0} tiles (not weapon range!)");
                         }
                         else if (castRange >= 1000)  // Unlimited range (Circle AOE)
                         {
@@ -412,7 +413,7 @@ namespace CompanionAI_v3.Analysis
                             // 적 위치를 직접 타겟하면 AOE 반경 내에 항상 포함됨 (거리 0)
                             // 따라서 거리 제한 없이 모든 적이 Hittable
                             effectiveRange = 10000f;  // 사실상 무제한
-                            Main.LogDebug($"[Analyzer] {attack.Name}: Unlimited range, AOE r={patternRadius:F0} tiles");
+                            Log.Analysis.Debug($"[Analyzer] {attack.Name}: Unlimited range, AOE r={patternRadius:F0} tiles");
                         }
                         else
                         {
@@ -423,14 +424,14 @@ namespace CompanionAI_v3.Analysis
                         float dist = CombatCache.GetDistanceInTiles(unit, enemy);  // 타일
                         if (dist > effectiveRange)
                         {
-                            Main.LogDebug($"[Analyzer] {attack.Name}: Too far ({dist:F1} > {effectiveRange:F1} tiles)");
+                            Log.Analysis.Debug($"[Analyzer] {attack.Name}: Too far ({dist:F1} > {effectiveRange:F1} tiles)");
                             continue;
                         }
 
                         // ★ v3.8.70: IsAoESafe → IsAttackSafeForTarget (반경+scatter 통합)
                         if (!CombatHelpers.IsAttackSafeForTarget(attack, unit, enemy, situation.Allies))
                         {
-                            Main.LogDebug($"[Analyzer] Attack unsafe: {attack.Name} -> {enemy.CharacterName}");
+                            Log.Analysis.Debug($"[Analyzer] Attack unsafe: {attack.Name} -> {enemy.CharacterName}");
                             continue;
                         }
 
@@ -438,7 +439,7 @@ namespace CompanionAI_v3.Analysis
                         // 게임 로직: Circle=1.6m, Directional=0.3m 초과 시 효과 없음
                         if (!CombatAPI.IsAoEHeightInRange(attack, unit, enemy))
                         {
-                            Main.LogDebug($"[Analyzer] AOE height failed: {attack.Name} -> {enemy.CharacterName}");
+                            Log.Analysis.Debug($"[Analyzer] AOE height failed: {attack.Name} -> {enemy.CharacterName}");
                             continue;
                         }
 
@@ -463,7 +464,7 @@ namespace CompanionAI_v3.Analysis
                             string aoeReason;
                             if (!CombatAPI.CanUseAbilityOnPoint(attack, directionPoint, out aoeReason))
                             {
-                                Main.LogDebug($"[Analyzer] DangerousAoE direction failed: {attack.Name} -> {enemy.CharacterName} ({aoeReason})");
+                                Log.Analysis.Debug($"[Analyzer] DangerousAoE direction failed: {attack.Name} -> {enemy.CharacterName} ({aoeReason})");
                                 continue;
                             }
                         }
@@ -475,7 +476,7 @@ namespace CompanionAI_v3.Analysis
                             string aoeReason;
                             if (!CombatCache.CanUseAbilityOn(attack, pointTarget, out aoeReason))
                             {
-                                Main.LogDebug($"[Analyzer] AOE LOS failed: {attack.Name} -> {enemy.CharacterName} ({aoeReason})");
+                                Log.Analysis.Debug($"[Analyzer] AOE LOS failed: {attack.Name} -> {enemy.CharacterName} ({aoeReason})");
                                 continue;
                             }
                         }
@@ -494,7 +495,7 @@ namespace CompanionAI_v3.Analysis
                         // ★ v3.8.70: 안전성 체크 (scatter safety 포함)
                         if (!CombatHelpers.IsAttackSafeForTarget(attack, unit, enemy, situation.Allies))
                         {
-                            Main.LogDebug($"[Analyzer] Attack unsafe: {attack.Name} -> {enemy.CharacterName}");
+                            Log.Analysis.Debug($"[Analyzer] Attack unsafe: {attack.Name} -> {enemy.CharacterName}");
                             continue;
                         }
                         isHittable = true;
@@ -507,7 +508,7 @@ namespace CompanionAI_v3.Analysis
                         // ★ v3.6.13: 원거리 공격 실패 시 원인 로깅 (디버깅용)
                         float distTiles = CombatCache.GetDistanceInTiles(unit, enemy);
                         float rangeTiles = CombatAPI.GetAbilityRangeInTiles(attack);
-                        Main.LogDebug($"[Analyzer] CanUse failed: {attack.Name} -> {enemy.CharacterName} ({reason}), dist={distTiles:F1} tiles, range={rangeTiles:F0} tiles");
+                        Log.Analysis.Debug($"[Analyzer] CanUse failed: {attack.Name} -> {enemy.CharacterName} ({reason}), dist={distTiles:F1} tiles, range={rangeTiles:F0} tiles");
                     }
                 }
 
@@ -515,7 +516,7 @@ namespace CompanionAI_v3.Analysis
                 {
                     situation.HittableEnemies.Add(enemy);
                     if (isHittableByNormal) normalHittableCount++;
-                    Main.LogDebug($"[Analyzer] {enemy.CharacterName} hittable by {hittableBy}{(isHittableByNormal ? "" : " (DangerousAoE only)")}");
+                    Log.Analysis.Debug($"[Analyzer] {enemy.CharacterName} hittable by {hittableBy}{(isHittableByNormal ? "" : " (DangerousAoE only)")}");
                 }
             }
 
@@ -536,7 +537,7 @@ namespace CompanionAI_v3.Analysis
             // Hittable 결과 로깅
             if (situation.HittableEnemies.Count == 0 && situation.Enemies?.Count > 0)
             {
-                Main.LogDebug($"[Analyzer] No hittable enemies! (total={situation.Enemies.Count}, attacks={attacks?.Count ?? 0})");
+                Log.Analysis.Debug($"[Analyzer] No hittable enemies! (total={situation.Enemies.Count}, attacks={attacks?.Count ?? 0})");
 
                 // ★ v3.0.79: RangeFilter 폴백 - 필터링된 공격으로 못 맞추면 전체 공격으로 재시도
                 // 예: PreferMelee인데 일격이 쿨다운이면, 원거리 공격(죽음의 속삭임)도 허용
@@ -559,7 +560,7 @@ namespace CompanionAI_v3.Analysis
 
                 if (allAttacks.Count > attacks?.Count)
                 {
-                    Main.Log($"[Analyzer] ★ RangeFilter fallback: trying {allAttacks.Count} unfiltered attacks");
+                    Log.Analysis.Info($"[Analyzer] ★ RangeFilter fallback: trying {allAttacks.Count} unfiltered attacks");
 
                     foreach (var enemy in situation.Enemies)
                     {
@@ -587,18 +588,18 @@ namespace CompanionAI_v3.Analysis
                                 // ★ v3.9.14: AOE 높이 차이 체크 (메인 루프와 동일 기준)
                                 if (CombatAPI.IsPointTargetAbility(attack) && !CombatAPI.IsAoEHeightInRange(attack, unit, enemy))
                                 {
-                                    Main.LogDebug($"[Analyzer] Fallback AOE height failed: {attack.Name} -> {enemy.CharacterName}");
+                                    Log.Analysis.Debug($"[Analyzer] Fallback AOE height failed: {attack.Name} -> {enemy.CharacterName}");
                                     continue;
                                 }
 
                                 situation.HittableEnemies.Add(enemy);
-                                Main.LogDebug($"[Analyzer] {enemy.CharacterName} hittable by {attack.Name} (fallback)");
+                                Log.Analysis.Debug($"[Analyzer] {enemy.CharacterName} hittable by {attack.Name} (fallback)");
 
                                 // ★ 폴백으로 찾은 공격을 AvailableAttacks에 추가
                                 if (!situation.AvailableAttacks.Contains(attack))
                                 {
                                     situation.AvailableAttacks.Add(attack);
-                                    Main.Log($"[Analyzer] Added fallback attack: {attack.Name}");
+                                    Log.Analysis.Info($"[Analyzer] Added fallback attack: {attack.Name}");
                                 }
                                 break;
                             }
@@ -607,13 +608,13 @@ namespace CompanionAI_v3.Analysis
 
                     if (situation.HittableEnemies.Count > 0)
                     {
-                        Main.Log($"[Analyzer] Fallback success! Hittable: {situation.HittableEnemies.Count}/{situation.Enemies.Count}");
+                        Log.Analysis.Info($"[Analyzer] Fallback success! Hittable: {situation.HittableEnemies.Count}/{situation.Enemies.Count}");
                     }
                 }
             }
             else
             {
-                Main.LogDebug($"[Analyzer] Hittable: {situation.HittableEnemies.Count}/{situation.Enemies?.Count ?? 0}");
+                Log.Analysis.Debug($"[Analyzer] Hittable: {situation.HittableEnemies.Count}/{situation.Enemies?.Count ?? 0}");
             }
 
             // ★ v3.1.21: 최적 타겟 선택 - TargetScorer 기반 Role별 가중치 적용
@@ -723,7 +724,7 @@ namespace CompanionAI_v3.Analysis
             {
                 situation.AvgAllyDistanceToNearestEnemy = _cachedAvgAllyDistToEnemy;
                 if (Main.IsDebugEnabled)
-                    Main.LogDebug($"[Analyzer] Continuation turn — reusing cached formation (avgAllyDist={_cachedAvgAllyDistToEnemy:F1}m)");
+                    Log.Analysis.Debug($"[Analyzer] Continuation turn — reusing cached formation (avgAllyDist={_cachedAvgAllyDistToEnemy:F1}m)");
             }
             else
             {
@@ -735,7 +736,7 @@ namespace CompanionAI_v3.Analysis
                 _cachedAvgValid = true;
 
                 if (Main.IsDebugEnabled)
-                    Main.LogDebug($"[Analyzer] Formation: avgAllyDistToNearestEnemy={situation.AvgAllyDistanceToNearestEnemy:F1}m");
+                    Log.Analysis.Debug($"[Analyzer] Formation: avgAllyDistToNearestEnemy={situation.AvgAllyDistanceToNearestEnemy:F1}m");
             }
 
             // ★ v3.111.0 Phase 5: 적 예상 이동 위치 — 같은 유닛/라운드에서 재사용
@@ -763,7 +764,7 @@ namespace CompanionAI_v3.Analysis
             situation.IsInDamagingAoE = CombatAPI.IsUnitInDamagingAoE(unit);
             if (situation.IsInDamagingAoE)
             {
-                Main.Log($"[Analyzer] ★ {unit.CharacterName}: Standing in DAMAGING AoE! Evacuation needed.");
+                Log.Analysis.Info($"[Analyzer] ★ {unit.CharacterName}: Standing in DAMAGING AoE! Evacuation needed.");
             }
 
             // ★ v3.9.70: 사이킥 사용 불가 구역 감지 (Inert Warp Effect)
@@ -771,7 +772,7 @@ namespace CompanionAI_v3.Analysis
             if (CombatAPI.HasPsychicAbilities(unit) && CombatAPI.IsUnitInPsychicNullZone(unit))
             {
                 situation.IsInPsychicNullZone = true;
-                Main.Log($"[Analyzer] ★ {unit.CharacterName}: In PSYCHIC NULL ZONE! All psychic abilities blocked. Evacuation needed.");
+                Log.Analysis.Info($"[Analyzer] ★ {unit.CharacterName}: In PSYCHIC NULL ZONE! All psychic abilities blocked. Evacuation needed.");
             }
 
             // 이동 필요: 공격 가능한 적 없음
@@ -812,14 +813,14 @@ namespace CompanionAI_v3.Analysis
             var allAbilities = CombatAPI.GetAvailableAbilities(unit);
 
             // ★ v3.0.20: 디버그용 능력 분류 로깅
-            Main.LogDebug($"[Analyzer] {unit.CharacterName}: Analyzing {allAbilities.Count} abilities");
+            Log.Analysis.Debug($"[Analyzer] {unit.CharacterName}: Analyzing {allAbilities.Count} abilities");
 
             foreach (var ability in allAbilities)
             {
                 // ★ LESSONS_LEARNED 10.3: Veil 체크 - 사이킥 능력 안전성
                 if (CombatAPI.IsPsychicAbility(ability) && !CombatAPI.IsPsychicSafeToUse(ability))
                 {
-                    Main.LogDebug($"[Analyzer] Blocked psychic {CombatAPI.GetAbilityDisplayName(ability)}: Veil too high ({CombatAPI.GetVeilThickness()})");
+                    Log.Analysis.Debug($"[Analyzer] Blocked psychic {CombatAPI.GetAbilityDisplayName(ability)}: Veil too high ({CombatAPI.GetVeilThickness()})");
                     continue;  // 이 능력 스킵
                 }
 
@@ -837,7 +838,7 @@ namespace CompanionAI_v3.Analysis
                 // ★ v3.7.30: 블루프린트 캐시에 자동 추가 + GUID 로깅
                 Data.BlueprintCache.CacheAbility(ability);
                 string guid = bp?.AssetGuid?.ToString() ?? "null";
-                Main.LogDebug($"[Analyzer] Ability: {CombatAPI.GetAbilityDisplayName(ability)} [{guid}] -> Timing={timing}, " +
+                Log.Analysis.Debug($"[Analyzer] Ability: {CombatAPI.GetAbilityDisplayName(ability)} [{guid}] -> Timing={timing}, " +
                     $"CanTargetSelf={bp?.CanTargetSelf}, CanTargetFriends={bp?.CanTargetFriends}, " +
                     $"CanTargetEnemies={bp?.CanTargetEnemies}, CanTargetPoint={bp?.CanTargetPoint}, " +
                     $"Range={rangeInfo}, Weapon={ability.Weapon != null}");
@@ -859,14 +860,14 @@ namespace CompanionAI_v3.Analysis
                             float hpThreshold = AbilityDatabase.GetHPThreshold(ability);
                             if (hpThreshold > 0 && situation.HPPercent < hpThreshold)
                             {
-                                Main.LogDebug($"[Analyzer] Blocked SelfDamage {CombatAPI.GetAbilityDisplayName(ability)}: HP {situation.HPPercent:F0}% < threshold {hpThreshold}%");
+                                Log.Analysis.Debug($"[Analyzer] Blocked SelfDamage {CombatAPI.GetAbilityDisplayName(ability)}: HP {situation.HPPercent:F0}% < threshold {hpThreshold}%");
                                 break;  // HP 부족 - 추가하지 않음
                             }
                             // HP 충분하면 버프로 추가 (TurnPlanner에서 상황에 맞게 사용)
                             if (!AllyStateCache.HasBuff(unit, ability))
                             {
                                 situation.AvailableBuffs.Add(ability);
-                                Main.LogDebug($"[Analyzer] SelfDamage available: {CombatAPI.GetAbilityDisplayName(ability)} (HP={situation.HPPercent:F0}% >= {hpThreshold}%)");
+                                Log.Analysis.Debug($"[Analyzer] SelfDamage available: {CombatAPI.GetAbilityDisplayName(ability)} (HP={situation.HPPercent:F0}% >= {hpThreshold}%)");
                             }
                         }
                         break;
@@ -878,7 +879,7 @@ namespace CompanionAI_v3.Analysis
                             float hpThreshold = AbilityDatabase.GetHPThreshold(ability);
                             if (hpThreshold > 0 && situation.HPPercent < hpThreshold)
                             {
-                                Main.LogDebug($"[Analyzer] Blocked {timing} {CombatAPI.GetAbilityDisplayName(ability)}: HP {situation.HPPercent:F0}% < threshold {hpThreshold}%");
+                                Log.Analysis.Debug($"[Analyzer] Blocked {timing} {CombatAPI.GetAbilityDisplayName(ability)}: HP {situation.HPPercent:F0}% < threshold {hpThreshold}%");
                                 break;
                             }
                             // 이미 활성화된 버프 제외
@@ -892,7 +893,7 @@ namespace CompanionAI_v3.Analysis
                                     bool isOff = AbilityDatabase.IsOffensiveBuff(ability);
                                     string buffType = isDef && isOff ? "Mixed"
                                         : isDef ? "Defensive" : isOff ? "Offensive" : "Unclassified";
-                                    Main.LogDebug($"[Analyzer] BuffClassify: {CombatAPI.GetAbilityDisplayName(ability)} → {buffType}");
+                                    Log.Analysis.Debug($"[Analyzer] BuffClassify: {CombatAPI.GetAbilityDisplayName(ability)} → {buffType}");
                                 }
                             }
                         }
@@ -929,7 +930,7 @@ namespace CompanionAI_v3.Analysis
                         // ★ v3.8.62: BlueprintCache 캐시 사용 (GetComponent O(n) → O(1))
                         if (Data.BlueprintCache.IsMultiTarget(ability))
                         {
-                            Main.LogDebug($"[Analyzer] Excluded MultiTarget from PositionalBuff: {CombatAPI.GetAbilityDisplayName(ability)}");
+                            Log.Analysis.Debug($"[Analyzer] Excluded MultiTarget from PositionalBuff: {CombatAPI.GetAbilityDisplayName(ability)}");
                             break;
                         }
                         situation.AvailablePositionalBuffs.Add(ability);
@@ -947,11 +948,11 @@ namespace CompanionAI_v3.Analysis
                             float hpThreshold = AbilityDatabase.GetHPThreshold(ability);
                             if (hpThreshold > 0 && situation.HPPercent < hpThreshold)
                             {
-                                Main.LogDebug($"[Analyzer] Blocked Marker {CombatAPI.GetAbilityDisplayName(ability)}: HP {situation.HPPercent:F0}% < threshold {hpThreshold}%");
+                                Log.Analysis.Debug($"[Analyzer] Blocked Marker {CombatAPI.GetAbilityDisplayName(ability)}: HP {situation.HPPercent:F0}% < threshold {hpThreshold}%");
                                 break;  // HP 부족 - 추가하지 않음
                             }
                             situation.AvailableMarkers.Add(ability);
-                            Main.LogDebug($"[Analyzer] Marker available: {CombatAPI.GetAbilityDisplayName(ability)}");
+                            Log.Analysis.Debug($"[Analyzer] Marker available: {CombatAPI.GetAbilityDisplayName(ability)}");
                         }
                         break;
 
@@ -962,7 +963,7 @@ namespace CompanionAI_v3.Analysis
                     case AbilityTiming.ChainEffect:
                         situation.AvailableSpecialAbilities.Add(ability);
                         situation.AvailableAttacks.Add(ability);  // ★ v3.0.96: Hittable 체크용
-                        Main.LogDebug($"[Analyzer] Special attack added: {CombatAPI.GetAbilityDisplayName(ability)} (Timing={timing})");
+                        Log.Analysis.Debug($"[Analyzer] Special attack added: {CombatAPI.GetAbilityDisplayName(ability)} (Timing={timing})");
                         break;
 
                     // ★ v3.0.38: 명시적 타이밍 처리 추가
@@ -981,7 +982,7 @@ namespace CompanionAI_v3.Analysis
                             float hpThreshold = AbilityDatabase.GetHPThreshold(ability);
                             if (hpThreshold > 0 && situation.HPPercent < hpThreshold)
                             {
-                                Main.LogDebug($"[Analyzer] Blocked TurnEnding {CombatAPI.GetAbilityDisplayName(ability)}: HP {situation.HPPercent:F0}% < threshold {hpThreshold}%");
+                                Log.Analysis.Debug($"[Analyzer] Blocked TurnEnding {CombatAPI.GetAbilityDisplayName(ability)}: HP {situation.HPPercent:F0}% < threshold {hpThreshold}%");
                                 break;  // HP 부족 - 추가하지 않음
                             }
                             situation.AvailableBuffs.Add(ability);
@@ -1000,13 +1001,13 @@ namespace CompanionAI_v3.Analysis
                         // ★ v3.8.62: BlueprintCache 캐시 사용
                         if (Data.BlueprintCache.IsMultiTarget(ability))
                         {
-                            Main.LogDebug($"[Analyzer] Excluded MultiTarget ability (component): {CombatAPI.GetAbilityDisplayName(ability)}");
+                            Log.Analysis.Debug($"[Analyzer] Excluded MultiTarget ability (component): {CombatAPI.GetAbilityDisplayName(ability)}");
                             break;
                         }
                         // ★ v3.7.27: 명시적 체크도 유지 (이름/GUID 기반)
                         if (FamiliarAbilities.IsMultiTargetFamiliarAbility(ability))
                         {
-                            Main.LogDebug($"[Analyzer] Excluded MultiTarget familiar ability: {CombatAPI.GetAbilityDisplayName(ability)}");
+                            Log.Analysis.Debug($"[Analyzer] Excluded MultiTarget familiar ability: {CombatAPI.GetAbilityDisplayName(ability)}");
                             break;
                         }
                         situation.AvailableAttacks.Add(ability);
@@ -1014,12 +1015,12 @@ namespace CompanionAI_v3.Analysis
 
                     // ★ v3.7.27: FamiliarOnly -> FamiliarAbilities에서만 처리 (AvailableAttacks에 추가 안 함)
                     case AbilityTiming.FamiliarOnly:
-                        Main.LogDebug($"[Analyzer] FamiliarOnly ability skipped: {CombatAPI.GetAbilityDisplayName(ability)}");
+                        Log.Analysis.Debug($"[Analyzer] FamiliarOnly ability skipped: {CombatAPI.GetAbilityDisplayName(ability)}");
                         break;
 
                     // DangerousAoE -> AvailableAttacks (주의해서 사용)
                     case AbilityTiming.DangerousAoE:
-                        Main.LogDebug($"[Analyzer] DangerousAoE: {CombatAPI.GetAbilityDisplayName(ability)} - added with caution");
+                        Log.Analysis.Debug($"[Analyzer] DangerousAoE: {CombatAPI.GetAbilityDisplayName(ability)} - added with caution");
                         situation.AvailableAttacks.Add(ability);
                         break;
 
@@ -1032,14 +1033,14 @@ namespace CompanionAI_v3.Analysis
                     // CC는 디버프의 하위집합 → PlanDebuff() 경로에서 소비됨
                     case AbilityTiming.CrowdControl:
                         situation.AvailableDebuffs.Add(ability);
-                        Main.LogDebug($"[Analyzer] CrowdControl: {CombatAPI.GetAbilityDisplayName(ability)} -> Debuffs");
+                        Log.Analysis.Debug($"[Analyzer] CrowdControl: {CombatAPI.GetAbilityDisplayName(ability)} -> Debuffs");
                         break;
 
                     // ★ v3.21.4: Grenade -> AvailableAttacks (수류탄, 투척)
                     // AoE 분류 코드에서 point-target AoE 감지 → 클러스터 최적화에 포함
                     case AbilityTiming.Grenade:
                         situation.AvailableAttacks.Add(ability);
-                        Main.LogDebug($"[Analyzer] Grenade: {CombatAPI.GetAbilityDisplayName(ability)} -> Attacks");
+                        Log.Analysis.Debug($"[Analyzer] Grenade: {CombatAPI.GetAbilityDisplayName(ability)} -> Attacks");
                         break;
 
                     default:
@@ -1050,7 +1051,7 @@ namespace CompanionAI_v3.Analysis
                             // ★ v3.8.62: BlueprintCache 캐시 사용
                             if (Data.BlueprintCache.IsMultiTarget(ability))
                             {
-                                Main.LogDebug($"[Analyzer] Excluded MultiTarget from default attacks: {CombatAPI.GetAbilityDisplayName(ability)}");
+                                Log.Analysis.Debug($"[Analyzer] Excluded MultiTarget from default attacks: {CombatAPI.GetAbilityDisplayName(ability)}");
                                 break;
                             }
                             situation.AvailableAttacks.Add(ability);
@@ -1064,17 +1065,17 @@ namespace CompanionAI_v3.Analysis
                                 && bp.EffectOnAlly == Kingmaker.UnitLogic.Abilities.Blueprints.AbilityEffectOnUnit.Helpful)
                             {
                                 situation.AvailableBuffs.Add(ability);
-                                Main.LogDebug($"[Analyzer] Default->Buff (ally-helpful): {CombatAPI.GetAbilityDisplayName(ability)}");
+                                Log.Analysis.Debug($"[Analyzer] Default->Buff (ally-helpful): {CombatAPI.GetAbilityDisplayName(ability)}");
                             }
                             else if (bp != null && bp.CanTargetSelf == true && bp.CanTargetEnemies != true
                                      && bp.EffectOnAlly == Kingmaker.UnitLogic.Abilities.Blueprints.AbilityEffectOnUnit.Helpful)
                             {
                                 situation.AvailableBuffs.Add(ability);
-                                Main.LogDebug($"[Analyzer] Default->Buff (self-helpful): {CombatAPI.GetAbilityDisplayName(ability)}");
+                                Log.Analysis.Debug($"[Analyzer] Default->Buff (self-helpful): {CombatAPI.GetAbilityDisplayName(ability)}");
                             }
                             else
                             {
-                                Main.LogDebug($"[Analyzer] ★ UNCLASSIFIED DROPPED: {CombatAPI.GetAbilityDisplayName(ability)} [{guid}] " +
+                                Log.Analysis.Debug($"[Analyzer] ★ UNCLASSIFIED DROPPED: {CombatAPI.GetAbilityDisplayName(ability)} [{guid}] " +
                                     $"Timing={timing}, TargetEnemy={bp?.CanTargetEnemies}, " +
                                     $"TargetFriend={bp?.CanTargetFriends}, TargetSelf={bp?.CanTargetSelf}, " +
                                     $"EffectOnAlly={bp?.EffectOnAlly}, EffectOnEnemy={bp?.EffectOnEnemy}");
@@ -1099,7 +1100,7 @@ namespace CompanionAI_v3.Analysis
                 if (!situation.AvailableAttacks.Contains(gc))
                 {
                     situation.AvailableAttacks.Add(gc);
-                    Main.LogDebug($"[Analyzer] Restored GapCloser after filter: {gc.Name}");
+                    Log.Analysis.Debug($"[Analyzer] Restored GapCloser after filter: {gc.Name}");
                 }
             }
 
@@ -1166,7 +1167,7 @@ namespace CompanionAI_v3.Analysis
             // ★ v3.0.87: GapClosers 카운트 추가
             // ★ v3.8.96: AoE 카운트 추가
             var finalGapClosers = situation.AvailableAttacks.Where(a => AbilityDatabase.IsGapCloser(a)).ToList();
-            Main.Log($"[Analyzer] {unit.CharacterName} abilities: " +
+            Log.Analysis.Info($"[Analyzer] {unit.CharacterName} abilities: " +
                 $"Buffs={situation.AvailableBuffs.Count}, " +
                 $"Heals={situation.AvailableHeals.Count}, " +
                 $"Debuffs={situation.AvailableDebuffs.Count}, " +
@@ -1183,20 +1184,20 @@ namespace CompanionAI_v3.Analysis
                 foreach (var aoe in situation.AvailableAoEAttacks)
                 {
                     var cat = CombatAPI.GetAttackCategory(aoe);
-                    Main.LogDebug($"[Analyzer]   AoE: {aoe.Name} (Category={cat})");
+                    Log.Analysis.Debug($"[Analyzer]   AoE: {aoe.Name} (Category={cat})");
                 }
             }
 
             // ★ v3.0.87: GapClosers 이름 로깅
             if (finalGapClosers.Count > 0)
             {
-                Main.Log($"[Analyzer] GapClosers: {string.Join(", ", finalGapClosers.Select(g => g.Name))}");
+                Log.Analysis.Info($"[Analyzer] GapClosers: {string.Join(", ", finalGapClosers.Select(g => g.Name))}");
             }
 
             if (situation.AvailableBuffs.Count > 0)
             {
                 var buffNames = string.Join(", ", situation.AvailableBuffs.Select(b => b.Name));
-                Main.LogDebug($"[Analyzer] Available buffs: {buffNames}");
+                Log.Analysis.Debug($"[Analyzer] Available buffs: {buffNames}");
             }
 
             // ★ v3.9.56: 블렌딩 공격 사거리 계산
@@ -1295,7 +1296,7 @@ namespace CompanionAI_v3.Analysis
                 // 무기 사거리와 다를 때만 로깅 (동일하면 변화 없음)
                 if (Math.Abs(minFiniteRange - situation.WeaponRange.EffectiveRange) > 0.5f)
                 {
-                    Main.Log($"[Analyzer] {unit.CharacterName}: BlendedAttackRange={minFiniteRange:F1} " +
+                    Log.Analysis.Info($"[Analyzer] {unit.CharacterName}: BlendedAttackRange={minFiniteRange:F1} " +
                         $"(shortest: {shortestAbilityName}, weapon={situation.WeaponRange.EffectiveRange:F1}, " +
                         $"{finiteCount} finite-range attacks)");
                 }
@@ -1342,7 +1343,7 @@ namespace CompanionAI_v3.Analysis
                 if (situation.IsInDanger)
                 {
                     // 위험 거리 내에 있으면 NeedsReposition 유지하여 후퇴 허용
-                    Main.LogDebug($"[Analyzer] Ranged character in danger (dist={situation.NearestEnemyDistance:F1}m < {situation.MinSafeDistance}m) - allowing reposition for retreat");
+                    Log.Analysis.Debug($"[Analyzer] Ranged character in danger (dist={situation.NearestEnemyDistance:F1}m < {situation.MinSafeDistance}m) - allowing reposition for retreat");
                 }
                 // 공격 가능 적이 있거나, 이미 이동했거나, MP가 없으면 → 추가 이동 불필요
                 // ★ v3.0.93: MP=0 체크 추가
@@ -1350,13 +1351,13 @@ namespace CompanionAI_v3.Analysis
                 {
                     situation.NeedsReposition = false;
                     situation.AllowChaseMove = false;
-                    Main.LogDebug($"[Analyzer] Ranged character: hittable={situation.HasHittableEnemies}, moved={turnState.HasMovedThisTurn}, MP={situation.CurrentMP:F1} - no reposition needed");
+                    Log.Analysis.Debug($"[Analyzer] Ranged character: hittable={situation.HasHittableEnemies}, moved={turnState.HasMovedThisTurn}, MP={situation.CurrentMP:F1} - no reposition needed");
                 }
                 else
                 {
                     // Hittable=0 && HasMovedThisTurn=false && MP>0 → 이동해서 공격 위치 찾아야 함
                     // NeedsReposition은 AnalyzePosition()에서 이미 올바르게 설정됨
-                    Main.LogDebug($"[Analyzer] Ranged character acted but no hittable targets and hasn't moved - allow reposition (NeedsReposition={situation.NeedsReposition}, MP={situation.CurrentMP:F1})");
+                    Log.Analysis.Debug($"[Analyzer] Ranged character acted but no hittable targets and hasn't moved - allow reposition (NeedsReposition={situation.NeedsReposition}, MP={situation.CurrentMP:F1})");
                 }
             }
         }
@@ -1373,7 +1374,7 @@ namespace CompanionAI_v3.Analysis
                 if (situation.IsFamiliarUnit)
                 {
                     var master = FamiliarAPI.GetMaster(unit);
-                    Main.LogDebug($"[Analyzer] {unit.CharacterName}: Is Familiar (Master={master?.CharacterName ?? "None"})");
+                    Log.Analysis.Debug($"[Analyzer] {unit.CharacterName}: Is Familiar (Master={master?.CharacterName ?? "None"})");
                     return;  // 사역마는 추가 분석 불필요
                 }
 
@@ -1398,7 +1399,7 @@ namespace CompanionAI_v3.Analysis
                 // 4. 사역마 의식 여부 확인
                 if (!FamiliarAPI.IsFamiliarConscious(unit))
                 {
-                    Main.LogDebug($"[Analyzer] {unit.CharacterName}: Familiar {FamiliarAPI.GetFamiliarTypeName(situation.FamiliarType)} is unconscious");
+                    Log.Analysis.Debug($"[Analyzer] {unit.CharacterName}: Familiar {FamiliarAPI.GetFamiliarTypeName(situation.FamiliarType)} is unconscious");
                     // 의식 없으면 Reactivate만 가능
                     situation.FamiliarAbilities = FamiliarAbilities.CollectFamiliarAbilities(unit, situation.FamiliarType.Value)
                         .Where(a => FamiliarAbilities.IsReactivateAbility(a))
@@ -1420,7 +1421,7 @@ namespace CompanionAI_v3.Analysis
                     // 타일 → 미터 변환 (1 타일 ≈ 1.35m)
                     int rangeTiles = GameInterface.CombatAPI.GetAbilityRangeInTiles(relocateAbility);
                     relocateRangeMeters = rangeTiles * CombatAPI.GridCellSize;
-                    Main.LogDebug($"[Analyzer] Relocate range: {rangeTiles} tiles ({relocateRangeMeters:F1}m)");
+                    Log.Analysis.Debug($"[Analyzer] Relocate range: {rangeTiles} tiles ({relocateRangeMeters:F1}m)");
                 }
 
                 // ★ v3.8.58: 아군 상태 캐시 갱신 (Raven/Servo-Skull 버프 확산 커버리지 정확 계산)
@@ -1482,7 +1483,7 @@ namespace CompanionAI_v3.Analysis
                     // ★ v3.40.6: 사역마의 버프 분배 오라(4타일)보다 작아지면 안 됨
                     // 디버프 AoE(허약=2)가 오라 반경을 줄이면 → 아군 커버리지 과소평가 → 재배치 거부
                     familiarEffectRadius = Math.Max(minAoE, FamiliarPositioner.EFFECT_RADIUS_TILES);
-                    Main.LogDebug($"[Analyzer] Familiar effect radius: {familiarEffectRadius} tiles (min AoE={minAoE}, aura={FamiliarPositioner.EFFECT_RADIUS_TILES})");
+                    Log.Analysis.Debug($"[Analyzer] Familiar effect radius: {familiarEffectRadius} tiles (min AoE={minAoE}, aura={FamiliarPositioner.EFFECT_RADIUS_TILES})");
                 }
                 situation.FamiliarEffectRadius = familiarEffectRadius;
 
@@ -1523,7 +1524,7 @@ namespace CompanionAI_v3.Analysis
                     if (relocateAbility == null)
                     {
                         situation.NeedsFamiliarRelocate = false;
-                        Main.LogDebug($"[Analyzer] NeedsFamiliarRelocate=false: No relocate ability found");
+                        Log.Analysis.Debug($"[Analyzer] NeedsFamiliarRelocate=false: No relocate ability found");
                     }
                     else
                     {
@@ -1533,21 +1534,21 @@ namespace CompanionAI_v3.Analysis
                         {
                             situation.NeedsFamiliarRelocate = false;
                             string reasons = string.Join(", ", unavailableReasons);
-                            Main.LogDebug($"[Analyzer] NeedsFamiliarRelocate=false: Relocate unavailable ({reasons})");
+                            Log.Analysis.Debug($"[Analyzer] NeedsFamiliarRelocate=false: Relocate unavailable ({reasons})");
                         }
                     }
                 }
 
                 // 10. 로깅
                 var typeName = FamiliarAPI.GetFamiliarTypeName(situation.FamiliarType);
-                Main.Log($"[Analyzer] {unit.CharacterName}: Has {typeName}, " +
+                Log.Analysis.Info($"[Analyzer] {unit.CharacterName}: Has {typeName}, " +
                     $"Optimal=({situation.OptimalFamiliarPosition.AlliesInRange} allies, {situation.OptimalFamiliarPosition.EnemiesInRange} enemies), " +
                     $"NeedsRelocate={situation.NeedsFamiliarRelocate}, " +
                     $"FamiliarAbilities={situation.FamiliarAbilities.Count}");
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[Analyzer] AnalyzeFamiliar error");
+                Log.Analysis.Error(ex, $"[Analyzer] AnalyzeFamiliar error");
                 situation.HasFamiliar = false;
             }
         }
@@ -1581,13 +1582,13 @@ namespace CompanionAI_v3.Analysis
                         // 적에게 해로운 AOE → 공격으로 분류
                         if (ability.Blueprint?.EffectOnEnemy == Kingmaker.UnitLogic.Abilities.Blueprints.AbilityEffectOnUnit.Harmful)
                         {
-                            Main.LogDebug($"[Analyzer] Point AOE attack detected: {CombatAPI.GetAbilityDisplayName(ability)}");
+                            Log.Analysis.Debug($"[Analyzer] Point AOE attack detected: {CombatAPI.GetAbilityDisplayName(ability)}");
                             return true;
                         }
                     }
                 }
                 // intentional: IsAttackAbility 는 모든 능력에 대해 매 턴 호출, Blueprint?.EffectOnEnemy 접근이 씬 로드 중 transient null 가능
-                catch (Exception ex) { Main.LogDebug($"[Analyzer] {ex.Message}"); }
+                catch (Exception ex) { Log.Analysis.Debug($"[Analyzer] {ex.Message}"); }
             }
 
             // 무기 공격

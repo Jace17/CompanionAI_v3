@@ -11,6 +11,7 @@ using CompanionAI_v3.Planning.LLM;
 using CompanionAI_v3.Settings;
 using Kingmaker.Blueprints.Classes.Experience;  // ★ v3.8.49: UnitDifficultyType
 using UnityEngine;  // ★ v3.24.0: Mathf (EV 스코어링)
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Analysis
 {
@@ -233,7 +234,7 @@ namespace CompanionAI_v3.Analysis
             // ★ v3.40.6: 데미지 면역 타겟은 공격 무의미 — 매우 낮은 점수
             if (CombatAPI.IsTargetImmuneToDamage(target, situation.Unit))
             {
-                Main.LogDebug($"[TargetScorer] {target.CharacterName}: IMMUNE to attacker's damage type — deprioritized");
+                Log.Analysis.Debug($"[TargetScorer] {target.CharacterName}: IMMUNE to attacker's damage type — deprioritized");
                 return UtilityScorer.SCORE_IMPOSSIBLE + 10f; // 죽은 적보다는 높지만 거의 선택 안 됨
             }
 
@@ -302,20 +303,20 @@ namespace CompanionAI_v3.Analysis
                         float evScore = CurvePresets.ExpectedDamageRatio.Evaluate(evRatio);
                         score += evScore;
                         if (Main.IsDebugEnabled)
-                            Main.LogDebug($"[TargetScorer] {target.CharacterName}: EV={expectedDamage:F0} (hit{hitInfo.HitChance}%×dmg{estimatedDmgForEV:F0}), ratio={evRatio:F2}, score={evScore:F1}");
+                            Log.Analysis.Debug($"[TargetScorer] {target.CharacterName}: EV={expectedDamage:F0} (hit{hitInfo.HitChance}%×dmg{estimatedDmgForEV:F0}), ratio={evRatio:F2}, score={evScore:F1}");
 
                         // 최적 거리 보너스 (DistanceFactor >= 1.0) — 포지셔닝 시그널, EV와 독립
                         if (hitInfo.IsInOptimalRange)
                         {
                             score += OPTIMAL_RANGE_BONUS;
-                            Main.LogDebug($"[TargetScorer] {target.CharacterName}: +{OPTIMAL_RANGE_BONUS} optimal range");
+                            Log.Analysis.Debug($"[TargetScorer] {target.CharacterName}: +{OPTIMAL_RANGE_BONUS} optimal range");
                         }
 
                         // 엄폐 페널티 — 포지셔닝 시그널, EV와 독립
                         if (hitInfo.CoverType == LosCalculations.CoverType.Full)
                         {
                             score -= FULL_COVER_PENALTY;
-                            Main.LogDebug($"[TargetScorer] {target.CharacterName}: -{FULL_COVER_PENALTY} full cover");
+                            Log.Analysis.Debug($"[TargetScorer] {target.CharacterName}: -{FULL_COVER_PENALTY} full cover");
                         }
                         else if (hitInfo.CoverType == LosCalculations.CoverType.Half)
                         {
@@ -331,7 +332,7 @@ namespace CompanionAI_v3.Analysis
                     if (estimatedDmg < SC.LowDamageThreshold)
                     {
                         score -= SC.LowDamagePenalty;
-                        Main.LogDebug($"[TargetScorer] {target.CharacterName}: -{SC.LowDamagePenalty:F0} low damage ({estimatedDmg:F0} estimated)");
+                        Log.Analysis.Debug($"[TargetScorer] {target.CharacterName}: -{SC.LowDamagePenalty:F0} low damage ({estimatedDmg:F0} estimated)");
                     }
                 }
 
@@ -343,7 +344,7 @@ namespace CompanionAI_v3.Analysis
                         float flankScore = flankBonus * SC.TargetFlankingBonus;
                         score += flankScore;
                         if (Main.IsDebugEnabled)
-                            Main.LogDebug($"[TargetScorer] {target.CharacterName}: flank bonus +{flankScore:F0} (side={CombatAPI.GetAttackSide(target, situation.Unit.Position)})");
+                            Log.Analysis.Debug($"[TargetScorer] {target.CharacterName}: flank bonus +{flankScore:F0} (side={CombatAPI.GetAttackSide(target, situation.Unit.Position)})");
                     }
                 }
 
@@ -357,7 +358,7 @@ namespace CompanionAI_v3.Analysis
                 if (TeamBlackboard.Instance.SharedTarget == target)
                 {
                     score += ENEMY_SHARED_TARGET_BONUS;
-                    Main.LogDebug($"[TargetScorer] +{ENEMY_SHARED_TARGET_BONUS} SharedTarget: {target.CharacterName}");
+                    Log.Analysis.Debug($"[TargetScorer] +{ENEMY_SHARED_TARGET_BONUS} SharedTarget: {target.CharacterName}");
                 }
 
                 // ★ v3.8.46: Target Inertia (타겟 관성)
@@ -368,7 +369,7 @@ namespace CompanionAI_v3.Analysis
                 {
                     float inertiaBonus = SC.InertiaBonus;
                     score += inertiaBonus;
-                    Main.LogDebug($"[TargetScorer] +{inertiaBonus:F0} Inertia: {target.CharacterName}");
+                    Log.Analysis.Debug($"[TargetScorer] +{inertiaBonus:F0} Inertia: {target.CharacterName}");
                 }
 
                 // ★ v3.2.15: 아군이 타겟팅 중인 적 보너스 (화력 집중)
@@ -384,7 +385,7 @@ namespace CompanionAI_v3.Analysis
                 if (CombatAPI.IsPriorityTargetFor(target, situation.Unit))
                 {
                     score += PRIORITY_TARGET_BONUS;
-                    Main.LogDebug($"[TargetScorer] {target.CharacterName}: +{PRIORITY_TARGET_BONUS:F0} priority target (taunted/marked)");
+                    Log.Analysis.Debug($"[TargetScorer] {target.CharacterName}: +{PRIORITY_TARGET_BONUS:F0} priority target (taunted/marked)");
                 }
 
                 // ★ v3.110.18: Frontline centroid 제거 — 타겟-아군 직접 거리로 고립/근접 판정
@@ -405,7 +406,7 @@ namespace CompanionAI_v3.Analysis
                     {
                         float isolationPenalty = (minAllyDistToTarget - TARGET_ISOLATION_THRESHOLD) * TARGET_ISOLATION_RATE;
                         score -= isolationPenalty;
-                        Main.LogDebug($"[TargetScorer] {target.CharacterName}: -{isolationPenalty:F0} isolation (nearest ally {minAllyDistToTarget:F1}m)");
+                        Log.Analysis.Debug($"[TargetScorer] {target.CharacterName}: -{isolationPenalty:F0} isolation (nearest ally {minAllyDistToTarget:F1}m)");
                     }
                     else if (minAllyDistToTarget < TARGET_PROXIMITY_THRESHOLD)
                     {
@@ -429,7 +430,7 @@ namespace CompanionAI_v3.Analysis
                 if (difficultyScore > 0f)
                 {
                     score += difficultyScore * weights.Difficulty;
-                    Main.LogDebug($"[TargetScorer] {target.CharacterName}: +{difficultyScore * weights.Difficulty:F0} difficulty ({difficultyType})");
+                    Log.Analysis.Debug($"[TargetScorer] {target.CharacterName}: +{difficultyScore * weights.Difficulty:F0} difficulty ({difficultyType})");
                 }
 
                 // ★ v3.2.30: 킬 시뮬레이터 확정 킬 보너스 (설정으로 토글 가능)
@@ -460,12 +461,12 @@ namespace CompanionAI_v3.Analysis
                                 // 추가 킬당 +20점 보너스
                                 float multiKillBonus = additionalTargets * ENEMY_MULTI_KILL_BONUS;
                                 killBonus += multiKillBonus;
-                                Main.LogDebug($"[TargetScorer] {target.CharacterName}: +{multiKillBonus:F0} AOE multi-kill ({additionalTargets} additional targets)");
+                                Log.Analysis.Debug($"[TargetScorer] {target.CharacterName}: +{multiKillBonus:F0} AOE multi-kill ({additionalTargets} additional targets)");
                             }
                         }
 
                         score += killBonus;
-                        Main.LogDebug($"[TargetScorer] {target.CharacterName}: +{killBonus:F0} ConfirmedKill ({killSequence.Abilities.Count} abilities, {killSequence.TotalDamage:F0} dmg)");
+                        Log.Analysis.Debug($"[TargetScorer] {target.CharacterName}: +{killBonus:F0} ConfirmedKill ({killSequence.Abilities.Count} abilities, {killSequence.TotalDamage:F0} dmg)");
                     }
                 }
 
@@ -489,7 +490,7 @@ namespace CompanionAI_v3.Analysis
                         // 2명 이상 맞추면 AOE로 간주
                         if (enemiesInPattern < 2) continue;
 
-                        Main.LogDebug($"[TargetScorer] AOE: {attack.Name} -> {target.CharacterName}: {enemiesInPattern} enemies in pattern");
+                        Log.Analysis.Debug($"[TargetScorer] AOE: {attack.Name} -> {target.CharacterName}: {enemiesInPattern} enemies in pattern");
 
                         int additionalEnemies = enemiesInPattern - 1;
                         float attackAoEBonus = additionalEnemies * ENEMY_AOE_CLUSTER_BONUS;  // 타겟 선택용 보너스
@@ -501,7 +502,7 @@ namespace CompanionAI_v3.Analysis
                 if (aoeClusterBonus > 0f)
                 {
                     score += aoeClusterBonus;
-                    Main.LogDebug($"[TargetScorer] {target.CharacterName}: +{aoeClusterBonus:F0} AOE cluster bonus");
+                    Log.Analysis.Debug($"[TargetScorer] {target.CharacterName}: +{aoeClusterBonus:F0} AOE cluster bonus");
                 }
 
                 // ★ v3.9.16: 턴 순서 긴급도 — 곧 행동할 적 우선, 이미 행동한 적 후순위
@@ -510,7 +511,7 @@ namespace CompanionAI_v3.Analysis
                 {
                     score += turnUrgency * weights.TurnUrgency;
                     if (Main.IsDebugEnabled)
-                        Main.LogDebug($"[TargetScorer] {target.CharacterName}: {turnUrgency * weights.TurnUrgency:+0;-0} turn urgency");
+                        Log.Analysis.Debug($"[TargetScorer] {target.CharacterName}: {turnUrgency * weights.TurnUrgency:+0;-0} turn urgency");
                 }
 
                 // ★ LLM-as-Scorer: ScorerWeights 기반 가중치 적용
@@ -530,7 +531,7 @@ namespace CompanionAI_v3.Analysis
                                 {
                                     score *= scorerWeights.FocusFire;
                                     if (Main.IsDebugEnabled)
-                                        Main.LogDebug($"[TargetScorer] {target.CharacterName}: x{scorerWeights.FocusFire:F1} LLM focus fire");
+                                        Log.Analysis.Debug($"[TargetScorer] {target.CharacterName}: x{scorerWeights.FocusFire:F1} LLM focus fire");
                                 }
                             }
                         }
@@ -541,14 +542,14 @@ namespace CompanionAI_v3.Analysis
                             float aoeAmplify = aoeClusterBonus * (scorerWeights.AoEWeight - 1f);
                             score += aoeAmplify;
                             if (Main.IsDebugEnabled)
-                                Main.LogDebug($"[TargetScorer] {target.CharacterName}: +{aoeAmplify:F0} LLM AoE weight amplify");
+                                Log.Analysis.Debug($"[TargetScorer] {target.CharacterName}: +{aoeAmplify:F0} LLM AoE weight amplify");
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[TargetScorer] ScoreEnemy error");
+                Log.Analysis.Error(ex, $"[TargetScorer] ScoreEnemy error");
             }
 
             return score;
@@ -596,16 +597,16 @@ namespace CompanionAI_v3.Analysis
                     // ★ v3.40.8: SCORE_IMPOSSIBLE 이하 점수면 유효 타겟 없음 (면역/사망 등)
                     if (bestScore <= UtilityScorer.SCORE_IMPOSSIBLE + 1000f)
                     {
-                        Main.LogDebug($"[TargetScorer] Best enemy {best.CharacterName} rejected: score={bestScore:F1} (IMPOSSIBLE)");
+                        Log.Analysis.Debug($"[TargetScorer] Best enemy {best.CharacterName} rejected: score={bestScore:F1} (IMPOSSIBLE)");
                         return null;
                     }
-                    Main.LogDebug($"[TargetScorer] Best enemy for {role}: {best.CharacterName} (score={bestScore:F1})");
+                    Log.Analysis.Debug($"[TargetScorer] Best enemy for {role}: {best.CharacterName} (score={bestScore:F1})");
                     return best;
                 }
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[TargetScorer] SelectBestEnemy error");
+                Log.Analysis.Error(ex, $"[TargetScorer] SelectBestEnemy error");
             }
 
             return candidates.FirstOrDefault();
@@ -675,7 +676,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[TargetScorer] ScoreAllyForHealing error");
+                Log.Analysis.Error(ex, $"[TargetScorer] ScoreAllyForHealing error");
             }
 
             return score;
@@ -706,13 +707,13 @@ namespace CompanionAI_v3.Analysis
 
                 if (best != null)
                 {
-                    Main.LogDebug($"[TargetScorer] Best ally for healing: {best.CharacterName} (score={bestScore:F1})");
+                    Log.Analysis.Debug($"[TargetScorer] Best ally for healing: {best.CharacterName} (score={bestScore:F1})");
                     return best;
                 }
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[TargetScorer] SelectBestAllyForHealing error");
+                Log.Analysis.Error(ex, $"[TargetScorer] SelectBestAllyForHealing error");
             }
 
             return null;
@@ -743,13 +744,13 @@ namespace CompanionAI_v3.Analysis
 
                 if (best != null)
                 {
-                    Main.LogDebug($"[TargetScorer] Best ally for buff: {best.CharacterName} (score={bestScore:F1})");
+                    Log.Analysis.Debug($"[TargetScorer] Best ally for buff: {best.CharacterName} (score={bestScore:F1})");
                     return best;
                 }
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[TargetScorer] SelectBestAllyForBuff error");
+                Log.Analysis.Error(ex, $"[TargetScorer] SelectBestAllyForBuff error");
             }
 
             return allies.FirstOrDefault();
@@ -804,12 +805,12 @@ namespace CompanionAI_v3.Analysis
 
                 if (Main.IsDebugEnabled && _cachedTurnOrder.Count > 0)
                 {
-                    Main.LogDebug($"[TargetScorer] TurnOrder cache: {_cachedTurnOrder.Count} units remaining after {currentUnit?.CharacterName}");
+                    Log.Analysis.Debug($"[TargetScorer] TurnOrder cache: {_cachedTurnOrder.Count} units remaining after {currentUnit?.CharacterName}");
                 }
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[TargetScorer] TurnOrder cache error");
+                Log.Analysis.Error(ex, $"[TargetScorer] TurnOrder cache error");
             }
         }
 
@@ -841,7 +842,7 @@ namespace CompanionAI_v3.Analysis
 
                 if (bonus > 0f && Main.IsDebugEnabled)
                 {
-                    Main.LogDebug($"[TargetScorer] {target.CharacterName}: TurnUrgency +{bonus:F0} (position {position} in turn order)");
+                    Log.Analysis.Debug($"[TargetScorer] {target.CharacterName}: TurnUrgency +{bonus:F0} (position {position} in turn order)");
                 }
 
                 return bonus;
@@ -928,7 +929,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[TargetScorer] EvaluateThreat error");
+                Log.Analysis.Error(ex, $"[TargetScorer] EvaluateThreat error");
                 return THREAT_FALLBACK;  // 폴백: 중간 위협도
             }
 

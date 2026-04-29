@@ -16,6 +16,7 @@ using CompanionAI_v3.GameInterface;
 using CompanionAI_v3.Planning.LLM;
 using CompanionAI_v3.Settings;
 using UnityEngine;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Analysis
 {
@@ -177,7 +178,7 @@ namespace CompanionAI_v3.Analysis
                 {
                     // 궁극기가 아님 = 큰 감점 (WarhammerAbilityRestriction으로 제한될 것)
                     score -= NON_ULTIMATE_PENALTY;
-                    Main.LogDebug($"[UtilityScorer] {buff.Name}: Non-ultimate during FreeUltimate turn - skipped");
+                    Log.Analysis.Debug($"[UtilityScorer] {buff.Name}: Non-ultimate during FreeUltimate turn - skipped");
                 }
             }
 
@@ -297,7 +298,7 @@ namespace CompanionAI_v3.Analysis
                         gainScore = Mathf.Clamp(damageGain / BUFF_DAMAGE_GAIN_DIVISOR, BUFF_SYNERGY_MIN, BUFF_SYNERGY_MAX);
 
                         if (Main.IsDebugEnabled)
-                            Main.LogDebug($"[UtilityScorer] BuffCoupling: {buff.Name} mult={buffMultiplier:F2}, " +
+                            Log.Analysis.Debug($"[UtilityScorer] BuffCoupling: {buff.Name} mult={buffMultiplier:F2}, " +
                                 $"baseDmg={baseDamage:F0}, gain={damageGain:F0}, score={gainScore:F1} (was fixed +20)");
                     }
                 }
@@ -338,7 +339,7 @@ namespace CompanionAI_v3.Analysis
                 float prevScore = score;
                 score *= buffWeights.BuffPriority;
                 if (Main.IsDebugEnabled)
-                    Main.LogDebug($"[UtilityScorer] {buff.Name}: {prevScore:F0} -> {score:F0} LLM buff priority (x{buffWeights.BuffPriority:F1})");
+                    Log.Analysis.Debug($"[UtilityScorer] {buff.Name}: {prevScore:F0} -> {score:F0} LLM buff priority (x{buffWeights.BuffPriority:F1})");
             }
 
             return score;
@@ -417,7 +418,7 @@ namespace CompanionAI_v3.Analysis
                 a != null && a.IsConscious && a != situation.Unit &&
                 CombatCache.GetHPPercent(a) < 50f) ?? 0;
 
-            Main.LogDebug($"[UtilityScorer] Ultimate {ultimate.Name}: TargetType={info.TargetType}, " +
+            Log.Analysis.Debug($"[UtilityScorer] Ultimate {ultimate.Name}: TargetType={info.TargetType}, " +
                 $"HeroicAct={info.IsHeroicAct}, HP={hpPercent:F0}%, Danger={isInDanger}, " +
                 $"Enemies={livingEnemies}, Hittable={hittableEnemies}, LowHPAllies={lowHPAllies}");
 
@@ -447,7 +448,7 @@ namespace CompanionAI_v3.Analysis
                     if (isInDanger)
                         score += 30f;
 
-                    Main.LogDebug($"[UtilityScorer] {ultimate.Name}: SELF_BUFF score={score:F0}");
+                    Log.Analysis.Debug($"[UtilityScorer] {ultimate.Name}: SELF_BUFF score={score:F0}");
                     break;
 
                 case CombatAPI.UltimateTargetType.ImmediateAttack:
@@ -473,10 +474,10 @@ namespace CompanionAI_v3.Analysis
                     {
                         // 공격 불가 = 사용 자체가 불가능하거나 무의미
                         score -= 200f;
-                        Main.LogDebug($"[UtilityScorer] {ultimate.Name}: No hittable enemies - heavily penalized");
+                        Log.Analysis.Debug($"[UtilityScorer] {ultimate.Name}: No hittable enemies - heavily penalized");
                     }
 
-                    Main.LogDebug($"[UtilityScorer] {ultimate.Name}: IMMEDIATE_ATTACK score={score:F0}");
+                    Log.Analysis.Debug($"[UtilityScorer] {ultimate.Name}: IMMEDIATE_ATTACK score={score:F0}");
                     break;
 
                 case CombatAPI.UltimateTargetType.AllyBuff:
@@ -505,7 +506,7 @@ namespace CompanionAI_v3.Analysis
                         score -= 200f;
                     }
 
-                    Main.LogDebug($"[UtilityScorer] {ultimate.Name}: ALLY_BUFF score={score:F0} (allies={livingAllies})");
+                    Log.Analysis.Debug($"[UtilityScorer] {ultimate.Name}: ALLY_BUFF score={score:F0} (allies={livingAllies})");
                     break;
 
                 case CombatAPI.UltimateTargetType.AreaEffect:
@@ -541,14 +542,14 @@ namespace CompanionAI_v3.Analysis
                             score -= 150f;
                     }
 
-                    Main.LogDebug($"[UtilityScorer] {ultimate.Name}: AREA_EFFECT score={score:F0} " +
+                    Log.Analysis.Debug($"[UtilityScorer] {ultimate.Name}: AREA_EFFECT score={score:F0} " +
                         $"(offensive={!info.NotOffensive}, allies={livingAllies}, enemies={livingEnemies})");
                     break;
 
                 default:
                     // 분류 불가 = 기본 점수 (사용은 시도)
                     score += 50f;
-                    Main.LogDebug($"[UtilityScorer] {ultimate.Name}: UNKNOWN type, default score");
+                    Log.Analysis.Debug($"[UtilityScorer] {ultimate.Name}: UNKNOWN type, default score");
                     break;
             }
 
@@ -602,7 +603,7 @@ namespace CompanionAI_v3.Analysis
                 {
                     float dangerPenalty = SC.ClearMPDangerBase * safetyWeight;  // Support는 -48점, Tank는 -12점
                     score -= dangerPenalty;
-                    Main.LogDebug($"[UtilityScorer] {attack.Name}: ClearMP + InDanger penalty={dangerPenalty:F0} (safetyWeight={safetyWeight:F1})");
+                    Log.Analysis.Debug($"[UtilityScorer] {attack.Name}: ClearMP + InDanger penalty={dangerPenalty:F0} (safetyWeight={safetyWeight:F1})");
                 }
 
                 // 근접 적 거리 기반 추가 감점
@@ -627,14 +628,14 @@ namespace CompanionAI_v3.Analysis
                         float overwatchPenalty = situation.EnemyOverwatchCount * OVERWATCH_PER_ENEMY_PENALTY;
                         score -= overwatchPenalty;
                         if (Main.IsDebugEnabled)
-                            Main.LogDebug($"[UtilityScorer] {attack.Name}: Overwatch trigger penalty={overwatchPenalty:F0} ({situation.EnemyOverwatchCount} overwatchers)");
+                            Log.Analysis.Debug($"[UtilityScorer] {attack.Name}: Overwatch trigger penalty={overwatchPenalty:F0} ({situation.EnemyOverwatchCount} overwatchers)");
                     }
                     else
                     {
                         // WillNotCauseAttack 능력 = 오버워치 안전 → 보너스
                         score += OVERWATCH_SAFE_BONUS;
                         if (Main.IsDebugEnabled)
-                            Main.LogDebug($"[UtilityScorer] {attack.Name}: Overwatch-safe ability bonus=+15");
+                            Log.Analysis.Debug($"[UtilityScorer] {attack.Name}: Overwatch-safe ability bonus=+15");
                     }
                 }
                 catch { }
@@ -649,7 +650,7 @@ namespace CompanionAI_v3.Analysis
             {
                 score -= SC.LowDamageAttackPenalty;
                 if (Main.IsDebugEnabled)
-                    Main.LogDebug($"[UtilityScorer] {attack.Name}: -{SC.LowDamageAttackPenalty:F0} near-zero damage ({estimatedDamage:F0}) vs {target.CharacterName}");
+                    Log.Analysis.Debug($"[UtilityScorer] {attack.Name}: -{SC.LowDamageAttackPenalty:F0} near-zero damage ({estimatedDamage:F0}) vs {target.CharacterName}");
             }
 
             // ★ v3.24.0: EV 통합 — hit chance를 damage에 곱하여 기대값 기반 스코어링
@@ -748,7 +749,7 @@ namespace CompanionAI_v3.Analysis
                     // AOO 유발 시 감점 (위협하는 적 수에 비례)
                     float aooPenalty = AOO_BASE_PENALTY + (aooStatus.ThreateningEnemyCount * AOO_PER_ENEMY_PENALTY);
                     score -= aooPenalty;
-                    Main.LogDebug($"[UtilityScorer] {attack.Name}: AOO penalty={aooPenalty:F0} " +
+                    Log.Analysis.Debug($"[UtilityScorer] {attack.Name}: AOO penalty={aooPenalty:F0} " +
                         $"({aooStatus.ThreateningEnemyCount} threatening enemies)");
                 }
                 else if (aooStatus.IsSafe)
@@ -773,17 +774,17 @@ namespace CompanionAI_v3.Analysis
                     if (hasHardCC)
                     {
                         score += SC.HardCCExploitBonus;
-                        Main.LogDebug($"[UtilityScorer] +{SC.HardCCExploitBonus:F0} HardCC exploit: {target.CharacterName}");
+                        Log.Analysis.Debug($"[UtilityScorer] +{SC.HardCCExploitBonus:F0} HardCC exploit: {target.CharacterName}");
                     }
                     if (hasDOT)
                     {
                         score += SC.DOTFollowUpBonus;
-                        Main.LogDebug($"[UtilityScorer] +{SC.DOTFollowUpBonus:F0} DOT follow-up: {target.CharacterName}");
+                        Log.Analysis.Debug($"[UtilityScorer] +{SC.DOTFollowUpBonus:F0} DOT follow-up: {target.CharacterName}");
                     }
                 }
             }
             // intentional: ScoreAttack 은 (attack × target) 쌍마다 호출되는 핫 경로, Buffs.Enumerable / Blueprint 접근의 transient null 허용
-            catch (Exception ex) { Main.LogDebug($"[UtilityScorer] {ex.Message}"); }
+            catch (Exception ex) { Log.Analysis.Debug($"[UtilityScorer] {ex.Message}"); }
 
             // ★ 특수 타이밍 고려
             var timing = AbilityDatabase.GetTiming(attack);
@@ -814,7 +815,7 @@ namespace CompanionAI_v3.Analysis
                     float overheatPenalty = (overheatRank - SC.PlasmaOverheatDangerRank + 1) * SC.PlasmaOverheatPenaltyPerRank;
                     score -= overheatPenalty;
                     if (Main.IsDebugEnabled)
-                        Main.LogDebug($"[UtilityScorer] {attack.Name}: Plasma overheat penalty={overheatPenalty:F0} (rank={overheatRank})");
+                        Log.Analysis.Debug($"[UtilityScorer] {attack.Name}: Plasma overheat penalty={overheatPenalty:F0} (rank={overheatRank})");
                 }
             }
 
@@ -840,7 +841,7 @@ namespace CompanionAI_v3.Analysis
                 {
                     int additionalEnemies = enemiesInPattern - 1;
                     score += additionalEnemies * SC.AoEBonusPerEnemy;       // 추가 적당 보너스
-                    Main.LogDebug($"[UtilityScorer] AOE {attack.Name} -> {target.CharacterName}: " +
+                    Log.Analysis.Debug($"[UtilityScorer] AOE {attack.Name} -> {target.CharacterName}: " +
                         $"hits {enemiesInPattern} enemies (+{additionalEnemies} additional) = +{additionalEnemies * SC.AoEBonusPerEnemy:F0}");
                 }
             }
@@ -883,11 +884,11 @@ namespace CompanionAI_v3.Analysis
                             nativePattern = CombatAPI.GetAffectedNodes(attack, target.Position, situation.Unit.Position);
                             nativePatternReady = !nativePattern.IsEmpty;
                             if (nativePatternReady && Main.IsDebugEnabled)
-                                Main.LogDebug($"[AoESafety][Native] UtilityAllyDanger {attack.Name}: pattern precomputed");
+                                Log.Analysis.Debug($"[AoESafety][Native] UtilityAllyDanger {attack.Name}: pattern precomputed");
                         }
                         catch (Exception ex)
                         {
-                            Main.LogWarning($"[AoESafety][Native] UtilityAllyDanger precompute failed for {attack.Name}: {ex.Message}");
+                            Log.Analysis.Warn($"[AoESafety][Native] UtilityAllyDanger precompute failed for {attack.Name}: {ex.Message}");
                         }
                     }
 
@@ -927,11 +928,11 @@ namespace CompanionAI_v3.Analysis
                 {
                     score -= AOE_ALLIES_BLOCK_PENALTY;
                     if (Main.IsDebugEnabled)
-                        Main.LogDebug($"[Scorer] AOE {attack.Name}: {alliesInDanger} allies > max {maxAlliesAllowed} - BLOCKED");
+                        Log.Analysis.Debug($"[Scorer] AOE {attack.Name}: {alliesInDanger} allies > max {maxAlliesAllowed} - BLOCKED");
                 }
                 else if (alliesInDanger > 0 && Main.IsDebugEnabled)
                 {
-                    Main.LogDebug($"[Scorer] AOE {attack.Name}: {alliesInDanger} allies ≤ max {maxAlliesAllowed} - ALLOWED (no penalty)");
+                    Log.Analysis.Debug($"[Scorer] AOE {attack.Name}: {alliesInDanger} allies ≤ max {maxAlliesAllowed} - ALLOWED (no penalty)");
                 }
             }
 
@@ -949,7 +950,7 @@ namespace CompanionAI_v3.Analysis
                     {
                         score += SC.VersatilityDiversityBonus;
                         if (Main.IsDebugEnabled)
-                            Main.LogDebug($"[UtilityScorer] {attack.Name}: +{SC.VersatilityDiversityBonus:F0} Versatility diversity " +
+                            Log.Analysis.Debug($"[UtilityScorer] {attack.Name}: +{SC.VersatilityDiversityBonus:F0} Versatility diversity " +
                                 $"(last={turnState.LastAttackCategory}, current={currentCategory})");
                     }
                 }
@@ -963,7 +964,7 @@ namespace CompanionAI_v3.Analysis
                 float aoeBoost = score * (atkWeights.AoEWeight - 1f);
                 score += aoeBoost;
                 if (Main.IsDebugEnabled)
-                    Main.LogDebug($"[UtilityScorer] {attack.Name}: +{aoeBoost:F0} LLM AoE weight (x{atkWeights.AoEWeight:F1})");
+                    Log.Analysis.Debug($"[UtilityScorer] {attack.Name}: +{aoeBoost:F0} LLM AoE weight (x{atkWeights.AoEWeight:F1})");
             }
 
             return score;
@@ -1147,7 +1148,7 @@ namespace CompanionAI_v3.Analysis
                 float healOffset = score * healWeights.HealPriority;
                 score += healOffset;
                 if (Main.IsDebugEnabled)
-                    Main.LogDebug($"[UtilityScorer] {heal.Name}: {healOffset:+0;-0} LLM heal priority ({healWeights.HealPriority:+0.0;-0.0})");
+                    Log.Analysis.Debug($"[UtilityScorer] {heal.Name}: {healOffset:+0;-0} LLM heal priority ({healWeights.HealPriority:+0.0;-0.0})");
             }
 
             return score;
@@ -1175,14 +1176,14 @@ namespace CompanionAI_v3.Analysis
                     if (maxHP > 0)
                     {
                         float healPercent = (rawHeal / maxHP) * 100f;
-                        Main.LogDebug($"[UtilityScorer] EstimateHealAmount: {heal.Name} → avg {rawHeal:F0} HP ({healPercent:F1}% of {maxHP} maxHP)");
+                        Log.Analysis.Debug($"[UtilityScorer] EstimateHealAmount: {heal.Name} → avg {rawHeal:F0} HP ({healPercent:F1}% of {maxHP} maxHP)");
                         return healPercent;
                     }
                 }
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[UtilityScorer] EstimateHealAmount error");
+                Log.Analysis.Error(ex, $"[UtilityScorer] EstimateHealAmount error");
             }
 
             return HEAL_ESTIMATE_FALLBACK;  // 폴백: MaxHP의 30% 추정
@@ -1292,7 +1293,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[UtilityScorer] CalculateAverageHeal error");
+                Log.Analysis.Error(ex, $"[UtilityScorer] CalculateAverageHeal error");
                 return 0f;
             }
         }
@@ -1412,12 +1413,12 @@ namespace CompanionAI_v3.Analysis
                     if (ratio >= 1.0f)
                     {
                         bonus += SC.KillConfirmSynergy;
-                        Main.LogDebug($"[UtilityScorer] Kill confirm synergy: +{SC.KillConfirmSynergy:F0} ({planTarget.CharacterName}, ratio={ratio:F2})");
+                        Log.Analysis.Debug($"[UtilityScorer] Kill confirm synergy: +{SC.KillConfirmSynergy:F0} ({planTarget.CharacterName}, ratio={ratio:F2})");
                     }
                     else if (ratio >= 0.9f)
                     {
                         bonus += SC.AlmostKillSynergy;
-                        Main.LogDebug($"[UtilityScorer] Almost-kill synergy: +{SC.AlmostKillSynergy:F0} ({planTarget.CharacterName}, ratio={ratio:F2})");
+                        Log.Analysis.Debug($"[UtilityScorer] Almost-kill synergy: +{SC.AlmostKillSynergy:F0} ({planTarget.CharacterName}, ratio={ratio:F2})");
                     }
                 }
             }

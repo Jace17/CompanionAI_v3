@@ -12,6 +12,7 @@ using UnityEngine;
 using CompanionAI_v3.GameInterface;
 using CompanionAI_v3.Data;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Analysis
 {
@@ -99,7 +100,7 @@ namespace CompanionAI_v3.Analysis
                     if (allyTauntOption != null)
                     {
                         options.Add(allyTauntOption);
-                        Main.LogDebug($"[TauntScorer] AllyTarget taunt {taunt.Name}: " +
+                        Log.Analysis.Debug($"[TauntScorer] AllyTarget taunt {taunt.Name}: " +
                             $"protectAlly={allyTauntOption.TargetAlly?.CharacterName}, " +
                             $"enemies={allyTauntOption.EnemiesAffected}, score={allyTauntOption.Score:F0}");
                     }
@@ -120,7 +121,7 @@ namespace CompanionAI_v3.Analysis
                 bool isTouchRange = taunt.Blueprint?.Range == Kingmaker.UnitLogic.Abilities.Blueprints.AbilityRange.Touch;
 
                 // ★ v3.1.26: 패턴 타입 로깅
-                Main.LogDebug($"[TauntScorer] {taunt.Name}: isAoE={isAoE}, radius={aoERadius:F1}, " +
+                Log.Analysis.Debug($"[TauntScorer] {taunt.Name}: isAoE={isAoE}, radius={aoERadius:F1}, " +
                     $"isSelfTarget={isSelfTarget}, isTouchRange={isTouchRange}, pattern={patternInfo?.Type}");
 
                 // 옵션 1: 현재 위치에서 도발
@@ -223,7 +224,7 @@ namespace CompanionAI_v3.Analysis
                     }
                 }
 
-                Main.LogDebug($"[TauntScorer] AOE center for prediction: ({aoeCenterForPrediction.x:F1}, {aoeCenterForPrediction.z:F1}), radius={effectiveRadiusTiles:F1} tiles");
+                Log.Analysis.Debug($"[TauntScorer] AOE center for prediction: ({aoeCenterForPrediction.x:F1}, {aoeCenterForPrediction.z:F1}), radius={effectiveRadiusTiles:F1} tiles");
 
                 // ★ v3.9.54: 캐스터 위치의 노드 (LOS 체크용)
                 var casterNode = position.GetNearestNodeXZ() as CustomGridNodeBase;
@@ -247,7 +248,7 @@ namespace CompanionAI_v3.Analysis
                                 var los = LosCalculations.GetWarhammerLos(casterNode, tank.SizeRect, enemyNode, enemy.SizeRect);
                                 if (los.CoverType == LosCalculations.CoverType.Invisible)
                                 {
-                                    Main.LogDebug($"[TauntScorer] Enemy {enemy.CharacterName} at {distTiles:F1} tiles — NO LOS (behind wall), skipped");
+                                    Log.Analysis.Debug($"[TauntScorer] Enemy {enemy.CharacterName} at {distTiles:F1} tiles — NO LOS (behind wall), skipped");
                                     continue;
                                 }
                             }
@@ -256,7 +257,7 @@ namespace CompanionAI_v3.Analysis
                         affectedEnemies.Add(enemy);
                         if (enemiesTargetingAllies.Contains(enemy))
                             targetingAlliesCount++;
-                        Main.LogDebug($"[TauntScorer] Enemy in range: {enemy.CharacterName} at {distTiles:F1} tiles");
+                        Log.Analysis.Debug($"[TauntScorer] Enemy in range: {enemy.CharacterName} at {distTiles:F1} tiles");
                     }
                 }
             }
@@ -297,7 +298,7 @@ namespace CompanionAI_v3.Analysis
                             if (!nativePattern.IsEmpty)
                             {
                                 if (Main.IsDebugEnabled)
-                                    Main.LogDebug($"[AoESafety][Native] TauntDirRange {taunt.Name}: pattern precomputed (per-enemy)");
+                                    Log.Analysis.Debug($"[AoESafety][Native] TauntDirRange {taunt.Name}: pattern precomputed (per-enemy)");
                                 foreach (var occ in e.GetOccupiedNodes())
                                 {
                                     if (occ != null && nativePattern.Contains(occ)) return true;
@@ -307,7 +308,7 @@ namespace CompanionAI_v3.Analysis
                         }
                         catch (Exception ex)
                         {
-                            Main.LogWarning($"[AoESafety][Native] TauntDirRange precompute failed for {taunt.Name}: {ex.Message}");
+                            Log.Analysis.Warn($"[AoESafety][Native] TauntDirRange precompute failed for {taunt.Name}: {ex.Message}");
                             // legacy 폴백
                         }
                     }
@@ -377,7 +378,7 @@ namespace CompanionAI_v3.Analysis
             if (Math.Abs(turnOrderBonus) > 0.01f)
             {
                 score += turnOrderBonus;
-                Main.LogDebug($"[TauntScorer] TurnOrder bonus: {turnOrderBonus:+0;-0} for {affectedEnemies.Count} enemies");
+                Log.Analysis.Debug($"[TauntScorer] TurnOrder bonus: {turnOrderBonus:+0;-0} for {affectedEnemies.Count} enemies");
             }
 
             // ★ v3.6.12: TargetPoint 계산 수정
@@ -409,13 +410,13 @@ namespace CompanionAI_v3.Analysis
                     {
                         // ★ v3.6.12: Touch 범위이거나 centroid가 너무 가까우면 오프셋 적용
                         targetPoint = position + direction * MIN_OFFSET;
-                        Main.LogDebug($"[TauntScorer] TargetPoint: offset ({targetPoint.x:F1}, {targetPoint.z:F1}) - {MIN_OFFSET}m towards enemies");
+                        Log.Analysis.Debug($"[TauntScorer] TargetPoint: offset ({targetPoint.x:F1}, {targetPoint.z:F1}) - {MIN_OFFSET}m towards enemies");
                     }
                     else
                     {
                         // centroid가 충분히 멀면 그대로 사용
                         targetPoint = centroid;
-                        Main.LogDebug($"[TauntScorer] TargetPoint: enemy centroid ({targetPoint.x:F1}, {targetPoint.z:F1})");
+                        Log.Analysis.Debug($"[TauntScorer] TargetPoint: enemy centroid ({targetPoint.x:F1}, {targetPoint.z:F1})");
                     }
                 }
                 else
@@ -432,7 +433,7 @@ namespace CompanionAI_v3.Analysis
                         // 완전히 겹쳐있으면 임의 방향
                         targetPoint = position + Vector3.forward * MIN_OFFSET;
                     }
-                    Main.LogDebug($"[TauntScorer] TargetPoint: fallback offset ({targetPoint.x:F1}, {targetPoint.z:F1})");
+                    Log.Analysis.Debug($"[TauntScorer] TargetPoint: fallback offset ({targetPoint.x:F1}, {targetPoint.z:F1})");
                 }
             }
 
@@ -498,7 +499,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[TauntScorer] Error evaluating movement options");
+                Log.Analysis.Error(ex, $"[TauntScorer] Error evaluating movement options");
             }
 
             return options;
@@ -543,7 +544,7 @@ namespace CompanionAI_v3.Analysis
                 float distToAllyTiles = CombatCache.GetDistanceInTiles(tank, ally);
                 if (distToAllyTiles > tauntRange)
                 {
-                    Main.LogDebug($"[TauntScorer] AllyTarget: {ally.CharacterName} out of range ({distToAllyTiles:F1} > {tauntRange:F1} tiles)");
+                    Log.Analysis.Debug($"[TauntScorer] AllyTarget: {ally.CharacterName} out of range ({distToAllyTiles:F1} > {tauntRange:F1} tiles)");
                     continue;
                 }
 
@@ -568,7 +569,7 @@ namespace CompanionAI_v3.Analysis
 
                 if (nearbyEnemies.Count == 0)
                 {
-                    Main.LogDebug($"[TauntScorer] AllyTarget: {ally.CharacterName} has no nearby enemies");
+                    Log.Analysis.Debug($"[TauntScorer] AllyTarget: {ally.CharacterName} has no nearby enemies");
                     continue;
                 }
 
@@ -586,7 +587,7 @@ namespace CompanionAI_v3.Analysis
                 if (Math.Abs(threatUrgency) > 0.01f)
                     score += threatUrgency;
 
-                Main.LogDebug($"[TauntScorer] AllyTarget: {ally.CharacterName} - " +
+                Log.Analysis.Debug($"[TauntScorer] AllyTarget: {ally.CharacterName} - " +
                     $"enemies={nearbyEnemies.Count}, targetingAllies={targetingAlliesCount}, " +
                     $"HP={CombatCache.GetHPPercent(ally):P0}, turnThreat={threatUrgency:+0;-0}, score={score:F0}");
 
@@ -613,7 +614,7 @@ namespace CompanionAI_v3.Analysis
             string reason;
             if (!CombatAPI.CanUseAbilityOn(taunt, target, out reason))
             {
-                Main.LogDebug($"[TauntScorer] AllyTarget: Cannot use {taunt.Name} on {bestAlly.CharacterName} - {reason}");
+                Log.Analysis.Debug($"[TauntScorer] AllyTarget: Cannot use {taunt.Name} on {bestAlly.CharacterName} - {reason}");
                 return null;
             }
 

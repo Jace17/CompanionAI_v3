@@ -6,6 +6,7 @@ using CompanionAI_v3.Core;
 using CompanionAI_v3.Data;
 using CompanionAI_v3.Settings;
 using CompanionAI_v3.GameInterface;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Analysis
 {
@@ -64,7 +65,7 @@ namespace CompanionAI_v3.Analysis
                 {
                     // 사역마 보유 = Overseer 역할 강력 추천
                     scores.Overseer += 15;
-                    Main.LogDebug($"[RoleDetector] {unit.CharacterName}: Has familiar ({familiarType}) → Overseer +15");
+                    Log.Analysis.Debug($"[RoleDetector] {unit.CharacterName}: Has familiar ({familiarType}) → Overseer +15");
                 }
             }
 
@@ -82,7 +83,7 @@ namespace CompanionAI_v3.Analysis
 
             var detectedRole = scores.GetBestRole();
 
-            Main.Log($"[RoleDetector] {unit.CharacterName}: {scores} → {detectedRole}");
+            Log.Analysis.Info($"[RoleDetector] {unit.CharacterName}: {scores} → {detectedRole}");
 
             return detectedRole;
         }

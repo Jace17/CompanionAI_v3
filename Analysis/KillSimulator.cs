@@ -8,6 +8,7 @@ using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.Utility;
 using CompanionAI_v3.Data;
 using CompanionAI_v3.GameInterface;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Analysis
 {
@@ -67,7 +68,7 @@ namespace CompanionAI_v3.Analysis
                         {
                             if (!CombatAPI.IsAoEHeightInRange(a, situation.Unit, target))
                             {
-                                Main.LogDebug($"[KillSimulator] AOE height failed: {a.Name} -> {target.CharacterName}");
+                                Log.Analysis.Debug($"[KillSimulator] AOE height failed: {a.Name} -> {target.CharacterName}");
                                 return false;
                             }
                         }
@@ -95,7 +96,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[KillSimulator] Error");
+                Log.Analysis.Error(ex, $"[KillSimulator] Error");
                 return null;
             }
         }
@@ -139,7 +140,7 @@ namespace CompanionAI_v3.Analysis
 
                         if (additionalEnemies > 0)
                         {
-                            Main.LogDebug($"[KillSimulator] Single-kill AOE: {attack.Name} " +
+                            Log.Analysis.Debug($"[KillSimulator] Single-kill AOE: {attack.Name} " +
                                 $"hits {aoeEnemyCount} enemies → +{aoeBonus:F0} bonus");
                         }
                     }
@@ -238,7 +239,7 @@ namespace CompanionAI_v3.Analysis
 
                                 if (additionalEnemies > 0)
                                 {
-                                    Main.LogDebug($"[KillSimulator] Buff+Attack AOE: {buff.Name} + {attack.Name} " +
+                                    Log.Analysis.Debug($"[KillSimulator] Buff+Attack AOE: {buff.Name} + {attack.Name} " +
                                         $"hits {aoeEnemyCount} enemies → +{aoeBonus:F0} bonus");
                                 }
                             }
@@ -249,7 +250,7 @@ namespace CompanionAI_v3.Analysis
 
             if (bestSequence != null)
             {
-                Main.LogDebug($"[KillSimulator] Buff+Attack kill: {bestSequence.Abilities[0].Name} + {bestSequence.Abilities[1].Name} " +
+                Log.Analysis.Debug($"[KillSimulator] Buff+Attack kill: {bestSequence.Abilities[0].Name} + {bestSequence.Abilities[1].Name} " +
                     $"= {bestSequence.TotalDamage:F0} dmg >= {targetHP:F0} HP (score={bestScore:F0})");
             }
 
@@ -290,7 +291,7 @@ namespace CompanionAI_v3.Analysis
 
                     if (additionalEnemies > 0)
                     {
-                        Main.LogDebug($"[KillSimulator] AOE bonus: {a.Name} hits {aoeEnemyCount} enemies (+{additionalEnemies} additional) → +{aoeBonus:F0} efficiency");
+                        Log.Analysis.Debug($"[KillSimulator] AOE bonus: {a.Name} hits {aoeEnemyCount} enemies (+{additionalEnemies} additional) → +{aoeBonus:F0} efficiency");
                     }
 
                     return new {
@@ -338,7 +339,7 @@ namespace CompanionAI_v3.Analysis
                 if (totalDamage >= targetHP)
                 {
                     sequence.TotalDamage = totalDamage;
-                    Main.LogDebug($"[KillSimulator] Multi-attack kill: {sequence.Abilities.Count} abilities = {totalDamage:F0} dmg >= {targetHP:F0} HP");
+                    Log.Analysis.Debug($"[KillSimulator] Multi-attack kill: {sequence.Abilities.Count} abilities = {totalDamage:F0} dmg >= {targetHP:F0} HP");
                     return sequence;
                 }
             }
@@ -378,14 +379,14 @@ namespace CompanionAI_v3.Analysis
                             component is WarhammerModifyOutgoingAttackDamage)
 #pragma warning restore 0612
                         {
-                            Main.LogDebug($"[KillSimulator] Found damage bonus component: {component.GetType().Name}");
+                            Log.Analysis.Debug($"[KillSimulator] Found damage bonus component: {component.GetType().Name}");
                             return 1.3f;
                         }
 
                         // 크리티컬 데미지 수정 컴포넌트 (추상 베이스 → Initiator/Target/Global 모두 매칭)
                         if (component is WarhammerCriticalDamageModifier)
                         {
-                            Main.LogDebug($"[KillSimulator] Found critical bonus component: {component.GetType().Name}");
+                            Log.Analysis.Debug($"[KillSimulator] Found critical bonus component: {component.GetType().Name}");
                             return 1.2f;
                         }
                     }
@@ -393,7 +394,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[KillSimulator] EstimateBuffMultiplier component analysis error");
+                Log.Analysis.Error(ex, $"[KillSimulator] EstimateBuffMultiplier component analysis error");
             }
 
             // ★ v3.7.65: 이름 기반 휴리스틱 제거 - 컴포넌트 기반 감지만 사용

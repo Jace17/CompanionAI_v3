@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CompanionAI_v3.Logging;
 // ★ v3.9.04: LINQ 제거 — 모든 LINQ를 수동 루프로 대체 (GC 0)
 // using System.Linq;
 using Kingmaker.EntitySystem.Entities;
@@ -201,7 +202,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[ClusterDetector] Error in FindClusters");
+                Log.Analysis.Error(ex, $"[ClusterDetector] Error in FindClusters");
                 for (int i = 0; i < _activeClusters.Count; i++)
                     ReturnCluster(_activeClusters[i]);
                 _activeClusters.Clear();
@@ -273,7 +274,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[ClusterDetector] Error in FindBestClusterForAbility");
+                Log.Analysis.Error(ex, $"[ClusterDetector] Error in FindBestClusterForAbility");
                 return null;
             }
         }
@@ -363,16 +364,16 @@ namespace CompanionAI_v3.Analysis
                 // ★ Fix: bestHits가 0이면 빈 위치에 투척 방지
                 if (bestHits <= 0)
                 {
-                    Main.LogDebug($"[ClusterDetector] No valid AoE position found (0 hits). Skipping.");
+                    Log.Analysis.Debug($"[ClusterDetector] No valid AoE position found (0 hits). Skipping.");
                     return null;
                 }
 
-                Main.LogDebug($"[ClusterDetector] Optimal position: {bestHits} hits at ({bestPosition.x:F1}, {bestPosition.z:F1})");
+                Log.Analysis.Debug($"[ClusterDetector] Optimal position: {bestHits} hits at ({bestPosition.x:F1}, {bestPosition.z:F1})");
                 return bestPosition;
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[ClusterDetector] Error in FindOptimalAoEPosition");
+                Log.Analysis.Error(ex, $"[ClusterDetector] Error in FindOptimalAoEPosition");
                 return cluster?.Center;
             }
         }
@@ -562,7 +563,7 @@ namespace CompanionAI_v3.Analysis
 
             cluster.QualityScore = countScore + tightnessBonus + densityBonus;
 
-            Main.LogDebug($"[ClusterDetector] Cluster: {cluster.Count} enemies, " +
+            Log.Analysis.Debug($"[ClusterDetector] Cluster: {cluster.Count} enemies, " +
                 $"spread={cluster.AverageSpread:F1}m, density={cluster.Density:F2}, " +
                 $"score={cluster.QualityScore:F0}");
         }
@@ -597,11 +598,11 @@ namespace CompanionAI_v3.Analysis
                     nativePattern = CombatAPI.GetAffectedNodes(ability, cluster.Center, caster.Position);
                     nativePatternReady = !nativePattern.IsEmpty;
                     if (nativePatternReady && Main.IsDebugEnabled)
-                        Main.LogDebug($"[AoESafety][Native] ClusterAllyPenalty {ability.Name}: pattern precomputed");
+                        Log.Analysis.Debug($"[AoESafety][Native] ClusterAllyPenalty {ability.Name}: pattern precomputed");
                 }
                 catch (Exception ex)
                 {
-                    Main.LogWarning($"[AoESafety][Native] ClusterAllyPenalty precompute failed for {ability.Name}: {ex.Message}");
+                    Log.Analysis.Warn($"[AoESafety][Native] ClusterAllyPenalty precompute failed for {ability.Name}: {ex.Message}");
                 }
             }
 
@@ -638,7 +639,7 @@ namespace CompanionAI_v3.Analysis
                         if (playerPartyAlliesInRange > maxPlayerAlliesHit)
                         {
                             cluster.QualityScore = -1000f;
-                            Main.LogDebug($"[ClusterDetector] Cluster invalidated: {playerPartyAlliesInRange} player allies > max {maxPlayerAlliesHit}");
+                            Log.Analysis.Debug($"[ClusterDetector] Cluster invalidated: {playerPartyAlliesInRange} player allies > max {maxPlayerAlliesHit}");
                             return;
                         }
                         // 허용 범위 내 → 감점 없음 (기존 ClusterAllyPenalty 제거)
@@ -651,7 +652,7 @@ namespace CompanionAI_v3.Analysis
                 }
                 catch (Exception ex)
                 {
-                    Main.LogError(ex, $"[ClusterDetector] ApplyAllyPenalty error for {ally?.CharacterName}");
+                    Log.Analysis.Error(ex, $"[ClusterDetector] ApplyAllyPenalty error for {ally?.CharacterName}");
                 }
             }
         }
@@ -678,11 +679,11 @@ namespace CompanionAI_v3.Analysis
                     nativePattern = CombatAPI.GetAffectedNodes(ability, center, caster.Position);
                     nativePatternReady = !nativePattern.IsEmpty;
                     if (nativePatternReady && Main.IsDebugEnabled)
-                        Main.LogDebug($"[AoESafety][Native] ClusterCountEnemies {ability.Name}: pattern precomputed");
+                        Log.Analysis.Debug($"[AoESafety][Native] ClusterCountEnemies {ability.Name}: pattern precomputed");
                 }
                 catch (Exception ex)
                 {
-                    Main.LogWarning($"[AoESafety][Native] ClusterCountEnemies precompute failed for {ability.Name}: {ex.Message}");
+                    Log.Analysis.Warn($"[AoESafety][Native] ClusterCountEnemies precompute failed for {ability.Name}: {ex.Message}");
                 }
             }
 
@@ -734,11 +735,11 @@ namespace CompanionAI_v3.Analysis
                     nativePattern = CombatAPI.GetAffectedNodes(ability, center, caster.Position);
                     nativePatternReady = !nativePattern.IsEmpty;
                     if (nativePatternReady && Main.IsDebugEnabled)
-                        Main.LogDebug($"[AoESafety][Native] ClusterCountAllies {ability.Name}: pattern precomputed");
+                        Log.Analysis.Debug($"[AoESafety][Native] ClusterCountAllies {ability.Name}: pattern precomputed");
                 }
                 catch (Exception ex)
                 {
-                    Main.LogWarning($"[AoESafety][Native] ClusterCountAllies precompute failed for {ability.Name}: {ex.Message}");
+                    Log.Analysis.Warn($"[AoESafety][Native] ClusterCountAllies precompute failed for {ability.Name}: {ex.Message}");
                 }
             }
 

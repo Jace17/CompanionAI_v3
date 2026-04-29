@@ -4,6 +4,7 @@ using Kingmaker.EntitySystem.Entities;
 using Kingmaker.Pathfinding;
 using Pathfinding;
 using UnityEngine;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Analysis
 {
@@ -85,7 +86,7 @@ namespace CompanionAI_v3.Analysis
                 // 1. 게임 그리드 그래프 가져오기
                 if (!TryGetGridGraph(out _gridGraph))
                 {
-                    Main.LogError("[BattlefieldGrid] Failed to get grid graph");
+                    Log.Analysis.Error("[BattlefieldGrid] Failed to get grid graph");
                     _isValid = false;
                     return;
                 }
@@ -109,12 +110,12 @@ namespace CompanionAI_v3.Analysis
                 _isValid = true;
 
                 var elapsed = (DateTime.Now - startTime).TotalMilliseconds;
-                Main.Log($"[BattlefieldGrid] Initialized: {_cacheWidth}x{_cacheDepth} " +
+                Log.Analysis.Info($"[BattlefieldGrid] Initialized: {_cacheWidth}x{_cacheDepth} " +
                     $"(bounds: {_minX},{_minZ} to {_maxX},{_maxZ}) in {elapsed:F1}ms");
             }
             catch (Exception ex)
             {
-                Main.LogError($"[BattlefieldGrid] Initialize failed: {ex.Message}");
+                Log.Analysis.Error($"[BattlefieldGrid] Initialize failed: {ex.Message}");
                 _isValid = false;
             }
         }
@@ -152,7 +153,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[BattlefieldGrid] TryGetGridGraph error");
+                Log.Analysis.Error(ex, $"[BattlefieldGrid] TryGetGridGraph error");
                 return false;
             }
         }
@@ -225,7 +226,7 @@ namespace CompanionAI_v3.Analysis
                 }
             }
 
-            Main.LogDebug($"[BattlefieldGrid] Cached {cachedNodes} nodes, {walkableNodes} walkable");
+            Log.Analysis.Debug($"[BattlefieldGrid] Cached {cachedNodes} nodes, {walkableNodes} walkable");
         }
 
         /// <summary>
@@ -237,7 +238,7 @@ namespace CompanionAI_v3.Analysis
             _walkableCache = null;
             _gridGraph = null;
             _isValid = false;
-            Main.LogDebug("[BattlefieldGrid] Cleared");
+            Log.Analysis.Debug("[BattlefieldGrid] Cleared");
         }
 
         /// <summary>
@@ -285,7 +286,7 @@ namespace CompanionAI_v3.Analysis
             RefreshWalkableData();
 
             var elapsed = (DateTime.Now - startTime).TotalMilliseconds;
-            Main.Log($"[BattlefieldGrid] Refreshed: {_cacheWidth}x{_cacheDepth} " +
+            Log.Analysis.Info($"[BattlefieldGrid] Refreshed: {_cacheWidth}x{_cacheDepth} " +
                 $"(bounds: {_minX},{_minZ} to {_maxX},{_maxZ}) in {elapsed:F1}ms");
         }
 

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Kingmaker.EntitySystem.Entities;
 using Pathfinding;
 using CompanionAI_v3.GameInterface;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Analysis
 {
@@ -33,7 +34,7 @@ namespace CompanionAI_v3.Analysis
                         if (EnemyMoveCache.Get(e) != null) hits++;
                     }
                 }
-                Main.LogDebug($"[PredictedMoves] Cache query: {hits}/{enemies?.Count ?? 0} enemies have cached moves (total cache size: {EnemyMoveCache.Count})");
+                Log.Analysis.Debug($"[PredictedMoves] Cache query: {hits}/{enemies?.Count ?? 0} enemies have cached moves (total cache size: {EnemyMoveCache.Count})");
             }
             return result;
         }

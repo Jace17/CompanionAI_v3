@@ -8,6 +8,7 @@ using Kingmaker.UnitLogic;
 using Pathfinding;
 using UnityEngine;
 using CompanionAI_v3.GameInterface;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Analysis
 {
@@ -121,7 +122,7 @@ namespace CompanionAI_v3.Analysis
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[FamiliarPositioner] FindOptimalPosition error");
+                Log.Analysis.Error(ex, $"[FamiliarPositioner] FindOptimalPosition error");
                 return CreateDefaultPosition(master.Position);
             }
         }
@@ -166,7 +167,7 @@ namespace CompanionAI_v3.Analysis
             // 적이 흩어져 있어도 가장 가까운/강한 적이라도 찾아 디버프/공격
             if (isDebuffMode && enemiesGained >= 1)
             {
-                Main.LogDebug($"[FamiliarPositioner] ShouldRelocate: Yes (DEBUFF MODE - enemy gain={enemiesGained}, " +
+                Log.Analysis.Debug($"[FamiliarPositioner] ShouldRelocate: Yes (DEBUFF MODE - enemy gain={enemiesGained}, " +
                     $"allies {currentAlliesInRange}→{optimalPosition.AlliesInRange}, " +
                     $"enemies {currentEnemiesInRange}→{optimalPosition.EnemiesInRange})");
                 return true;
@@ -175,14 +176,14 @@ namespace CompanionAI_v3.Analysis
             // 버프 모드: 최소 1명 이상 추가 커버 가능해야 함 (기존 로직)
             if (netGain < 1)
             {
-                Main.LogDebug($"[FamiliarPositioner] ShouldRelocate: No (no coverage gain: " +
+                Log.Analysis.Debug($"[FamiliarPositioner] ShouldRelocate: No (no coverage gain: " +
                     $"allies {currentAlliesInRange}→{optimalPosition.AlliesInRange}, " +
                     $"enemies {currentEnemiesInRange}→{optimalPosition.EnemiesInRange}, " +
                     $"phase={( isDebuffMode ? "DEBUFF" : "BUFF")})");
                 return false;
             }
 
-            Main.LogDebug($"[FamiliarPositioner] ShouldRelocate: Yes (distance={distanceTiles:F1} tiles, gain=+{netGain}, allies {currentAlliesInRange}→{optimalPosition.AlliesInRange}, enemies {currentEnemiesInRange}→{optimalPosition.EnemiesInRange})");
+            Log.Analysis.Debug($"[FamiliarPositioner] ShouldRelocate: Yes (distance={distanceTiles:F1} tiles, gain=+{netGain}, allies {currentAlliesInRange}→{optimalPosition.AlliesInRange}, enemies {currentEnemiesInRange}→{optimalPosition.EnemiesInRange})");
             return true;
         }
 
@@ -225,7 +226,7 @@ namespace CompanionAI_v3.Analysis
                 familiarRangeMeters: familiarRangeMeters,
                 effectRadiusTiles: effectRadiusTiles);
 
-            Main.LogDebug($"[FamiliarPositioner] BuffCenter: {bestPosition}");
+            Log.Analysis.Debug($"[FamiliarPositioner] BuffCenter: {bestPosition}");
             return bestPosition;
         }
 
@@ -262,7 +263,7 @@ namespace CompanionAI_v3.Analysis
 
             if (isBuffPhase)
             {
-                Main.LogDebug($"[FamiliarPositioner] Raven BUFF PHASE: coverage={buffCoverage:P0} ({totalBuffTypes} WR buff types, {Core.AllyStateCache.AllyCount} allies)");
+                Log.Analysis.Debug($"[FamiliarPositioner] Raven BUFF PHASE: coverage={buffCoverage:P0} ({totalBuffTypes} WR buff types, {Core.AllyStateCache.AllyCount} allies)");
                 var buffPos = FindBuffCenterPosition(master, allies, enemies, maxRangeMeters, effectRadiusTiles, familiarPos, familiarRangeMeters);
                 buffPos.Reason = $"Buff phase (psychic coverage={buffCoverage:P0})";
                 buffPos.IsBuffPhase = true;  // ★ v3.8.52: 턴 단위 페이즈 전달
@@ -270,7 +271,7 @@ namespace CompanionAI_v3.Analysis
             }
             else
             {
-                Main.LogDebug($"[FamiliarPositioner] Raven ATTACK/DEBUFF PHASE: coverage={buffCoverage:P0} - moving to enemy cluster");
+                Log.Analysis.Debug($"[FamiliarPositioner] Raven ATTACK/DEBUFF PHASE: coverage={buffCoverage:P0} - moving to enemy cluster");
 
                 // 적 밀집 지역으로 이동 (디버프/공격용)
                 if (validEnemies.Count > 0)
@@ -295,11 +296,11 @@ namespace CompanionAI_v3.Analysis
                     if (familiarPos.HasValue)
                     {
                         float distFromRaven = Vector3.Distance(familiarPos.Value, attackPos.Position);
-                        Main.LogDebug($"[FamiliarPositioner] Raven Attack: {attackPos} (dist from Raven={distFromRaven:F1}m, supportRange={familiarRangeMeters:F1}m)");
+                        Log.Analysis.Debug($"[FamiliarPositioner] Raven Attack: {attackPos} (dist from Raven={distFromRaven:F1}m, supportRange={familiarRangeMeters:F1}m)");
                     }
                     else
                     {
-                        Main.LogDebug($"[FamiliarPositioner] Raven Attack: {attackPos}");
+                        Log.Analysis.Debug($"[FamiliarPositioner] Raven Attack: {attackPos}");
                     }
                     return attackPos;
                 }
@@ -373,7 +374,7 @@ namespace CompanionAI_v3.Analysis
                 effectRadiusTiles: effectRadiusTiles);
 
             bestPosition.Reason = $"Near threatening enemies ({threateningEnemies.Count})";
-            Main.LogDebug($"[FamiliarPositioner] Apprehend: {bestPosition}");
+            Log.Analysis.Debug($"[FamiliarPositioner] Apprehend: {bestPosition}");
             return bestPosition;
         }
 
@@ -413,7 +414,7 @@ namespace CompanionAI_v3.Analysis
                 effectRadiusTiles: effectRadiusTiles);
 
             bestPosition.Reason = "Enemy cluster center";
-            Main.LogDebug($"[FamiliarPositioner] Disrupt: {bestPosition}");
+            Log.Analysis.Debug($"[FamiliarPositioner] Disrupt: {bestPosition}");
             return bestPosition;
         }
 
@@ -434,12 +435,12 @@ namespace CompanionAI_v3.Analysis
             var centerNode = center.GetNearestNodeXZ() as CustomGridNodeBase;
             if (centerNode == null)
             {
-                Main.LogDebug($"[FamiliarPositioner] GetValidNodesAround: centerNode is null for center={center}");
+                Log.Analysis.Debug($"[FamiliarPositioner] GetValidNodesAround: centerNode is null for center={center}");
                 yield break;
             }
 
             // ★ v3.7.77: centerNode의 Y 값 로깅
-            Main.LogDebug($"[FamiliarPositioner] GetValidNodesAround: center=({center.x:F1},{center.y:F1},{center.z:F1}) -> " +
+            Log.Analysis.Debug($"[FamiliarPositioner] GetValidNodesAround: center=({center.x:F1},{center.y:F1},{center.z:F1}) -> " +
                 $"centerNode.Vector3Position=({centerNode.Vector3Position.x:F1},{centerNode.Vector3Position.y:F1},{centerNode.Vector3Position.z:F1})");
 
             int validCount = 0;
@@ -458,7 +459,7 @@ namespace CompanionAI_v3.Analysis
                     // ★ v3.7.77: 첫 5개 유효 노드의 Y값 로깅
                     if (validCount <= 5)
                     {
-                        Main.LogDebug($"[FamiliarPositioner] ValidNode #{validCount}: ({node.Vector3Position.x:F1},{node.Vector3Position.y:F1},{node.Vector3Position.z:F1})");
+                        Log.Analysis.Debug($"[FamiliarPositioner] ValidNode #{validCount}: ({node.Vector3Position.x:F1},{node.Vector3Position.y:F1},{node.Vector3Position.z:F1})");
                     }
                     yield return node;
                 }
@@ -469,7 +470,7 @@ namespace CompanionAI_v3.Analysis
                 }
             }
 
-            Main.LogDebug($"[FamiliarPositioner] GetValidNodesAround: Found {validCount} valid nodes");
+            Log.Analysis.Debug($"[FamiliarPositioner] GetValidNodesAround: Found {validCount} valid nodes");
         }
 
         /// <summary>
@@ -537,7 +538,7 @@ namespace CompanionAI_v3.Analysis
             // → 사역마 현재 위치 기준으로 재탐색 (최대한 가까운 거리라도 이동)
             if (best == null && familiarPos.HasValue && familiarRangeMeters > 0f)
             {
-                Main.LogDebug($"[FamiliarPositioner] No position within familiar range from center ({center.x:F1}, {center.z:F1}) — searching from familiar position");
+                Log.Analysis.Debug($"[FamiliarPositioner] No position within familiar range from center ({center.x:F1}, {center.z:F1}) — searching from familiar position");
                 int famRangeTiles = Math.Min(
                     Math.Max(1, (int)CombatAPI.MetersToTiles(familiarRangeMeters)),
                     MAX_SEARCH_RADIUS_TILES);
@@ -560,17 +561,17 @@ namespace CompanionAI_v3.Analysis
                 }
 
                 if (best != null)
-                    Main.LogDebug($"[FamiliarPositioner] Fallback found: ({best.Position.x:F1}, {best.Position.z:F1}) Score={best.Score:F1}");
+                    Log.Analysis.Debug($"[FamiliarPositioner] Fallback found: ({best.Position.x:F1}, {best.Position.z:F1}) Score={best.Score:F1}");
             }
 
             // 유효한 위치를 찾지 못하면 폴백
             if (best == null)
             {
-                Main.LogDebug($"[FamiliarPositioner] No valid position found around ({center.x:F1}, {center.z:F1})");
+                Log.Analysis.Debug($"[FamiliarPositioner] No valid position found around ({center.x:F1}, {center.z:F1})");
                 return CreateDefaultPosition(center);
             }
 
-            Main.LogDebug($"[FamiliarPositioner] Found best position: ({best.Position.x:F1}, {best.Position.y:F1}, {best.Position.z:F1}) Score={best.Score:F1}");
+            Log.Analysis.Debug($"[FamiliarPositioner] Found best position: ({best.Position.x:F1}, {best.Position.y:F1}, {best.Position.z:F1}) Score={best.Score:F1}");
             return best;
         }
 

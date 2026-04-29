@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Analysis
 {
@@ -487,7 +488,7 @@ namespace CompanionAI_v3.Analysis
                 };
 
                 _initialized = true;
-                Main.Log("[ResponseCurves] Presets initialized (v3.24.0 with ExpectedDamageRatio)");
+                Log.Analysis.Info("[ResponseCurves] Presets initialized (v3.24.0 with ExpectedDamageRatio)");
             }
         }
 
