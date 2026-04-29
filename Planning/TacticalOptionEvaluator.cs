@@ -8,6 +8,7 @@ using CompanionAI_v3.Analysis;
 using CompanionAI_v3.Data;
 using CompanionAI_v3.GameInterface;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Planning
 {
@@ -164,10 +165,10 @@ namespace CompanionAI_v3.Planning
             result.ChosenStrategy = result.BestOption.Strategy;
 
             // 로깅
-            Main.Log($"[{roleName}] ★ TacticalEval: {result}");
+            Log.Planning.Info($"[{roleName}] ★ TacticalEval: {result}");
             for (int i = 0; i < 4; i++)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}]   Option {i}: {result.AllOptions[i]}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}]   Option {i}: {result.AllOptions[i]}");
             }
 
             return result;
@@ -335,7 +336,7 @@ namespace CompanionAI_v3.Planning
                 }
 
                 if (Main.IsDebugEnabled)
-                    Main.LogDebug($"[TacticalEval] Melee MoveToAttack: " +
+                    Log.Planning.Debug($"[TacticalEval] Melee MoveToAttack: " +
                         $"target={situation.NearestEnemy.CharacterName}, meleeRange={meleeRange:F1}, " +
                         $"result={(bestPosition != null ? $"pos=({bestPosition.Position.x:F1},{bestPosition.Position.z:F1})" : "null")}");
             }
@@ -368,7 +369,7 @@ namespace CompanionAI_v3.Planning
                         bool bothMelee = currentSet.HasMeleeWeapon && altSet.HasMeleeWeapon;
                         if ((bothRanged || bothMelee) && altRange > 0 && altRange < weaponRange)
                         {
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[TacticalEval] MoveToAttack range: {weaponRange:F1} → {altRange:F0} (same-type rotation: shorter weapon)");
+                            if (Main.IsDebugEnabled) Log.Planning.Debug($"[TacticalEval] MoveToAttack range: {weaponRange:F1} → {altRange:F0} (same-type rotation: shorter weapon)");
                             weaponRange = altRange;
                         }
                     }
@@ -428,7 +429,7 @@ namespace CompanionAI_v3.Planning
                 float owPenalty = situation.EnemyOverwatchCount * SC.OverwatchMovePenalty;
                 option.Score -= owPenalty;
                 if (Main.IsDebugEnabled)
-                    Main.LogDebug($"[TacticalEval] MoveToAttack: -{owPenalty:F0} overwatch ({situation.EnemyOverwatchCount} overwatchers)");
+                    Log.Planning.Debug($"[TacticalEval] MoveToAttack: -{owPenalty:F0} overwatch ({situation.EnemyOverwatchCount} overwatchers)");
             }
 
             option.Reason = $"dest={bestPosition.HittableEnemyCount}, current={currentHittable}, posScore={bestPosition.TotalScore:F0}";
@@ -519,7 +520,7 @@ namespace CompanionAI_v3.Planning
                 float owPenalty = situation.EnemyOverwatchCount * SC.OverwatchMovePenalty;
                 option.Score -= owPenalty;
                 if (Main.IsDebugEnabled)
-                    Main.LogDebug($"[TacticalEval] AttackThenRetreat: -{owPenalty:F0} overwatch ({situation.EnemyOverwatchCount} overwatchers)");
+                    Log.Planning.Debug($"[TacticalEval] AttackThenRetreat: -{owPenalty:F0} overwatch ({situation.EnemyOverwatchCount} overwatchers)");
             }
 
             option.Reason = $"hittable={currentHittable}, mpRecov={hasPostActionMPRecovery}";

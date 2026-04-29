@@ -3,6 +3,7 @@ using System.Linq;
 using Kingmaker.EntitySystem.Entities;
 using Kingmaker.Utility;
 using CompanionAI_v3.GameInterface;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Core
 {
@@ -92,10 +93,10 @@ namespace CompanionAI_v3.Core
             // ★ v3.1.05: 이동 행동 포함 여부
             HasMoveActions = actions.Any(a => a.Type == ActionType.Move);
 
-            Main.Log($"[TurnPlan] Created: Priority={priority}, Actions={actions.Count}, Reason={reasoning}");
+            Log.Engine.Info($"[TurnPlan] Created: Priority={priority}, Actions={actions.Count}, Reason={reasoning}");
             foreach (var action in actions)
             {
-                Main.LogDebug($"[TurnPlan]   - {action}");
+                Log.Engine.Debug($"[TurnPlan]   - {action}");
             }
         }
 
@@ -162,16 +163,16 @@ namespace CompanionAI_v3.Core
                         if (nonTargetReasons.Count > 0)
                         {
                             string reasons = string.Join(", ", nonTargetReasons);
-                            Main.Log($"[TurnPlan] Replan needed: Ability {nextAction.Ability.Name} no longer available ({reasons})");
+                            Log.Engine.Info($"[TurnPlan] Replan needed: Ability {nextAction.Ability.Name} no longer available ({reasons})");
                             return true;
                         }
                         // NullTarget만 있으면 무시하고 계속 진행
-                        Main.LogDebug($"[TurnPlan] Familiar target action - ignoring NullTarget, will re-resolve at execution");
+                        Log.Engine.Debug($"[TurnPlan] Familiar target action - ignoring NullTarget, will re-resolve at execution");
                     }
                     else
                     {
                         string reasons = string.Join(", ", unavailableReasons);
-                        Main.Log($"[TurnPlan] Replan needed: Ability {nextAction.Ability.Name} no longer available ({reasons})");
+                        Log.Engine.Info($"[TurnPlan] Replan needed: Ability {nextAction.Ability.Name} no longer available ({reasons})");
                         return true;
                     }
                 }
@@ -189,7 +190,7 @@ namespace CompanionAI_v3.Core
                     {
                         var targetUnit = nextAction.Target.Entity as BaseUnitEntity;
                         string targetName = targetUnit?.CharacterName ?? "target";
-                        Main.Log($"[TurnPlan] Replan needed: Cannot use {nextAction.Ability.Name} on {targetName} ({cantUseReason})");
+                        Log.Engine.Info($"[TurnPlan] Replan needed: Cannot use {nextAction.Ability.Name} on {targetName} ({cantUseReason})");
                         return true;
                     }
                 }
@@ -201,7 +202,7 @@ namespace CompanionAI_v3.Core
                 var target = nextAction.Target?.Entity as BaseUnitEntity;
                 if (target != null && target.LifeState.IsDead)
                 {
-                    Main.Log($"[TurnPlan] Replan needed: Target {target.CharacterName} is dead");
+                    Log.Engine.Info($"[TurnPlan] Replan needed: Target {target.CharacterName} is dead");
                     return true;
                 }
             }
@@ -209,7 +210,7 @@ namespace CompanionAI_v3.Core
             // 1-4. 모든 적 처치됨
             if (!currentSituation.HasLivingEnemies && Priority != TurnPriority.EndTurn)
             {
-                Main.Log("[TurnPlan] Replan needed: All enemies dead");
+                Log.Engine.Info("[TurnPlan] Replan needed: All enemies dead");
                 return true;
             }
 
@@ -230,7 +231,7 @@ namespace CompanionAI_v3.Core
                 float hpDrop = InitialHP - currentSituation.HPPercent;
                 if (hpDrop >= GameConstants.HP_CRITICAL_DROP_THRESHOLD)
                 {
-                    Main.Log($"[TurnPlan] Replan needed: HP dropped {hpDrop:F0}% (was {InitialHP:F0}%, now {currentSituation.HPPercent:F0}%)");
+                    Log.Engine.Info($"[TurnPlan] Replan needed: HP dropped {hpDrop:F0}% (was {InitialHP:F0}%, now {currentSituation.HPPercent:F0}%)");
                     return true;
                 }
             }
@@ -241,7 +242,7 @@ namespace CompanionAI_v3.Core
                 if (InitialNearestEnemyDistance > currentSituation.MinSafeDistance &&
                     currentSituation.NearestEnemyDistance <= currentSituation.MinSafeDistance)
                 {
-                    Main.Log($"[TurnPlan] Replan needed: Enemy closed in (was {InitialNearestEnemyDistance:F1}m, now {currentSituation.NearestEnemyDistance:F1}m)");
+                    Log.Engine.Info($"[TurnPlan] Replan needed: Enemy closed in (was {InitialNearestEnemyDistance:F1}m, now {currentSituation.NearestEnemyDistance:F1}m)");
                     return true;
                 }
             }
@@ -254,7 +255,7 @@ namespace CompanionAI_v3.Core
             // Move가 이미 계획되어 있으면 리플랜 불필요 (Move 실행 기회 보존)
             if (currentSituation.CurrentMP > InitialMP && !HasMoveActions)
             {
-                Main.Log($"[TurnPlan] Replan needed: MP increased ({InitialMP:F1} -> {currentSituation.CurrentMP:F1}) - movement opportunity");
+                Log.Engine.Info($"[TurnPlan] Replan needed: MP increased ({InitialMP:F1} -> {currentSituation.CurrentMP:F1}) - movement opportunity");
                 return true;
             }
 
@@ -263,7 +264,7 @@ namespace CompanionAI_v3.Core
             // ★ v3.5.36: 매직 넘버를 GameConstants로 교체
             if (currentSituation.CurrentAP > InitialAP + GameConstants.AP_RECOVERY_EPSILON)
             {
-                Main.Log($"[TurnPlan] Replan needed: AP increased ({InitialAP:F1} -> {currentSituation.CurrentAP:F1}) - additional action opportunity");
+                Log.Engine.Info($"[TurnPlan] Replan needed: AP increased ({InitialAP:F1} -> {currentSituation.CurrentAP:F1}) - additional action opportunity");
                 return true;
             }
 
@@ -271,7 +272,7 @@ namespace CompanionAI_v3.Core
             // ★ v3.9.26: NormalHittableCount 사용 — DangerousAoE 부풀림이 불필요한 replan 유발 방지
             if (!HasAttackActions && InitialHittableCount == 0 && currentSituation.NormalHittableCount > 0)
             {
-                Main.Log($"[TurnPlan] Replan needed: New attack opportunity ({currentSituation.NormalHittableCount} normal targets now available)");
+                Log.Engine.Info($"[TurnPlan] Replan needed: New attack opportunity ({currentSituation.NormalHittableCount} normal targets now available)");
                 return true;
             }
 
@@ -283,7 +284,7 @@ namespace CompanionAI_v3.Core
                 if (zeroAPAttacks.Count > InitialZeroAPAttackCount)
                 {
                     string attackNames = string.Join(", ", zeroAPAttacks.Select(a => a.Name));
-                    Main.Log($"[TurnPlan] Replan needed: New 0 AP attack available ({zeroAPAttacks.Count} > {InitialZeroAPAttackCount}): {attackNames}");
+                    Log.Engine.Info($"[TurnPlan] Replan needed: New 0 AP attack available ({zeroAPAttacks.Count} > {InitialZeroAPAttackCount}): {attackNames}");
                     return true;
                 }
             }
@@ -295,7 +296,7 @@ namespace CompanionAI_v3.Core
                 int currentHittable = currentSituation.NormalHittableCount;
                 if (currentHittable >= InitialHittableCount + GameConstants.MIN_ADDITIONAL_HITTABLE_TARGETS)
                 {
-                    Main.Log($"[TurnPlan] Replan needed: More targets in range (was {InitialHittableCount}, now {currentHittable})");
+                    Log.Engine.Info($"[TurnPlan] Replan needed: More targets in range (was {InitialHittableCount}, now {currentHittable})");
                     return true;
                 }
             }
@@ -322,14 +323,14 @@ namespace CompanionAI_v3.Core
                 if (action.GroupTag == groupTag)
                 {
                     removedCount++;
-                    Main.LogDebug($"[TurnPlan] Purged: {action} (group '{groupTag}' failed)");
+                    Log.Engine.Debug($"[TurnPlan] Purged: {action} (group '{groupTag}' failed)");
                 }
                 else
                 {
                     _actionQueue.Enqueue(action);
                 }
             }
-            Main.Log($"[TurnPlan] Group '{groupTag}' failed — {removedCount} actions purged from queue");
+            Log.Engine.Info($"[TurnPlan] Group '{groupTag}' failed — {removedCount} actions purged from queue");
         }
 
         /// <summary>
@@ -353,7 +354,7 @@ namespace CompanionAI_v3.Core
                 }
             }
 
-            Main.Log($"[TurnPlan] Cancelled: {reason}");
+            Log.Engine.Info($"[TurnPlan] Cancelled: {reason}");
             _actionQueue.Clear();
         }
 

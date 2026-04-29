@@ -14,6 +14,7 @@ using Kingmaker.UnitLogic.Mechanics.Actions;
 using Kingmaker.Utility;
 using CompanionAI_v3.Analysis;
 using CompanionAI_v3.GameInterface;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Data
 {
@@ -1223,7 +1224,7 @@ namespace CompanionAI_v3.Data
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[AbilityDatabase] AutoDetectTiming error");
+                Log.Persistence.Error(ex, $"[AbilityDatabase] AutoDetectTiming error");
                 return AbilityTiming.Normal;
             }
         }
@@ -1369,14 +1370,14 @@ namespace CompanionAI_v3.Data
                     // ★ v3.8.59: 타입 안전 체크 (string 매칭 제거)
                     if (action is ContextActionStartAdditionalTurn)
                     {
-                        Main.LogDebug($"[AbilityDB] IsTurnGrantAbility: {ability.Name} has ContextActionStartAdditionalTurn");
+                        Log.Persistence.Debug($"[AbilityDB] IsTurnGrantAbility: {ability.Name} has ContextActionStartAdditionalTurn");
                         return true;
                     }
                 }
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[AbilityDB] IsTurnGrantAbility error for {ability.Name}");
+                Log.Persistence.Error(ex, $"[AbilityDB] IsTurnGrantAbility error for {ability.Name}");
             }
 
             return false;
@@ -1420,7 +1421,7 @@ namespace CompanionAI_v3.Data
                         }
                     }
                     // intentional: IsDefensiveStance 폴백 경로, BlueprintCache.GetCachedRunAction 의 transient null 흡수
-                    catch (Exception ex) { Main.LogDebug($"[AbilityDB] {ex.Message}"); }
+                    catch (Exception ex) { Log.Persistence.Debug($"[AbilityDB] {ex.Message}"); }
                 }
             }
 
@@ -1562,14 +1563,14 @@ namespace CompanionAI_v3.Data
                             : foundDefensive ? "Defensive"
                             : foundOffensive ? "Offensive"
                             : "NoStatBonus";
-                        Main.LogDebug($"[AbilityDB] BuffEffect: {ability.Name} → {classification}");
+                        Log.Persistence.Debug($"[AbilityDB] BuffEffect: {ability.Name} → {classification}");
                     }
                 }
                 return result;
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[AbilityDB] AnalyzeBuffEffect error");
+                if (Main.IsDebugEnabled) Log.Persistence.Error(ex, $"[AbilityDB] AnalyzeBuffEffect error");
                 return (false, false);
             }
         }
@@ -1617,7 +1618,7 @@ namespace CompanionAI_v3.Data
         public static void ClearBuffEffectCache()
         {
             _buffEffectCache.Clear();
-            if (Main.IsDebugEnabled) Main.LogDebug("[AbilityDB] Buff effect cache cleared");
+            if (Main.IsDebugEnabled) Log.Persistence.Debug("[AbilityDB] Buff effect cache cleared");
         }
 
         #endregion
@@ -1734,7 +1735,7 @@ namespace CompanionAI_v3.Data
                 if (radius > 0) return true;
             }
             // intentional: IsAoE 는 능력 분류 핫 경로, Blueprint.AoERadius 의 transient null 흡수
-            catch (Exception ex) { Main.LogDebug($"[AbilityDB] {ex.Message}"); }
+            catch (Exception ex) { Log.Persistence.Debug($"[AbilityDB] {ex.Message}"); }
 
             return false;
         }
@@ -1756,7 +1757,7 @@ namespace CompanionAI_v3.Data
                     return true;
             }
             // intentional: IsPsychic 능력 분류 핫 경로, Blueprint.AbilityParamsSource 접근 transient null 흡수
-            catch (Exception ex) { Main.LogDebug($"[AbilityDB] {ex.Message}"); }
+            catch (Exception ex) { Log.Persistence.Debug($"[AbilityDB] {ex.Message}"); }
 
             // ★ v3.5.74: 문자열 기반 폴백 제거 - 게임 API만 신뢰
             return false;
@@ -1867,7 +1868,7 @@ namespace CompanionAI_v3.Data
         {
             if (string.IsNullOrEmpty(info?.Guid)) return;
             Database[info.Guid] = info;
-            Main.LogDebug($"[AbilityDB] Registered: {info.Name} ({info.Guid}) -> {info.Timing}");
+            Log.Persistence.Debug($"[AbilityDB] Registered: {info.Name} ({info.Guid}) -> {info.Timing}");
         }
 
         public static int Count => Database.Count;

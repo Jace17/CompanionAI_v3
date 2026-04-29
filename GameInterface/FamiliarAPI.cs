@@ -6,6 +6,7 @@ using Kingmaker.EntitySystem.Entities;
 using Kingmaker.Enums;
 using Kingmaker.UnitLogic.Parts;
 using UnityEngine;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.GameInterface
 {
@@ -32,7 +33,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[FamiliarAPI] HasFamiliar error");
+                Log.Engine.Error(ex, $"[FamiliarAPI] HasFamiliar error");
                 return false;
             }
         }
@@ -51,7 +52,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[FamiliarAPI] GetFamiliar error");
+                Log.Engine.Error(ex, $"[FamiliarAPI] GetFamiliar error");
                 return null;
             }
         }
@@ -73,7 +74,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[FamiliarAPI] GetFamiliarType error");
+                Log.Engine.Error(ex, $"[FamiliarAPI] GetFamiliarType error");
                 return null;
             }
         }
@@ -91,7 +92,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[FamiliarAPI] IsFamiliar error");
+                Log.Engine.Error(ex, $"[FamiliarAPI] IsFamiliar error");
                 return false;
             }
         }
@@ -109,7 +110,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[FamiliarAPI] GetMaster error");
+                Log.Engine.Error(ex, $"[FamiliarAPI] GetMaster error");
                 return null;
             }
         }
@@ -301,14 +302,14 @@ namespace CompanionAI_v3.GameInterface
                 var momentumRoot = Kingmaker.Blueprints.Root.BlueprintRoot.Instance?.WarhammerRoot?.MomentumRoot;
                 if (momentumRoot == null)
                 {
-                    Main.LogDebug("[FamiliarAPI] IsRavenOverchargeActive: MomentumRoot is null");
+                    Log.Engine.Debug("[FamiliarAPI] IsRavenOverchargeActive: MomentumRoot is null");
                     return false;
                 }
 
                 var heroicActBuff = momentumRoot.HeroicActBuff;
                 if (heroicActBuff == null)
                 {
-                    Main.LogDebug("[FamiliarAPI] IsRavenOverchargeActive: HeroicActBuff is null");
+                    Log.Engine.Debug("[FamiliarAPI] IsRavenOverchargeActive: HeroicActBuff is null");
                     return false;
                 }
 
@@ -317,14 +318,14 @@ namespace CompanionAI_v3.GameInterface
 
                 if (hasOvercharge)
                 {
-                    Main.LogDebug($"[FamiliarAPI] {master.CharacterName}: Overcharge (HeroicAct) ACTIVE - attack abilities safe");
+                    Log.Engine.Debug($"[FamiliarAPI] {master.CharacterName}: Overcharge (HeroicAct) ACTIVE - attack abilities safe");
                 }
 
                 return hasOvercharge;
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[FamiliarAPI] IsRavenOverchargeActive error");
+                Log.Engine.Error(ex, $"[FamiliarAPI] IsRavenOverchargeActive error");
                 return false;
             }
         }
@@ -360,19 +361,19 @@ namespace CompanionAI_v3.GameInterface
             if (IsFamiliar(unit))
             {
                 var master = GetMaster(unit);
-                Main.LogDebug($"[FamiliarAPI] {unit.CharacterName}: Is Familiar, Master={master?.CharacterName ?? "None"}");
+                Log.Engine.Debug($"[FamiliarAPI] {unit.CharacterName}: Is Familiar, Master={master?.CharacterName ?? "None"}");
             }
             else if (HasFamiliar(unit))
             {
                 var familiar = GetFamiliar(unit);
                 var type = GetFamiliarType(unit);
                 var conscious = IsFamiliarConscious(unit);
-                Main.LogDebug($"[FamiliarAPI] {unit.CharacterName}: Has Familiar={GetFamiliarTypeName(type)}, " +
+                Log.Engine.Debug($"[FamiliarAPI] {unit.CharacterName}: Has Familiar={GetFamiliarTypeName(type)}, " +
                     $"Conscious={conscious}, Position={familiar?.Position}");
             }
             else
             {
-                Main.LogDebug($"[FamiliarAPI] {unit.CharacterName}: No Familiar");
+                Log.Engine.Debug($"[FamiliarAPI] {unit.CharacterName}: No Familiar");
             }
         }
 
@@ -415,22 +416,22 @@ namespace CompanionAI_v3.GameInterface
                                 // 사거리 경계에서 TargetTooFar 오류 발생 (예: 9.8 tiles vs range 10)
                                 int safeRange = range - 1;
                                 _cachedRavenSupportRange = safeRange;
-                                Main.Log($"[FamiliarAPI] ★ Raven support ability range: {range} tiles → safe {safeRange} tiles ({CombatAPI.TilesToMeters(safeRange):F1}m)");
+                                Log.Engine.Info($"[FamiliarAPI] ★ Raven support ability range: {range} tiles → safe {safeRange} tiles ({CombatAPI.TilesToMeters(safeRange):F1}m)");
                                 return safeRange;
                             }
                             else
                             {
-                                Main.LogDebug($"[FamiliarAPI] Raven support ability range unexpected: {range} tiles, using default");
+                                Log.Engine.Debug($"[FamiliarAPI] Raven support ability range unexpected: {range} tiles, using default");
                             }
                         }
                     }
                 }
 
-                Main.LogDebug($"[FamiliarAPI] Raven support ability not found on familiar, using default {DEFAULT_RAVEN_SUPPORT_RANGE} tiles");
+                Log.Engine.Debug($"[FamiliarAPI] Raven support ability not found on familiar, using default {DEFAULT_RAVEN_SUPPORT_RANGE} tiles");
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[FamiliarAPI] GetRavenSupportRange error");
+                Log.Engine.Error(ex, $"[FamiliarAPI] GetRavenSupportRange error");
             }
 
             return DEFAULT_RAVEN_SUPPORT_RANGE;
@@ -501,7 +502,7 @@ namespace CompanionAI_v3.GameInterface
                     // ★ v3.7.92: Unlimited 사거리 제외 (50타일 이상 또는 0 이하)
                     if (rangeTiles >= UNLIMITED_THRESHOLD_TILES || rangeTiles <= 0)
                     {
-                        Main.LogDebug($"[FamiliarAPI] Skipping unlimited range ability: {ability.Name} ({rangeTiles} tiles)");
+                        Log.Engine.Debug($"[FamiliarAPI] Skipping unlimited range ability: {ability.Name} ({rangeTiles} tiles)");
                         continue;
                     }
 
@@ -511,30 +512,30 @@ namespace CompanionAI_v3.GameInterface
                     {
                         maxRange = rangeMeters;
                         validAbilityCount++;
-                        Main.LogDebug($"[FamiliarAPI] Familiar ability range: {ability.Name} = {rangeMeters:F1}m ({rangeTiles} tiles)");
+                        Log.Engine.Debug($"[FamiliarAPI] Familiar ability range: {ability.Name} = {rangeMeters:F1}m ({rangeTiles} tiles)");
                     }
                 }
 
                 // 유효한 능력이 없으면 기본값
                 if (validAbilityCount == 0 || maxRange < 5f)
                 {
-                    Main.LogDebug($"[FamiliarAPI] No valid range abilities found, using default {DEFAULT_RANGE}m");
+                    Log.Engine.Debug($"[FamiliarAPI] No valid range abilities found, using default {DEFAULT_RANGE}m");
                     return DEFAULT_RANGE;
                 }
 
                 // ★ v3.7.92: 최대 사거리 상한선 적용
                 if (maxRange > MAX_RANGE_CAP)
                 {
-                    Main.LogDebug($"[FamiliarAPI] Capping range from {maxRange:F1}m to {MAX_RANGE_CAP}m");
+                    Log.Engine.Debug($"[FamiliarAPI] Capping range from {maxRange:F1}m to {MAX_RANGE_CAP}m");
                     maxRange = MAX_RANGE_CAP;
                 }
 
-                Main.LogDebug($"[FamiliarAPI] GetMaxFamiliarAbilityRange: {maxRange:F1}m for {master.CharacterName}");
+                Log.Engine.Debug($"[FamiliarAPI] GetMaxFamiliarAbilityRange: {maxRange:F1}m for {master.CharacterName}");
                 return maxRange;
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[FamiliarAPI] GetMaxFamiliarAbilityRange error");
+                Log.Engine.Error(ex, $"[FamiliarAPI] GetMaxFamiliarAbilityRange error");
                 return DEFAULT_RANGE;
             }
         }

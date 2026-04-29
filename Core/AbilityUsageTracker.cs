@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Kingmaker.UnitLogic.Abilities;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Core
 {
@@ -54,7 +55,7 @@ namespace CompanionAI_v3.Core
             }
 
             abilities[abilityId] = Time.frameCount;
-            Main.LogDebug($"[UsageTracker] Marked: {abilityId} for unit {unitId} at frame {Time.frameCount}");
+            Log.Engine.Debug($"[UsageTracker] Marked: {abilityId} for unit {unitId} at frame {Time.frameCount}");
         }
 
         /// <summary>
@@ -86,7 +87,7 @@ namespace CompanionAI_v3.Core
 
             if (wasRecent)
             {
-                Main.LogDebug($"[UsageTracker] {abilityId} was used {framesSince} frames ago (within {frameWindow})");
+                Log.Engine.Debug($"[UsageTracker] {abilityId} was used {framesSince} frames ago (within {frameWindow})");
             }
 
             return wasRecent;
@@ -147,7 +148,7 @@ namespace CompanionAI_v3.Core
             }
 
             abilities[abilityId] = Time.frameCount;
-            Main.Log($"[UsageTracker] ★ FAILED: {abilityId} for unit {unitId} at frame {Time.frameCount}");
+            Log.Engine.Info($"[UsageTracker] ★ FAILED: {abilityId} for unit {unitId} at frame {Time.frameCount}");
         }
 
         /// <summary>
@@ -179,7 +180,7 @@ namespace CompanionAI_v3.Core
 
             if (failedRecently)
             {
-                Main.LogDebug($"[UsageTracker] {abilityId} FAILED {framesSince} frames ago (cooldown {frameWindow})");
+                Log.Engine.Debug($"[UsageTracker] {abilityId} FAILED {framesSince} frames ago (cooldown {frameWindow})");
             }
 
             return failedRecently;
@@ -266,7 +267,7 @@ namespace CompanionAI_v3.Core
 
             if (cleanedCount > 0)
             {
-                Main.LogDebug($"[UsageTracker] Cleaned up {cleanedCount} old entries");
+                Log.Engine.Debug($"[UsageTracker] Cleaned up {cleanedCount} old entries");
             }
         }
 
@@ -278,7 +279,7 @@ namespace CompanionAI_v3.Core
         {
             _usageByUnit.Clear();
             _failedByUnit.Clear();
-            Main.LogDebug("[UsageTracker] All tracking cleared");
+            Log.Engine.Debug("[UsageTracker] All tracking cleared");
         }
 
         /// <summary>
@@ -291,7 +292,7 @@ namespace CompanionAI_v3.Core
 
             _usageByUnit.Remove(unitId);
             _failedByUnit.Remove(unitId);
-            Main.LogDebug($"[UsageTracker] Cleared tracking for unit {unitId}");
+            Log.Engine.Debug($"[UsageTracker] Cleared tracking for unit {unitId}");
         }
 
         /// <summary>

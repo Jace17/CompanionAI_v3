@@ -9,6 +9,7 @@ using Kingmaker;
 using Kingmaker.EntitySystem.Entities;
 using CompanionAI_v3.Analysis;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Planning.LLM
 {
@@ -88,7 +89,7 @@ namespace CompanionAI_v3.Planning.LLM
                 }
                 catch (Exception ex)
                 {
-                    Main.LogError(ex, $"[LLMPreCompute] Situation analysis failed for {unit.CharacterName}");
+                    Log.Planning.Error(ex, $"[LLMPreCompute] Situation analysis failed for {unit.CharacterName}");
                     _isPreComputing = false;
                     return;
                 }
@@ -109,12 +110,12 @@ namespace CompanionAI_v3.Planning.LLM
                 {
                     _preComputed[unitId] = cachedWeights;
                     _isPreComputing = false;
-                    Main.LogDebug($"[LLMPreCompute] {unitName}: Cache hit during pre-compute (hash={hash})");
+                    Log.Planning.Debug($"[LLMPreCompute] {unitName}: Cache hit during pre-compute (hash={hash})");
                     // 다음 유닛 시도를 위해 루프 계속
                     continue;
                 }
 
-                Main.LogDebug($"[LLMPreCompute] Starting pre-compute for {unitName} ({configuredRole}, enemies={enemyCount})");
+                Log.Planning.Debug($"[LLMPreCompute] Starting pre-compute for {unitName} ({configuredRole}, enemies={enemyCount})");
 
                 MachineSpirit.CoroutineRunner.Start(PreComputeCoroutine(
                     situation, configuredRole.ToString(), enemyCount, unitId, unitName, hash));
@@ -137,11 +138,11 @@ namespace CompanionAI_v3.Planning.LLM
                 _preComputed[unitId] = result;
                 // 캐시에도 저장 (다른 유닛 동일 상황 시 재사용)
                 LLMScorerCache.Store(cacheHash, result);
-                Main.LogDebug($"[LLMPreCompute] {unitName}: Pre-compute done ({result})");
+                Log.Planning.Debug($"[LLMPreCompute] {unitName}: Pre-compute done ({result})");
             }
             else
             {
-                Main.LogDebug($"[LLMPreCompute] {unitName}: Pre-compute returned null");
+                Log.Planning.Debug($"[LLMPreCompute] {unitName}: Pre-compute returned null");
             }
 
             _isPreComputing = false;

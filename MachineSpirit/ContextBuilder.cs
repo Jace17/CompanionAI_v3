@@ -12,6 +12,7 @@ using Kingmaker.AreaLogic.QuestSystem;
 using Kingmaker.Enums;
 using CompanionAI_v3.GameInterface;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.MachineSpirit
 {
@@ -1535,7 +1536,7 @@ Style examples (use as rough guides, NOT templates -- be creative and vary your 
 
             // Debug: log message structure for troubleshooting
             var family = config != null ? LLMClient.DetectFamily(config.Model) : LLMClient.ModelFamily.Other;
-            Main.LogDebug($"[ContextBuilder] Build: model={config?.Model}, family={family}, sysInUser={useGemmaWorkaround}, historyCount={chatHistory?.Count ?? 0}, userMsg={(userMessage?.Length > 30 ? userMessage.Substring(0, 30) + "..." : userMessage)}");
+            Log.MachineSpirit.Debug($"[ContextBuilder] Build: model={config?.Model}, family={family}, sysInUser={useGemmaWorkaround}, historyCount={chatHistory?.Count ?? 0}, userMsg={(userMessage?.Length > 30 ? userMessage.Substring(0, 30) + "..." : userMessage)}");
 
             if (!useGemmaWorkaround)
             {
@@ -1614,7 +1615,7 @@ Style examples (use as rough guides, NOT templates -- be creative and vary your 
             for (int d = 0; d < messages.Count; d++)
             {
                 string preview = messages[d].Content?.Length > 100 ? messages[d].Content.Substring(0, 100) + "..." : messages[d].Content;
-                Main.LogDebug($"[ContextBuilder] msg[{d}] role={messages[d].Role}, len={messages[d].Content?.Length ?? 0}: {preview}");
+                Log.MachineSpirit.Debug($"[ContextBuilder] msg[{d}] role={messages[d].Role}, len={messages[d].Content?.Length ?? 0}: {preview}");
             }
 
             return messages;

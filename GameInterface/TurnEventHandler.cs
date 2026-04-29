@@ -9,6 +9,7 @@ using Kingmaker.PubSubSystem.Core.Interfaces;
 using CompanionAI_v3.Core;
 using CompanionAI_v3.Analysis;
 using CompanionAI_v3.Data;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.GameInterface
 {
@@ -32,7 +33,7 @@ namespace CompanionAI_v3.GameInterface
 
             EventBus.Subscribe(this);
             _isSubscribed = true;
-            Main.Log("[TurnEventHandler] Subscribed to turn events");
+            Log.Engine.Info("[TurnEventHandler] Subscribed to turn events");
         }
 
         /// <summary>
@@ -44,7 +45,7 @@ namespace CompanionAI_v3.GameInterface
 
             EventBus.Unsubscribe(this);
             _isSubscribed = false;
-            Main.Log("[TurnEventHandler] Unsubscribed from turn events");
+            Log.Engine.Info("[TurnEventHandler] Unsubscribed from turn events");
         }
 
         /// <summary>
@@ -71,11 +72,11 @@ namespace CompanionAI_v3.GameInterface
                 // ★ v3.82.0: 적/비제어 유닛 턴 → LLM Scorer pre-compute 시도
                 // 다음 아군 턴을 위해 LLM 스코어링(가중치)을 미리 계산
                 try { Planning.LLM.LLMPreCompute.TryStartPreCompute(); }
-                catch (System.Exception ex) { Main.LogError(ex, $"[TurnEventHandler] PreCompute failed"); }
+                catch (System.Exception ex) { Log.Engine.Error(ex, $"[TurnEventHandler] PreCompute failed"); }
                 return;
             }
 
-            Main.LogDebug($"[TurnEventHandler] Turn started for {unit.CharacterName}");
+            Log.Engine.Debug($"[TurnEventHandler] Turn started for {unit.CharacterName}");
 
             // TurnOrchestrator에 새 턴 시작 알림
             TurnOrchestrator.Instance.OnTurnStart(unit);
@@ -98,7 +99,7 @@ namespace CompanionAI_v3.GameInterface
             var unit = EventInvokerExtensions.MechanicEntity as BaseUnitEntity;
             if (unit == null) return;
 
-            Main.LogDebug($"[TurnEventHandler] Turn ended for {unit.CharacterName}");
+            Log.Engine.Debug($"[TurnEventHandler] Turn ended for {unit.CharacterName}");
 
             // ★ v3.21.6: 함선 ForceAIControl 해제
             TurnOrchestrator.RemoveShipForceAI(unit);
@@ -107,7 +108,7 @@ namespace CompanionAI_v3.GameInterface
             if (TurnOrchestrator.Instance.ShouldControl(unit) &&
                 !CustomBehaviourTreePatch.WasDecisionNodeReached(unit.UniqueId))
             {
-                Main.LogWarning($"[TurnEventHandler] ★ TURN SKIPPED: {unit.CharacterName} — " +
+                Log.Engine.Warn($"[TurnEventHandler] ★ TURN SKIPPED: {unit.CharacterName} — " +
                     $"CompanionAIDecisionNode was NEVER reached this turn! " +
                     $"Possible cause: CanActInTurnBased=false, stun, or tree failure. " +
                     $"CanAct={unit.State?.CanActInTurnBased}, Commands.Empty={unit.Commands?.Empty}");
@@ -138,7 +139,7 @@ namespace CompanionAI_v3.GameInterface
 
             if (!isTurnBased)
             {
-                Main.Log("[TurnEventHandler] Combat ended");
+                Log.Engine.Info("[TurnEventHandler] Combat ended");
 
                 // ★ v3.9.80: 승리 환호 — OnCombatEnd() 전에 호출 (ClearAll 이전에 캐릭터 식별 필요)
                 try
@@ -156,7 +157,7 @@ namespace CompanionAI_v3.GameInterface
                 }
                 catch (System.Exception ex)
                 {
-                    Main.LogError(ex, $"[TurnEventHandler] Victory bark error");
+                    Log.Engine.Error(ex, $"[TurnEventHandler] Victory bark error");
                 }
 
                 TurnOrchestrator.Instance.OnCombatEnd();
@@ -181,7 +182,7 @@ namespace CompanionAI_v3.GameInterface
             }
             else
             {
-                Main.Log("[TurnEventHandler] Combat started");
+                Log.Engine.Info("[TurnEventHandler] Combat started");
 
                 // ★ v3.111.19 Phase D.5: Defense-in-depth — combat end cleanup이 누락되는 경로
                 //   (게임 crash, save/load, 비정상 종료 등)에서 stale cache 방지.
@@ -205,7 +206,7 @@ namespace CompanionAI_v3.GameInterface
                 }
                 catch (System.Exception ex)
                 {
-                    Main.LogError($"[TurnEventHandler] BattlefieldGrid init failed: {ex.Message}");
+                    Log.Engine.Error($"[TurnEventHandler] BattlefieldGrid init failed: {ex.Message}");
                 }
             }
         }

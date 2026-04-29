@@ -12,6 +12,7 @@ using CompanionAI_v3.Data;
 using CompanionAI_v3.GameInterface;
 using CompanionAI_v3.Planning.Planners;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Planning.Plans
 {
@@ -39,7 +40,7 @@ namespace CompanionAI_v3.Planning.Plans
             var budget = CreateAPBudget(situation, remainingAP);
             if (budget.PostMoveReserved > 0 || budget.TurnEndingReserved > 0)
             {
-                Main.Log($"[Support] {budget}");
+                Log.Planning.Info($"[Support] {budget}");
             }
 
             // ★ v3.22.0: 전략 평가/재사용 — BasePlan.EvaluateOrReuseStrategy()로 통합
@@ -58,7 +59,7 @@ namespace CompanionAI_v3.Planning.Plans
                 if (switchActions.Count > 0)
                 {
                     actions.AddRange(switchActions);
-                    Main.Log($"[Support] Phase 1.55: Switch-First — switching weapon for better effectiveness");
+                    Log.Planning.Info($"[Support] Phase 1.55: Switch-First — switching weapon for better effectiveness");
                     return new TurnPlan(actions, TurnPriority.DirectAttack, "Support weapon switch-first");
                 }
             }
@@ -95,7 +96,7 @@ namespace CompanionAI_v3.Planning.Plans
                 if (vitalitySignal != null)
                 {
                     actions.Add(vitalitySignal);
-                    Main.Log($"[Support] Phase 2: Vitality Signal (AoE heal) planned");
+                    Log.Planning.Info($"[Support] Phase 2: Vitality Signal (AoE heal) planned");
                 }
             }
 
@@ -249,7 +250,7 @@ namespace CompanionAI_v3.Planning.Plans
                 if (strategy?.ShouldPrioritizeAoE == true)
                 {
                     hasAoEOpportunity = true;
-                    Main.Log($"[Support] Phase 5.5: Strategy recommends AoE — bypassing cluster check");
+                    Log.Planning.Info($"[Support] Phase 5.5: Strategy recommends AoE — bypassing cluster check");
                 }
                 else if (useAoEOptimization)
                 {
@@ -262,7 +263,7 @@ namespace CompanionAI_v3.Planning.Plans
                         if (clusters.Any(c => c.Count >= minEnemies))
                         {
                             hasAoEOpportunity = true;
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[Support] Phase 5.5: Cluster found for {aoEAbility.Name} (category={CombatAPI.GetAttackCategory(aoEAbility)})");
+                            if (Main.IsDebugEnabled) Log.Planning.Debug($"[Support] Phase 5.5: Cluster found for {aoEAbility.Name} (category={CombatAPI.GetAttackCategory(aoEAbility)})");
                             break;
                         }
                     }
@@ -284,7 +285,7 @@ namespace CompanionAI_v3.Planning.Plans
                     {
                         actions.Add(aoE);
                         didPlanAttack = true;
-                        Main.Log($"[Support] Phase 5.5: Point-target AOE planned");
+                        Log.Planning.Info($"[Support] Phase 5.5: Point-target AOE planned");
                     }
 
                     // ★ v3.8.96: Unit-targeted AoE 시도 (Burst, Scatter, 기타 모든 유닛 타겟 AoE)
@@ -295,7 +296,7 @@ namespace CompanionAI_v3.Planning.Plans
                         {
                             actions.Add(unitAoE);
                             didPlanAttack = true;
-                            Main.Log($"[Support] Phase 5.5b: Unit-targeted AOE planned");
+                            Log.Planning.Info($"[Support] Phase 5.5b: Unit-targeted AOE planned");
                         }
                     }
                 }
@@ -317,7 +318,7 @@ namespace CompanionAI_v3.Planning.Plans
                     if (moveDest.HasValue)
                         RecalculateHittableFromDestination(situation, moveDest.Value);
 
-                    Main.Log($"[Support] Phase 5.5.5: AoE reposition planned");
+                    Log.Planning.Info($"[Support] Phase 5.5.5: AoE reposition planned");
                 }
             }
 
@@ -330,7 +331,7 @@ namespace CompanionAI_v3.Planning.Plans
                 if (clearMPRetreat != null)
                 {
                     actions.Add(clearMPRetreat);
-                    Main.Log($"[Support] Phase 5.8: Preemptive retreat before ClearMP ability");
+                    Log.Planning.Info($"[Support] Phase 5.8: Preemptive retreat before ClearMP ability");
 
                     // ★ v3.8.76: 후퇴 후 HittableEnemies 재계산 (Phase 6 공격 전)
                     var retreatDest = clearMPRetreat.MoveDestination ?? clearMPRetreat.Target?.Point;
@@ -364,7 +365,7 @@ namespace CompanionAI_v3.Planning.Plans
                     if (tacticalMoveAction != null)
                     {
                         actions.Add(tacticalMoveAction);
-                        Main.Log($"[Support] Phase 5.9: Tactical pre-attack move");
+                        Log.Planning.Info($"[Support] Phase 5.9: Tactical pre-attack move");
                     }
                 }
             }
@@ -402,7 +403,7 @@ namespace CompanionAI_v3.Planning.Plans
                     }
                     else
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[Support] Phase 6: Allow re-attack on {targetEntity.CharacterName} (only 1 hittable enemy)");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[Support] Phase 6: Allow re-attack on {targetEntity.CharacterName} (only 1 hittable enemy)");
                     }
                 }
 
@@ -424,7 +425,7 @@ namespace CompanionAI_v3.Planning.Plans
                 if (probeTarget != null)
                 {
                     SelectBestAttack(situation, probeTarget, null, attackContext);
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[Support] AttackContext probe: {attackContext}");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[Support] AttackContext probe: {attackContext}");
                 }
             }
 
@@ -448,7 +449,7 @@ namespace CompanionAI_v3.Planning.Plans
                     if (expectedMP > 0)
                     {
                         remainingMP += expectedMP;
-                        Main.Log($"[Support] Phase 7: {postAction.Ability.Name} will restore ~{expectedMP:F0} MP (predicted MP={remainingMP:F1})");
+                        Log.Planning.Info($"[Support] Phase 7: {postAction.Ability.Name} will restore ~{expectedMP:F0} MP (predicted MP={remainingMP:F1})");
                     }
                 }
             }
@@ -464,7 +465,7 @@ namespace CompanionAI_v3.Planning.Plans
             {
                 actions.AddRange(oppHealActions);
                 remainingMP = 0;
-                Main.Log($"[Support] Phase 7.6: Opportunistic ally heal (2nd chance)");
+                Log.Planning.Info($"[Support] Phase 7.6: Opportunistic ally heal (2nd chance)");
             }
 
             // ★ v3.5.35: Phase 8 (TurnEnding) → 맨 마지막으로 이동
@@ -478,7 +479,7 @@ namespace CompanionAI_v3.Planning.Plans
             // 화염 수류탄 등 ClearMPAfterUse 능력은 이미 remainingMP=0으로 설정됨
             if (remainingMP <= 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[Support] Skip safe retreat - no remaining MP after planned abilities");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[Support] Skip safe retreat - no remaining MP after planned abilities");
             }
 
             // ★ v3.111.13: ExtraTurn 가드 MovementPlanner.PlanPostActionSafeRetreat로 push-down됨.
@@ -513,7 +514,7 @@ namespace CompanionAI_v3.Planning.Plans
                     {
                         actions.Add(safeRetreatAction);
                         alreadyHasMoveAction = true;
-                        Main.Log($"[Support] Post-action safe retreat: {retreatReason}");
+                        Log.Planning.Info($"[Support] Post-action safe retreat: {retreatReason}");
                     }
                 }
             }
@@ -556,7 +557,7 @@ namespace CompanionAI_v3.Planning.Plans
                 if (distToFamiliar > 15f)
                 {
                     needsMoveToAlly = true;
-                    Main.Log($"[Support] Phase 9: Too far from familiar ({distToFamiliar:F1}m > 15m), moving toward allies");
+                    Log.Planning.Info($"[Support] Phase 9: Too far from familiar ({distToFamiliar:F1}m > 15m), moving toward allies");
                 }
             }
 
@@ -569,7 +570,7 @@ namespace CompanionAI_v3.Planning.Plans
                 {
                     actions.Add(moveToAlly);
                     hasMoveInPlan = true;
-                    Main.Log($"[Support] Phase 9: Moving toward allies for buff range");
+                    Log.Planning.Info($"[Support] Phase 9: Moving toward allies for buff range");
                 }
             }
             // ★ v3.9.22: GapCloser는 MP 없이도 진입 허용 (AP 기반 이동)
@@ -577,11 +578,11 @@ namespace CompanionAI_v3.Planning.Plans
             //   (5개 호출부 중 일부는 일반 턴 approach에 필수이므로 blanket gate 금지).
             else if (!situation.IsExtraTurn && !hasMoveInPlan && needsMovement && ((canMove && remainingMP > 0) || hasGapClosers))
             {
-                Main.Log($"[Support] Phase 9: Trying move (attack planned={didPlanAttack}, predictedMP={remainingMP:F1})");
+                Log.Planning.Info($"[Support] Phase 9: Trying move (attack planned={didPlanAttack}, predictedMP={remainingMP:F1})");
                 // ★ v3.0.90: 공격 실패 시 forceMove=true로 이동 강제
                 // ★ v3.8.44: HasHittableEnemies → attackContext.ShouldForceMove (실패 이유 기반)
                 bool forceMove = !didPlanAttack && attackContext.ShouldForceMove;
-                if (Main.IsDebugEnabled) Main.LogDebug($"[Support] Phase 9: {attackContext}, forceMove={forceMove}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[Support] Phase 9: {attackContext}, forceMove={forceMove}");
                 // ★ v3.1.00: MP 회복 예측 후 situation.CanMove=False여도 이동 가능
                 bool bypassCanMoveCheck = !situation.CanMove && remainingMP > 0;
                 // ★ v3.1.01: remainingMP를 MovementAPI에 전달
@@ -602,7 +603,7 @@ namespace CompanionAI_v3.Planning.Plans
                         if (postMoveAttack != null)
                         {
                             actions.Add(postMoveAttack);
-                            Main.Log($"[Support] Added post-move attack (from destination={moveDestination.HasValue})");
+                            Log.Planning.Info($"[Support] Added post-move attack (from destination={moveDestination.HasValue})");
                         }
                     }
                 }
@@ -617,7 +618,7 @@ namespace CompanionAI_v3.Planning.Plans
                 {
                     actions.Add(tacticalRepos);
                     hasMoveInPlan = true;
-                    Main.Log($"[Support] Phase 8.7: Tactical reposition (all attacks on cooldown, MP={remainingMP:F1})");
+                    Log.Planning.Info($"[Support] Phase 8.7: Tactical reposition (all attacks on cooldown, MP={remainingMP:F1})");
                 }
             }
 
@@ -637,7 +638,7 @@ namespace CompanionAI_v3.Planning.Plans
                 if (finalAction != null)
                 {
                     actions.Add(finalAction);
-                    Main.Log($"[Support] Phase 10: Final AP utilization - {finalAction.Ability?.Name}");
+                    Log.Planning.Info($"[Support] Phase 10: Final AP utilization - {finalAction.Ability?.Name}");
                 }
             }
 
@@ -650,14 +651,14 @@ namespace CompanionAI_v3.Planning.Plans
                 bool hasRecoveryMove = actions.Any(a => a.Type == ActionType.Move);
                 if (!hasRecoveryMove && situation.HasLivingEnemies && remainingMP > 0)
                 {
-                    Main.Log($"[Support] ★ Post-validation recovery: attempting movement (AP={remainingAP:F1}, MP={remainingMP:F1})");
+                    Log.Planning.Info($"[Support] ★ Post-validation recovery: attempting movement (AP={remainingAP:F1}, MP={remainingMP:F1})");
                     var recoveryCtx = new AttackPhaseContext { RangeWasIssue = true };
                     bool bypassCanMoveCheck = !situation.CanMove && remainingMP > 0;
                     var recoveryMove = PlanMoveOrGapCloser(situation, ref remainingAP, true, bypassCanMoveCheck, remainingMP, recoveryCtx);
                     if (recoveryMove != null)
                     {
                         actions.Add(recoveryMove);
-                        Main.Log($"[Support] ★ Post-validation recovery: movement planned");
+                        Log.Planning.Info($"[Support] ★ Post-validation recovery: movement planned");
                     }
                 }
             }
@@ -680,7 +681,7 @@ namespace CompanionAI_v3.Planning.Plans
             var reasoning = $"Support: {DetermineReasoning(actions, situation)}";
 
             // ★ v3.0.55: MP 추적 로깅
-            if (Main.IsDebugEnabled) Main.LogDebug($"[Support] Plan complete: AP={remainingAP:F1}, MP={remainingMP:F1} (started with {situation.CurrentMP:F1})");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[Support] Plan complete: AP={remainingAP:F1}, MP={remainingMP:F1} (started with {situation.CurrentMP:F1})");
 
             // ★ v3.1.09: InitialAP/InitialMP 전달 (리플랜 감지용)
             // ★ v3.5.88: 0 AP 공격 수 전달 (Break Through → Slash 감지용)
@@ -745,7 +746,7 @@ namespace CompanionAI_v3.Planning.Plans
                     {
                         if (!AoESafetyChecker.IsAoESafeForUnitTarget(attack, situation.Unit, target, situation.Allies))
                         {
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[Support] Fallback: Skipping {attack.Name} - ally in scatter zone");
+                            if (Main.IsDebugEnabled) Log.Planning.Debug($"[Support] Fallback: Skipping {attack.Name} - ally in scatter zone");
                             continue;
                         }
                     }
@@ -760,7 +761,7 @@ namespace CompanionAI_v3.Planning.Plans
                         remainingMP -= mpCost;
                         if (remainingMP < 0) remainingMP = 0;
 
-                        Main.Log($"[Support] Fallback attack: {attack.Name} -> {target.CharacterName}");
+                        Log.Planning.Info($"[Support] Fallback attack: {attack.Name} -> {target.CharacterName}");
                         return PlannedAction.Attack(attack, target, $"Safe attack on {target.CharacterName}", cost);
                     }
                 }
@@ -779,7 +780,7 @@ namespace CompanionAI_v3.Planning.Plans
             //   v3.111.9 sprinkle(Phase 9) push-down.
             if (situation.IsExtraTurn)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[Support] PlanMoveTowardAllies: skip (extra turn)");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[Support] PlanMoveTowardAllies: skip (extra turn)");
                 return null;
             }
 
@@ -817,7 +818,7 @@ namespace CompanionAI_v3.Planning.Plans
             float currentDist = UnityEngine.Vector3.Distance(unit.Position, targetPos);
             if (currentDist <= 10f)  // 이미 충분히 가까움
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[Support] Already close to target position ({currentDist:F1}m)");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[Support] Already close to target position ({currentDist:F1}m)");
                 return null;
             }
 
@@ -825,7 +826,7 @@ namespace CompanionAI_v3.Planning.Plans
             var tiles = MovementAPI.FindAllReachableTilesSync(unit, remainingMP);
             if (tiles == null || tiles.Count == 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[Support] No reachable tiles for ally approach");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[Support] No reachable tiles for ally approach");
                 return null;
             }
 
@@ -863,11 +864,11 @@ namespace CompanionAI_v3.Planning.Plans
             if (bestPos.HasValue)
             {
                 float improvement = currentDist - bestDist;
-                Main.Log($"[Support] Move toward allies: {currentDist:F1}m -> {bestDist:F1}m (improvement: {improvement:F1}m)");
+                Log.Planning.Info($"[Support] Move toward allies: {currentDist:F1}m -> {bestDist:F1}m (improvement: {improvement:F1}m)");
                 return PlannedAction.Move(bestPos.Value, moveReason);
             }
 
-            if (Main.IsDebugEnabled) Main.LogDebug($"[Support] No better position toward allies found");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[Support] No better position toward allies found");
             return null;
         }
 

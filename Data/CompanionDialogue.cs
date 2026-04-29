@@ -4,6 +4,7 @@ using Kingmaker.EntitySystem.Entities;
 using UnityEngine;
 using CompanionAI_v3.Core;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Data
 {
@@ -101,9 +102,9 @@ namespace CompanionAI_v3.Data
 
             // ★ 진단 로그: Blueprint.name → CompanionId 매핑 결과
             if (result == CompanionId.Unknown)
-                Main.LogDebug($"[Speech] Unknown companion: CharName=\"{unit.CharacterName}\", Blueprint=\"{bpName}\"");
+                Log.Persistence.Debug($"[Speech] Unknown companion: CharName=\"{unit.CharacterName}\", Blueprint=\"{bpName}\"");
             else
-                Main.LogDebug($"[Speech] Identified: CharName=\"{unit.CharacterName}\", Blueprint=\"{bpName}\" → {result}");
+                Log.Persistence.Debug($"[Speech] Identified: CharName=\"{unit.CharacterName}\", Blueprint=\"{bpName}\" → {result}");
 
             _companionCache[unitId] = result;
             return result;
@@ -391,11 +392,11 @@ namespace CompanionAI_v3.Data
                     unit, coloredLine, duration,
                     voiceOver: null, interactUser: null, synced: true,
                     overrideName: null, overrideNameColor: AISpeechNameColor);
-                Main.LogDebug($"[Speech] {unit.CharacterName} ({companion}): \"{line}\" [{category}]");
+                Log.Persistence.Debug($"[Speech] {unit.CharacterName} ({companion}): \"{line}\" [{category}]");
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[Speech] Bark failed for {unit.CharacterName}");
+                Log.Persistence.Error(ex, $"[Speech] Bark failed for {unit.CharacterName}");
             }
         }
 
@@ -466,11 +467,11 @@ namespace CompanionAI_v3.Data
                     speaker, coloredLine, duration,
                     voiceOver: null, interactUser: null, synced: true,
                     overrideName: null, overrideNameColor: AISpeechNameColor);
-                Main.Log($"[Speech] Victory bark: {speaker.CharacterName} ({companion}): \"{line}\"");
+                Log.Persistence.Info($"[Speech] Victory bark: {speaker.CharacterName} ({companion}): \"{line}\"");
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[Speech] Victory bark failed");
+                Log.Persistence.Error(ex, $"[Speech] Victory bark failed");
             }
         }
 

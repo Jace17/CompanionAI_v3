@@ -9,6 +9,7 @@ using Kingmaker.Blueprints;
 using Kingmaker.Blueprints.Items.Weapons;
 using Kingmaker.EntitySystem.Entities;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.MachineSpirit
 {
@@ -56,7 +57,7 @@ namespace CompanionAI_v3.MachineSpirit
             }
             catch (System.Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[GameKnowledge] GetUnitInfo silent");
+                if (Main.IsDebugEnabled) Log.MachineSpirit.Error(ex, $"[GameKnowledge] GetUnitInfo silent");
                 return null;
             }
         }

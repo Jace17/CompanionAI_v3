@@ -15,6 +15,7 @@ using CompanionAI_v3.Data;
 using CompanionAI_v3.GameInterface;
 using CompanionAI_v3.Planning.LLM;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Planning.Planners
 {
@@ -55,11 +56,11 @@ namespace CompanionAI_v3.Planning.Planners
                     return null;
                 }
                 if (llmBypass)
-                    Main.Log($"[{roleName}] LLM PriorityTarget is non-hittable — bypassing hittable gate for approach");
+                    Log.Planning.Info($"[{roleName}] LLM PriorityTarget is non-hittable — bypassing hittable gate for approach");
                 else if (heuristicBypass)
-                    Main.Log($"[{roleName}] Heuristic: high-value non-hittable enemy exists — bypassing hittable gate");
+                    Log.Planning.Info($"[{roleName}] Heuristic: high-value non-hittable enemy exists — bypassing hittable gate");
                 else if (Main.IsDebugEnabled)
-                    Main.LogDebug($"[{roleName}] Ranged in danger - allowing movement despite hittable enemies");
+                    Log.Planning.Debug($"[{roleName}] Ranged in danger - allowing movement despite hittable enemies");
             }
             if (!situation.HasLivingEnemies) { MoveDecisionTracker.Set(MoveDecisionReason.NoLivingEnemies); return null; }
             if (situation.NearestEnemy == null) { MoveDecisionTracker.Set(MoveDecisionReason.NoNearestEnemy); return null; }
@@ -72,11 +73,11 @@ namespace CompanionAI_v3.Planning.Planners
                 bool needsRetreat = situation.PrefersRanged && situation.IsInDanger;
                 if (!needsRetreat)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanMoveOrGapCloser: All abilities filtered and not in danger — skip movement");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanMoveOrGapCloser: All abilities filtered and not in danger — skip movement");
                     MoveDecisionTracker.Set(MoveDecisionReason.AllAbilitiesFiltered, "all attacks filtered, not in danger");
                     return null;
                 }
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanMoveOrGapCloser: All abilities filtered but ranged in danger — allowing retreat movement");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanMoveOrGapCloser: All abilities filtered but ranged in danger — allowing retreat movement");
             }
 
             // ★ v3.5.18: Blackboard에서 전술적 타겟 결정
@@ -87,7 +88,7 @@ namespace CompanionAI_v3.Planning.Planners
                 : situation.NearestEnemyDistance;
 
             // ★ v3.5.19: Main.Log로 변경하여 검증 가능하게
-            Main.Log($"[{roleName}] TacticalTarget={tacticalTarget?.CharacterName ?? "null"}, Distance={tacticalTargetDistance:F1}m");
+            Log.Planning.Info($"[{roleName}] TacticalTarget={tacticalTarget?.CharacterName ?? "null"}, Distance={tacticalTargetDistance:F1}m");
 
             // ★ 먼저 GapCloser 시도 (근접 선호이고 적이 멀 때)
             // ★ v3.5.18: tacticalTarget 사용
@@ -99,7 +100,7 @@ namespace CompanionAI_v3.Planning.Planners
                 var gapCloserAction = PlanGapCloser(situation, tacticalTarget, ref remainingAP, ref effectiveMP, roleName);
                 if (gapCloserAction != null)
                 {
-                    Main.Log($"[{roleName}] GapCloser instead of move: {gapCloserAction.Ability?.Name}");
+                    Log.Planning.Info($"[{roleName}] GapCloser instead of move: {gapCloserAction.Ability?.Name}");
                     return gapCloserAction;
                 }
             }
@@ -150,7 +151,7 @@ namespace CompanionAI_v3.Planning.Planners
             bool bypass = situation.BestNonHittableScore > situation.BestHittableScore * SC.NonHittableBypassRatio;
             if (bypass && Main.IsDebugEnabled)
             {
-                Main.LogDebug($"[{roleName}] HeuristicBypass: non-hittable {situation.BestNonHittableEnemy.CharacterName} " +
+                Log.Planning.Debug($"[{roleName}] HeuristicBypass: non-hittable {situation.BestNonHittableEnemy.CharacterName} " +
                               $"score={situation.BestNonHittableScore:F1} > best-hittable={situation.BestHittableScore:F1} × {SC.NonHittableBypassRatio:F2}");
             }
             return bypass;
@@ -169,11 +170,11 @@ namespace CompanionAI_v3.Planning.Planners
             {
                 if (CombatAPI.IsTargetImmuneToDamage(sharedTarget, situation.Unit))
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] SharedTarget {sharedTarget.CharacterName} is damage-immune, skipping");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] SharedTarget {sharedTarget.CharacterName} is damage-immune, skipping");
                 }
                 else
                 {
-                    Main.Log($"[MovementPlanner] ★ Using SharedTarget: {sharedTarget.CharacterName}");
+                    Log.Planning.Info($"[MovementPlanner] ★ Using SharedTarget: {sharedTarget.CharacterName}");
                     return sharedTarget;
                 }
             }
@@ -184,11 +185,11 @@ namespace CompanionAI_v3.Planning.Planners
             {
                 if (CombatAPI.IsTargetImmuneToDamage(situation.BestTarget, situation.Unit))
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] BestTarget {situation.BestTarget.CharacterName} is damage-immune, skipping");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] BestTarget {situation.BestTarget.CharacterName} is damage-immune, skipping");
                 }
                 else
                 {
-                    Main.Log($"[MovementPlanner] Using BestTarget: {situation.BestTarget.CharacterName}");
+                    Log.Planning.Info($"[MovementPlanner] Using BestTarget: {situation.BestTarget.CharacterName}");
                     return situation.BestTarget;
                 }
             }
@@ -197,7 +198,7 @@ namespace CompanionAI_v3.Planning.Planners
             // ★ v3.40.8: 면역 타겟 필터 — NearestEnemy도 면역이면 null 반환
             if (situation.NearestEnemy != null && CombatAPI.IsTargetImmuneToDamage(situation.NearestEnemy, situation.Unit))
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] NearestEnemy {situation.NearestEnemy.CharacterName} is damage-immune, returning null");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] NearestEnemy {situation.NearestEnemy.CharacterName} is damage-immune, returning null");
                 return null;
             }
             return situation.NearestEnemy;
@@ -214,7 +215,7 @@ namespace CompanionAI_v3.Planning.Planners
         {
             preMoveAction = null;
             // ★ v3.0.87: 진입 로깅
-            if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanGapCloser: target={target?.CharacterName}, AP={remainingAP:F1}, MP={remainingMP:F1}, attacks={situation.AvailableAttacks?.Count ?? 0}");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanGapCloser: target={target?.CharacterName}, AP={remainingAP:F1}, MP={remainingMP:F1}, attacks={situation.AvailableAttacks?.Count ?? 0}");
 
             var gapClosers = situation.AvailableAttacks
                 .Where(a => AbilityDatabase.IsGapCloser(a))
@@ -226,31 +227,31 @@ namespace CompanionAI_v3.Planning.Planners
 
             if (gapClosers.Count == 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanGapCloser: No GapClosers in AvailableAttacks");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanGapCloser: No GapClosers in AvailableAttacks");
                 return null;
             }
 
-            if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanGapCloser: Found {gapClosers.Count} GapClosers: {string.Join(", ", gapClosers.Select(g => g.Name))}");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanGapCloser: Found {gapClosers.Count} GapClosers: {string.Join(", ", gapClosers.Select(g => g.Name))}");
 
             foreach (var gapCloser in gapClosers)
             {
                 float cost = CombatAPI.GetAbilityAPCost(gapCloser);
                 if (cost > remainingAP)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanGapCloser: {gapCloser.Name} skipped - AP cost {cost:F1} > remaining {remainingAP:F1}");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanGapCloser: {gapCloser.Name} skipped - AP cost {cost:F1} > remaining {remainingAP:F1}");
                     continue;
                 }
 
                 var info = AbilityDatabase.GetInfo(gapCloser);
                 if (info?.HPThreshold > 0 && situation.HPPercent < info.HPThreshold)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanGapCloser: {gapCloser.Name} skipped - HP {situation.HPPercent:F0}% < threshold {info.HPThreshold}%");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanGapCloser: {gapCloser.Name} skipped - HP {situation.HPPercent:F0}% < threshold {info.HPThreshold}%");
                     continue;
                 }
 
                 // ★ v3.0.81: PointTarget 능력 처리 (Death from Above 등)
                 bool isPointTarget = info != null && (info.Flags & AbilityFlags.PointTarget) != 0;
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanGapCloser: {gapCloser.Name} isPointTarget={isPointTarget}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanGapCloser: {gapCloser.Name} isPointTarget={isPointTarget}");
 
                 // ★ v3.1.24: 첫 타겟 실패 시 다른 적들도 시도
                 // ★ v3.40.8: 면역 적 조기 필터 (불필요한 경로 검증 방지)
@@ -266,7 +267,7 @@ namespace CompanionAI_v3.Planning.Planners
                     float mpCost = CombatAPI.GetAbilityExpectedMPCost(gapCloser, candidateTarget);
                     if (remainingMP > 0 && mpCost > remainingMP && mpCost < float.MaxValue)
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanGapCloser: {gapCloser.Name} -> {candidateTarget.CharacterName} skipped - MP cost {mpCost:F1} > remaining {remainingMP:F1}");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanGapCloser: {gapCloser.Name} -> {candidateTarget.CharacterName} skipped - MP cost {mpCost:F1} > remaining {remainingMP:F1}");
                         continue;
                     }
 
@@ -276,7 +277,7 @@ namespace CompanionAI_v3.Planning.Planners
                         var landingPosition = FindGapCloserLandingPosition(situation.Unit, candidateTarget, gapCloser, situation);
                         if (landingPosition.HasValue)
                         {
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanGapCloser: Landing position found at ({landingPosition.Value.x:F1},{landingPosition.Value.z:F1}) for {candidateTarget.CharacterName}");
+                            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanGapCloser: Landing position found at ({landingPosition.Value.x:F1},{landingPosition.Value.z:F1}) for {candidateTarget.CharacterName}");
                             var pointTarget = new TargetWrapper(landingPosition.Value);
                             string reason;
                             if (CombatAPI.CanUseAbilityOn(gapCloser, pointTarget, out reason))
@@ -288,17 +289,17 @@ namespace CompanionAI_v3.Planning.Planners
                                     remainingMP -= mpCost;
                                     if (remainingMP < 0) remainingMP = 0;
                                 }
-                                Main.Log($"[{roleName}] Position gap closer: {gapCloser.Name} -> near {candidateTarget.CharacterName} (AP:{cost:F1}, MP:{mpCost:F1})");
+                                Log.Planning.Info($"[{roleName}] Position gap closer: {gapCloser.Name} -> near {candidateTarget.CharacterName} (AP:{cost:F1}, MP:{mpCost:F1})");
                                 return PlannedAction.PositionalAttack(gapCloser, landingPosition.Value, $"Jump to {candidateTarget.CharacterName}", cost);
                             }
                             else
                             {
-                                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanGapCloser: {gapCloser.Name} -> {candidateTarget.CharacterName} failed: {reason}");
+                                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanGapCloser: {gapCloser.Name} -> {candidateTarget.CharacterName} failed: {reason}");
                             }
                         }
                         else
                         {
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanGapCloser: {gapCloser.Name} -> {candidateTarget.CharacterName} - no landing position");
+                            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanGapCloser: {gapCloser.Name} -> {candidateTarget.CharacterName} - no landing position");
                         }
                     }
                     else
@@ -325,18 +326,18 @@ namespace CompanionAI_v3.Planning.Planners
 
                                 if (!hasValidPath)
                                 {
-                                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanGapCloser: {gapCloser.Name} -> {candidateTarget.CharacterName} - NO CHARGE PATH");
+                                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanGapCloser: {gapCloser.Name} -> {candidateTarget.CharacterName} - NO CHARGE PATH");
                                     continue;
                                 }
                             }
                             else
                             {
-                                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanGapCloser: Agent is null, skipping path validation");
+                                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanGapCloser: Agent is null, skipping path validation");
                             }
                         }
                         catch (Exception ex)
                         {
-                            if (Main.IsDebugEnabled) Main.LogError(ex, $"[{roleName}] PlanGapCloser: Path validation error");
+                            if (Main.IsDebugEnabled) Log.Planning.Error(ex, $"[{roleName}] PlanGapCloser: Path validation error");
                         }
 
                         // 2. 기존 검증
@@ -351,12 +352,12 @@ namespace CompanionAI_v3.Planning.Planners
                                 remainingMP -= mpCost;
                                 if (remainingMP < 0) remainingMP = 0;
                             }
-                            Main.Log($"[{roleName}] Gap closer: {gapCloser.Name} -> {candidateTarget.CharacterName} (AP:{cost:F1}, MP:{mpCost:F1}, pathOK={hasValidPath})");
+                            Log.Planning.Info($"[{roleName}] Gap closer: {gapCloser.Name} -> {candidateTarget.CharacterName} (AP:{cost:F1}, MP:{mpCost:F1}, pathOK={hasValidPath})");
                             return PlannedAction.Attack(gapCloser, candidateTarget, $"Gap closer on {candidateTarget.CharacterName}", cost);
                         }
                         else
                         {
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanGapCloser: {gapCloser.Name} -> {candidateTarget.CharacterName} failed: {reason}");
+                            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanGapCloser: {gapCloser.Name} -> {candidateTarget.CharacterName} failed: {reason}");
                         }
                     }
                 }
@@ -413,13 +414,13 @@ namespace CompanionAI_v3.Planning.Planners
                         remainingMP -= walkDist;
                         if (remainingMP < 0) remainingMP = 0;
 
-                        Main.Log($"[{roleName}] ★ Walk+GapCloser: walk {walkDist:F1} tiles → {gapCloser.Name} → near {candidateTarget.CharacterName} (dist={dist:F1}, gcRange={gcRange:F0})");
+                        Log.Planning.Info($"[{roleName}] ★ Walk+GapCloser: walk {walkDist:F1} tiles → {gapCloser.Name} → near {candidateTarget.CharacterName} (dist={dist:F1}, gcRange={gcRange:F0})");
                         return PlannedAction.PositionalAttack(gapCloser, landing.Value, $"Jump to {candidateTarget.CharacterName} after walk", cost);
                     }
                 }
             }
 
-            if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanGapCloser: All GapClosers failed on all targets");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanGapCloser: All GapClosers failed on all targets");
             return null;
         }
 
@@ -466,7 +467,7 @@ namespace CompanionAI_v3.Planning.Planners
         {
             // ★ v3.5.98: 능력 범위 확인 (타일 단위)
             float abilityRange = CombatAPI.GetAbilityRangeInTiles(gapCloserAbility);
-            if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] FindGapCloserLanding: ability={gapCloserAbility.Name}, range={abilityRange:F1} tiles");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] FindGapCloserLanding: ability={gapCloserAbility.Name}, range={abilityRange:F1} tiles");
 
             // ★ v3.16.6: 캐스터 위치 오버라이드 (Walk+Jump 콤보용)
             Vector3 effectiveCasterPos = casterOverridePosition ?? unit.Position;
@@ -483,7 +484,7 @@ namespace CompanionAI_v3.Planning.Planners
             float maxEffectiveRange = abilityRange + meleeAttackRange;
             if (targetDistance > maxEffectiveRange)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] FindGapCloserLanding: target too far ({targetDistance:F1} > {maxEffectiveRange:F1} tiles), skipping gap closer");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] FindGapCloserLanding: target too far ({targetDistance:F1} > {maxEffectiveRange:F1} tiles), skipping gap closer");
                 return null;
             }
 
@@ -503,7 +504,7 @@ namespace CompanionAI_v3.Planning.Planners
                             CombatAPI.GetAbilityAPCost(a) <= apAfterLanding);
                     if (!hasMeleeAfter && apAfterLanding < 1f)
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] Movement-only GapCloser {gapCloserAbility.Name} skipped - no follow-up attack possible (AP after={apAfterLanding:F1})");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] Movement-only GapCloser {gapCloserAbility.Name} skipped - no follow-up attack possible (AP after={apAfterLanding:F1})");
                         return null;
                     }
                 }
@@ -530,7 +531,7 @@ namespace CompanionAI_v3.Planning.Planners
                     }
                 }
                 if (hasSelfAoE && Main.IsDebugEnabled)
-                    Main.LogDebug($"[MovementPlanner] GapCloser: Self-AoE detected, radius={selfAoERadius:F1} — will penalize ally-adjacent positions");
+                    Log.Planning.Debug($"[MovementPlanner] GapCloser: Self-AoE detected, radius={selfAoERadius:F1} — will penalize ally-adjacent positions");
             }
 
             try
@@ -538,7 +539,7 @@ namespace CompanionAI_v3.Planning.Planners
                 var targetNode = target.CurrentUnwalkableNode;
                 if (targetNode == null)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] FindGapCloserLanding: target has no valid node");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] FindGapCloserLanding: target has no valid node");
                     return null;
                 }
 
@@ -575,7 +576,7 @@ namespace CompanionAI_v3.Planning.Planners
                     // ★ v3.18.18: DamagingAoE 안 착지 방지
                     if (avoidHazardZones && CombatAPI.IsPositionInHazardZone(nodePos, unit))
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] GapCloser node ({nodePos.x:F1},{nodePos.z:F1}) in damaging AoE — skipped");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] GapCloser node ({nodePos.x:F1},{nodePos.z:F1}) in damaging AoE — skipped");
                         continue;
                     }
 
@@ -584,7 +585,7 @@ namespace CompanionAI_v3.Planning.Planners
                     float distFromCaster = CombatAPI.MetersToTiles(Vector3.Distance(effectiveCasterPos, nodePos));
                     if (distFromCaster > abilityRange)
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] Node at ({nodePos.x:F1},{nodePos.z:F1}) out of ability range ({distFromCaster:F1} > {abilityRange:F1})");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] Node at ({nodePos.x:F1},{nodePos.z:F1}) out of ability range ({distFromCaster:F1} > {abilityRange:F1})");
                         continue;
                     }
 
@@ -604,7 +605,7 @@ namespace CompanionAI_v3.Planning.Planners
                         }
                         candidateScore -= nearbyAllies * 100f; // 아군 1명당 -100 (거리 차이를 압도)
                         if (Main.IsDebugEnabled && nearbyAllies > 0)
-                            Main.LogDebug($"[MovementPlanner] GapCloser node ({nodePos.x:F1},{nodePos.z:F1}): {nearbyAllies} allies within selfAoE range {selfAoERadius:F1}, score={candidateScore:F1}");
+                            Log.Planning.Debug($"[MovementPlanner] GapCloser node ({nodePos.x:F1},{nodePos.z:F1}): {nearbyAllies} allies within selfAoE range {selfAoERadius:F1}, score={candidateScore:F1}");
                     }
 
                     if (candidateScore > bestScore)
@@ -616,15 +617,15 @@ namespace CompanionAI_v3.Planning.Planners
 
                 if (bestLandingPos.HasValue)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] FindGapCloserLanding: found landing at ({bestLandingPos.Value.x:F1},{bestLandingPos.Value.z:F1}), score={bestScore:F1}");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] FindGapCloserLanding: found landing at ({bestLandingPos.Value.x:F1},{bestLandingPos.Value.z:F1}), score={bestScore:F1}");
                     return bestLandingPos;
                 }
 
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] FindGapCloserLanding: no valid landing position around target");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] FindGapCloserLanding: no valid landing position around target");
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovementPlanner] FindGapCloserLanding grid search failed");
+                if (Main.IsDebugEnabled) Log.Planning.Error(ex, $"[MovementPlanner] FindGapCloserLanding grid search failed");
             }
 
             // ★ 폴백: MovementAPI 사용 (기존 로직)
@@ -643,7 +644,7 @@ namespace CompanionAI_v3.Planning.Planners
             // ★ v3.18.18: 폴백 착지 위치도 DamagingAoE 체크
             if (meleePosition != null && avoidHazardZones && CombatAPI.IsPositionInHazardZone(meleePosition.Position, unit))
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] FindGapCloserLanding (fallback): melee position in damaging AoE — rejected");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] FindGapCloserLanding (fallback): melee position in damaging AoE — rejected");
                 meleePosition = null;
             }
 
@@ -663,7 +664,7 @@ namespace CompanionAI_v3.Planning.Planners
                 }
                 if (nearbyAllies >= 2)
                 {
-                    Main.Log($"[MovementPlanner] GapCloser fallback: WARNING — {nearbyAllies} allies within selfAoE range {selfAoERadius:F1} at landing position. Self-AoE after landing may hit allies.");
+                    Log.Planning.Info($"[MovementPlanner] GapCloser fallback: WARNING — {nearbyAllies} allies within selfAoE range {selfAoERadius:F1} at landing position. Self-AoE after landing may hit allies.");
                     // Self-AoE 유닛이 아군 밀집 지역에 착지하면 BladeDance 사용이 위험
                     // 하지만 갭클로저의 주 목적(적에게 도달)은 유효하므로 착지는 허용
                     // Phase 5.7(Self-AoE)에서 AoESafetyChecker가 최종 차단
@@ -677,16 +678,16 @@ namespace CompanionAI_v3.Planning.Planners
                 float distLandingToTarget = CombatAPI.MetersToTiles(Vector3.Distance(meleePosition.Position, target.Position));
                 if (distToLandingTiles <= abilityRange && distLandingToTarget <= meleeAttackRange + 0.5f)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] FindGapCloserLanding (fallback): melee position at caster-dist={distToLandingTiles:F1}, target-dist={distLandingToTarget:F1} tiles (meleeRange={meleeAttackRange:F0})");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] FindGapCloserLanding (fallback): melee position at caster-dist={distToLandingTiles:F1}, target-dist={distLandingToTarget:F1} tiles (meleeRange={meleeAttackRange:F0})");
                     return meleePosition.Position;
                 }
                 else if (Main.IsDebugEnabled)
                 {
-                    Main.LogDebug($"[MovementPlanner] FindGapCloserLanding (fallback): rejected — caster-dist={distToLandingTiles:F1} (max={abilityRange:F1}), target-dist={distLandingToTarget:F1} (max={meleeAttackRange + 0.5f:F1})");
+                    Log.Planning.Debug($"[MovementPlanner] FindGapCloserLanding (fallback): rejected — caster-dist={distToLandingTiles:F1} (max={abilityRange:F1}), target-dist={distLandingToTarget:F1} (max={meleeAttackRange + 0.5f:F1})");
                 }
             }
 
-            if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] FindGapCloserLanding: all methods failed");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] FindGapCloserLanding: all methods failed");
             return null;
         }
 
@@ -706,17 +707,17 @@ namespace CompanionAI_v3.Planning.Planners
             {
                 if (situation.AllowPostAttackMove)
                 {
-                    Main.Log($"[{roleName}] PlanMoveToEnemy: Post-attack move allowed");
+                    Log.Planning.Info($"[{roleName}] PlanMoveToEnemy: Post-attack move allowed");
                     isChaseMove = true;
                 }
                 else if (situation.AllowChaseMove)
                 {
-                    Main.Log($"[{roleName}] PlanMoveToEnemy: Chase move allowed");
+                    Log.Planning.Info($"[{roleName}] PlanMoveToEnemy: Chase move allowed");
                     isChaseMove = true;
                 }
                 else
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanMoveToEnemy: Already moved this turn, skipping");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanMoveToEnemy: Already moved this turn, skipping");
                     return null;
                 }
             }
@@ -726,7 +727,7 @@ namespace CompanionAI_v3.Planning.Planners
                 // ★ v3.1.01: predictedMP가 있으면 chase move 허용
                 if (situation.CurrentMP <= 0 && predictedMP <= 0)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanMoveToEnemy: Chase move blocked - no MP (predictedMP={predictedMP:F1})");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanMoveToEnemy: Chase move blocked - no MP (predictedMP={predictedMP:F1})");
                     return null;
                 }
             }
@@ -736,7 +737,7 @@ namespace CompanionAI_v3.Planning.Planners
                 // MP 회복 능력(무모한 돌진 등) 계획 후 예측 MP로 이동 가능할 때 사용
                 if (!bypassCanMoveCheck && !situation.CanMove)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanMoveToEnemy: CanMove=false, skipping");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanMoveToEnemy: CanMove=false, skipping");
                     return null;
                 }
             }
@@ -749,7 +750,7 @@ namespace CompanionAI_v3.Planning.Planners
             var target = tacticalTarget ?? situation.NearestEnemy;
             if (target != null && CombatAPI.IsTargetImmuneToDamage(target, unit))
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanMoveToEnemy: target {target.CharacterName} is damage-immune, skipping movement");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanMoveToEnemy: target {target.CharacterName} is damage-immune, skipping movement");
                 return null;
             }
 
@@ -758,7 +759,7 @@ namespace CompanionAI_v3.Planning.Planners
 
             // ★ v3.2.25: Role 추출 (Frontline 점수 적용용)
             AIRole role = situation.CharacterSettings?.Role ?? AIRole.Auto;
-            if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanMoveToEnemy: effectiveMP={effectiveMP:F1}, role={role}");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanMoveToEnemy: effectiveMP={effectiveMP:F1}, role={role}");
 
             if (situation.PrefersRanged)
             {
@@ -788,7 +789,7 @@ namespace CompanionAI_v3.Planning.Planners
                 // 적에게 접근하지 못하고 계속 멈춰있는 문제 수정
                 if (bestPosition != null && bestPosition.HittableEnemyCount == 0)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanMoveToEnemy: Best position has no hittable enemies (HittableEnemyCount=0) - using approach fallback");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanMoveToEnemy: Best position has no hittable enemies (HittableEnemyCount=0) - using approach fallback");
                     bestPosition = null;
                 }
 
@@ -814,12 +815,12 @@ namespace CompanionAI_v3.Planning.Planners
                                 : 0;
                             if (currentHittable > 0)
                             {
-                                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanMoveToEnemy: staying put (currentHittable={currentHittable}, enemy {nearestEnemyTiles:F1}t)");
+                                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanMoveToEnemy: staying put (currentHittable={currentHittable}, enemy {nearestEnemyTiles:F1}t)");
                                 MoveDecisionTracker.Set(MoveDecisionReason.StayingPut_Hittable, $"currentHittable={currentHittable}");
                                 return null;
                             }
                             // 현재 위치도 공격 불가 → approach 진행
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanMoveToEnemy: current position unhittable (enemy {nearestEnemyTiles:F1}t), trying approach");
+                            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanMoveToEnemy: current position unhittable (enemy {nearestEnemyTiles:F1}t), trying approach");
                         }
 
                         // 사거리 밖 OR 사거리 내이지만 현재 위치에서 공격 불가 → 접근
@@ -830,14 +831,14 @@ namespace CompanionAI_v3.Planning.Planners
                                 Vector3.Distance(safeApproach.Position, target.Position));
                             if (approachDistToEnemy < situation.MinSafeDistance)
                             {
-                                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanMoveToEnemy: Approach cancelled - would enter danger zone ({approachDistToEnemy:F1} < MinSafe={situation.MinSafeDistance:F1})");
+                                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanMoveToEnemy: Approach cancelled - would enter danger zone ({approachDistToEnemy:F1} < MinSafe={situation.MinSafeDistance:F1})");
                                 MoveDecisionTracker.Set(MoveDecisionReason.ApproachCancelledBySafety, $"approach {approachDistToEnemy:F1} < MinSafe {situation.MinSafeDistance:F1}");
                                 return null;
                             }
-                            Main.Log($"[{roleName}] PlanMoveToEnemy: Safe approach ({approachDistToEnemy:F1} tiles from enemy)");
+                            Log.Planning.Info($"[{roleName}] PlanMoveToEnemy: Safe approach ({approachDistToEnemy:F1} tiles from enemy)");
                             return PlannedAction.Move(safeApproach.Position, $"Safe approach {target.CharacterName}");
                         }
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanMoveToEnemy: No safe ranged position found (effectiveMP={effectiveMP:F1})");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanMoveToEnemy: No safe ranged position found (effectiveMP={effectiveMP:F1})");
                         return null;
                     }
 
@@ -847,11 +848,11 @@ namespace CompanionAI_v3.Planning.Planners
 
                     if (fallbackPosition != null)
                     {
-                        Main.Log($"[{roleName}] PlanMoveToEnemy: No attack position, fallback to approach ({fallbackPosition.Position.x:F1},{fallbackPosition.Position.z:F1})");
+                        Log.Planning.Info($"[{roleName}] PlanMoveToEnemy: No attack position, fallback to approach ({fallbackPosition.Position.x:F1},{fallbackPosition.Position.z:F1})");
                         return PlannedAction.Move(fallbackPosition.Position, $"Approach {target.CharacterName}");
                     }
 
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanMoveToEnemy: No safe ranged position found (effectiveMP={effectiveMP:F1})");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanMoveToEnemy: No safe ranged position found (effectiveMP={effectiveMP:F1})");
                     return null;
                 }
 
@@ -859,11 +860,11 @@ namespace CompanionAI_v3.Planning.Planners
                 float moveDistance = Vector3.Distance(unit.Position, bestPosition.Position);
                 if (moveDistance < 1f)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanMoveToEnemy: Already at optimal position");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanMoveToEnemy: Already at optimal position");
                     return null;
                 }
 
-                Main.Log($"[{roleName}] Safe ranged position: ({bestPosition.Position.x:F1},{bestPosition.Position.z:F1}) " +
+                Log.Planning.Info($"[{roleName}] Safe ranged position: ({bestPosition.Position.x:F1},{bestPosition.Position.z:F1}) " +
                     $"score={bestPosition.TotalScore:F1}, cover={bestPosition.BestCover}");
                 // ★ v3.10.0: 원거리 공격 위치 예약 (다른 유닛 밀집 방지)
                 Core.TeamBlackboard.Instance?.ReserveMovePosition(bestPosition.Position);
@@ -899,7 +900,7 @@ namespace CompanionAI_v3.Planning.Planners
                 if (bestPosition != null && !situation.NeedsAoEEvacuation &&
                     CombatAPI.IsPositionInHazardZone(bestPosition.Position, unit))
                 {
-                    Main.Log($"[{roleName}] PlanMoveToEnemy: Melee position REJECTED — in damaging AoE ({bestPosition.Position.x:F1},{bestPosition.Position.z:F1})");
+                    Log.Planning.Info($"[{roleName}] PlanMoveToEnemy: Melee position REJECTED — in damaging AoE ({bestPosition.Position.x:F1},{bestPosition.Position.z:F1})");
                     bestPosition = null;  // 폴백으로 넘어감
                 }
 
@@ -911,19 +912,19 @@ namespace CompanionAI_v3.Planning.Planners
                     var approachPosition = MovementAPI.FindBestApproachPosition(unit, target, effectiveMP);
                     if (approachPosition != null)
                     {
-                        Main.Log($"[{roleName}] PlanMoveToEnemy: No melee position, approach via pathfinding ({approachPosition.Position.x:F1},{approachPosition.Position.z:F1})");
+                        Log.Planning.Info($"[{roleName}] PlanMoveToEnemy: No melee position, approach via pathfinding ({approachPosition.Position.x:F1},{approachPosition.Position.z:F1})");
                         return PlannedAction.Move(approachPosition.Position, $"Approach {target.CharacterName}");
                     }
 
                     // ★ v3.18.16: 최후 폴백에서도 DamagingAoE 체크
                     if (!situation.NeedsAoEEvacuation && CombatAPI.IsPositionInHazardZone(target.Position, unit))
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanMoveToEnemy: Target position in damaging AoE — staying put");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanMoveToEnemy: Target position in damaging AoE — staying put");
                         return null;
                     }
 
                     // 최후 폴백: 적 위치 직접 사용 (FindBestApproachPosition도 실패한 경우)
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanMoveToEnemy: No approach position found, falling back to target position");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanMoveToEnemy: No approach position found, falling back to target position");
                     return PlannedAction.Move(target.Position, $"Approach {target.CharacterName}");
                 }
 
@@ -931,11 +932,11 @@ namespace CompanionAI_v3.Planning.Planners
                 float moveDistance = Vector3.Distance(unit.Position, bestPosition.Position);
                 if (moveDistance < 1f)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanMoveToEnemy: Already at melee position");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanMoveToEnemy: Already at melee position");
                     return null;
                 }
 
-                Main.Log($"[{roleName}] Melee attack position: ({bestPosition.Position.x:F1},{bestPosition.Position.z:F1}) " +
+                Log.Planning.Info($"[{roleName}] Melee attack position: ({bestPosition.Position.x:F1},{bestPosition.Position.z:F1}) " +
                     $"score={bestPosition.TotalScore:F1}");
                 return PlannedAction.Move(bestPosition.Position, $"Melee position near {target.CharacterName}");
             }
@@ -960,7 +961,7 @@ namespace CompanionAI_v3.Planning.Planners
             // ★ v3.0.61: 현재 위치가 이미 안전 거리 이상이면 후퇴 불필요
             if (situation.NearestEnemyDistance >= situation.MinSafeDistance)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] {unit.CharacterName}: Already safe, no retreat needed");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] {unit.CharacterName}: Already safe, no retreat needed");
                 return null;
             }
 
@@ -969,7 +970,7 @@ namespace CompanionAI_v3.Planning.Planners
             var dashRetreatAction = PlanRetreatWithDash(situation);
             if (dashRetreatAction != null)
             {
-                Main.Log($"[MovementPlanner] {unit.CharacterName}: Retreating with dash ability");
+                Log.Planning.Info($"[MovementPlanner] {unit.CharacterName}: Retreating with dash ability");
                 return dashRetreatAction;
             }
 
@@ -982,7 +983,7 @@ namespace CompanionAI_v3.Planning.Planners
             // ★ v3.9.24: 단거리 무기 최소 후퇴 거리 하한선 (Scatter 제외)
             if (maxSafeDistance < 2f && !situation.WeaponRange.IsScatter)
                 maxSafeDistance = 2f;
-            Main.Log($"[MovementPlanner] {unit.CharacterName}: Retreat range check - WeaponRange={weaponRangeTiles:F1}, MinSafe={situation.MinSafeDistance:F1}, MaxSafe={maxSafeDistance:F1}");
+            Log.Planning.Info($"[MovementPlanner] {unit.CharacterName}: Retreat range check - WeaponRange={weaponRangeTiles:F1}, MinSafe={situation.MinSafeDistance:F1}, MaxSafe={maxSafeDistance:F1}");
 
             // ★ v3.7.04: 사역마 거리 제약 계산
             // ★ v3.7.90: 고정 15m → 동적 사역마 스킬 사거리 기반으로 변경
@@ -996,7 +997,7 @@ namespace CompanionAI_v3.Planning.Planners
                 familiarPos = situation.FamiliarPosition;
                 // ★ v3.7.90: 마스터의 사역마 대상 능력 최대 사거리 동적 계산
                 maxFamiliarDist = FamiliarAPI.GetMaxFamiliarAbilityRange(unit);
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] {unit.CharacterName}: Retreat with familiar constraint (max {maxFamiliarDist:F1}m from familiar)");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] {unit.CharacterName}: Retreat with familiar constraint (max {maxFamiliarDist:F1}m from familiar)");
             }
 
             // ★ v3.0.60: MovementAPI 기반 실제 도달 가능한 타일 사용
@@ -1018,7 +1019,7 @@ namespace CompanionAI_v3.Planning.Planners
 
             if (retreatScore == null)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] {unit.CharacterName}: No reachable retreat position");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] {unit.CharacterName}: No reachable retreat position");
                 return null;
             }
 
@@ -1046,18 +1047,18 @@ namespace CompanionAI_v3.Planning.Planners
 
             if (retreatDashes == null || retreatDashes.Count == 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] {unit.CharacterName}: No retreat-capable dash abilities");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] {unit.CharacterName}: No retreat-capable dash abilities");
                 return null;
             }
 
-            if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] {unit.CharacterName}: Found {retreatDashes.Count} retreat dash(es): {string.Join(", ", retreatDashes.Select(d => d.Name))}");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] {unit.CharacterName}: Found {retreatDashes.Count} retreat dash(es): {string.Join(", ", retreatDashes.Select(d => d.Name))}");
 
             foreach (var dashAbility in retreatDashes)
             {
                 float apCost = CombatAPI.GetAbilityAPCost(dashAbility);
                 if (apCost > situation.CurrentAP)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] {unit.CharacterName}: {dashAbility.Name} skipped - AP cost {apCost:F1} > current {situation.CurrentAP:F1}");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] {unit.CharacterName}: {dashAbility.Name} skipped - AP cost {apCost:F1} > current {situation.CurrentAP:F1}");
                     continue;
                 }
 
@@ -1066,7 +1067,7 @@ namespace CompanionAI_v3.Planning.Planners
 
                 if (!isPointTarget)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] {unit.CharacterName}: {dashAbility.Name} skipped - not PointTarget");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] {unit.CharacterName}: {dashAbility.Name} skipped - not PointTarget");
                     continue;
                 }
 
@@ -1074,7 +1075,7 @@ namespace CompanionAI_v3.Planning.Planners
                 var landingPosition = FindRetreatDashLandingPosition(situation, dashAbility);
                 if (landingPosition == null)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] {unit.CharacterName}: {dashAbility.Name} - no safe landing position");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] {unit.CharacterName}: {dashAbility.Name} - no safe landing position");
                     continue;
                 }
 
@@ -1084,7 +1085,7 @@ namespace CompanionAI_v3.Planning.Planners
 
                 if (newDistToEnemy <= currentDistToEnemy)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] {unit.CharacterName}: {dashAbility.Name} landing not safer (current={currentDistToEnemy:F1}, new={newDistToEnemy:F1})");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] {unit.CharacterName}: {dashAbility.Name} landing not safer (current={currentDistToEnemy:F1}, new={newDistToEnemy:F1})");
                     continue;
                 }
 
@@ -1093,11 +1094,11 @@ namespace CompanionAI_v3.Planning.Planners
                 string reason;
                 if (!CombatAPI.CanUseAbilityOn(dashAbility, pointTarget, out reason))
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] {unit.CharacterName}: {dashAbility.Name} cannot use: {reason}");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] {unit.CharacterName}: {dashAbility.Name} cannot use: {reason}");
                     continue;
                 }
 
-                Main.Log($"[MovementPlanner] {unit.CharacterName}: Retreat dash {dashAbility.Name} to ({landingPosition.Value.x:F1},{landingPosition.Value.z:F1}), " +
+                Log.Planning.Info($"[MovementPlanner] {unit.CharacterName}: Retreat dash {dashAbility.Name} to ({landingPosition.Value.x:F1},{landingPosition.Value.z:F1}), " +
                     $"distance {currentDistToEnemy:F1}m → {newDistToEnemy:F1}m (AP:{apCost:F1})");
 
                 return PlannedAction.PositionalAttack(dashAbility, landingPosition.Value, $"Dash retreat from {situation.NearestEnemy.CharacterName}", apCost);
@@ -1118,7 +1119,7 @@ namespace CompanionAI_v3.Planning.Planners
 
             // 대시 능력의 범위 (타일 단위)
             float dashRange = CombatAPI.GetAbilityRangeInTiles(dashAbility);
-            if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] FindRetreatDashLanding: {dashAbility.Name} range={dashRange:F1} tiles");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] FindRetreatDashLanding: {dashAbility.Name} range={dashRange:F1} tiles");
 
             // ★ v3.9.24: 중앙집중 무기 사거리 프로필 사용 (후퇴 후에도 공격 가능해야 함)
             float weaponRangeTiles = situation.WeaponRange.EffectiveRange;
@@ -1132,7 +1133,7 @@ namespace CompanionAI_v3.Planning.Planners
                 var unitNode = unit.CurrentUnwalkableNode;
                 if (unitNode == null)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] FindRetreatDashLanding: unit has no valid node");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] FindRetreatDashLanding: unit has no valid node");
                     return null;
                 }
 
@@ -1207,7 +1208,7 @@ namespace CompanionAI_v3.Planning.Planners
                 if (bestPosition.HasValue)
                 {
                     float bestDistFromEnemy = Vector3.Distance(bestPosition.Value, nearestEnemy.Position);
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] FindRetreatDashLanding: best position at ({bestPosition.Value.x:F1},{bestPosition.Value.z:F1}), " +
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] FindRetreatDashLanding: best position at ({bestPosition.Value.x:F1},{bestPosition.Value.z:F1}), " +
                         $"dist from enemy={bestDistFromEnemy:F1}m, score={bestScore:F1}");
                 }
 
@@ -1215,7 +1216,7 @@ namespace CompanionAI_v3.Planning.Planners
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovementPlanner] FindRetreatDashLanding grid search failed");
+                if (Main.IsDebugEnabled) Log.Planning.Error(ex, $"[MovementPlanner] FindRetreatDashLanding grid search failed");
             }
 
             return null;
@@ -1235,7 +1236,7 @@ namespace CompanionAI_v3.Planning.Planners
             //   v3.111.9 sprinkle(DPS:1121, Support:485) push-down.
             if (situation.IsExtraTurn)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] {situation.Unit?.CharacterName}: PlanPostActionSafeRetreat — skip (extra turn)");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] {situation.Unit?.CharacterName}: PlanPostActionSafeRetreat — skip (extra turn)");
                 return null;
             }
 
@@ -1246,7 +1247,7 @@ namespace CompanionAI_v3.Planning.Planners
             // ★ v3.0.61: 현재 위치가 이미 안전 거리 이상이면 이동 불필요
             if (situation.NearestEnemyDistance >= situation.MinSafeDistance)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] {unit.CharacterName}: Already safe (dist={situation.NearestEnemyDistance:F1}m >= {situation.MinSafeDistance}m), no retreat needed");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] {unit.CharacterName}: Already safe (dist={situation.NearestEnemyDistance:F1}m >= {situation.MinSafeDistance}m), no retreat needed");
                 return null;
             }
 
@@ -1291,7 +1292,7 @@ namespace CompanionAI_v3.Planning.Planners
 
             if (retreatScore == null)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] {unit.CharacterName}: No reachable safe retreat position");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] {unit.CharacterName}: No reachable safe retreat position");
                 return null;
             }
 
@@ -1302,7 +1303,7 @@ namespace CompanionAI_v3.Planning.Planners
             // 이동 후 거리가 현재보다 최소 2m 이상 멀어지지 않으면 이동 가치 없음
             if (newDistToEnemy < currentDistToEnemy + 2f)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] {unit.CharacterName}: Retreat not worth it (current={currentDistToEnemy:F1}m, after={newDistToEnemy:F1}m)");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] {unit.CharacterName}: Retreat not worth it (current={currentDistToEnemy:F1}m, after={newDistToEnemy:F1}m)");
                 return null;
             }
 
@@ -1343,7 +1344,7 @@ namespace CompanionAI_v3.Planning.Planners
             //   v3.111.9 sprinkle(DPS:1149, Support:619) push-down.
             if (situation.IsExtraTurn)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] {situation.Unit?.CharacterName}: PlanTacticalReposition — skip (extra turn)");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] {situation.Unit?.CharacterName}: PlanTacticalReposition — skip (extra turn)");
                 return null;
             }
 
@@ -1382,11 +1383,11 @@ namespace CompanionAI_v3.Planning.Planners
             float moveDistance = Vector3.Distance(unit.Position, bestPosition.Position);
             if (moveDistance < 2f)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] TacticalReposition: Already at good position ({moveDistance:F1}m)");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] TacticalReposition: Already at good position ({moveDistance:F1}m)");
                 return null;
             }
 
-            Main.Log($"[MovementPlanner] TacticalReposition: ({bestPosition.Position.x:F1},{bestPosition.Position.z:F1}), " +
+            Log.Planning.Info($"[MovementPlanner] TacticalReposition: ({bestPosition.Position.x:F1},{bestPosition.Position.z:F1}), " +
                 $"score={bestPosition.TotalScore:F1}, move={moveDistance:F1}m, cover={bestPosition.CoverScore:F1}");
 
             // ★ v3.10.0: 이동 위치 예약 (다른 유닛 밀집 방지)
@@ -1413,7 +1414,7 @@ namespace CompanionAI_v3.Planning.Planners
                         meleeRange = attackRange;
                 }
             }
-            catch (Exception ex) { if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovePlanner] GetUnitMeleeRange"); }
+            catch (Exception ex) { if (Main.IsDebugEnabled) Log.Planning.Error(ex, $"[MovePlanner] GetUnitMeleeRange"); }
             return meleeRange;
         }
 
@@ -1434,7 +1435,7 @@ namespace CompanionAI_v3.Planning.Planners
             if (attackContext?.HasValidRange == true && attackContext.BestAbilityRange < 1000f)
             {
                 range = attackContext.BestAbilityRange;
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] GetEffectiveRange: ability={range:F1} (from context)");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] GetEffectiveRange: ability={range:F1} (from context)");
             }
             else
             {
@@ -1471,13 +1472,13 @@ namespace CompanionAI_v3.Planning.Planners
                     {
                         float original = range;
                         range = altRange;
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] GetEffectiveRange: rotation → {original:F1} → {range:F1} " +
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] GetEffectiveRange: rotation → {original:F1} → {range:F1} " +
                             $"(same-type shorter weapon range={altRange:F0})");
                     }
                 }
             }
 
-            if (Main.IsDebugEnabled) Main.LogDebug($"[MovementPlanner] GetEffectiveRange: {range:F1} " +
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[MovementPlanner] GetEffectiveRange: {range:F1} " +
                 $"(blended={situation.BlendedAttackRange:F1}, weapon={situation.WeaponRange.EffectiveRange:F1})");
             return range;
         }

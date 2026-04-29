@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Kingmaker;
 using Kingmaker.Blueprints;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.MachineSpirit.Knowledge
 {
@@ -43,7 +44,7 @@ namespace CompanionAI_v3.MachineSpirit.Knowledge
         private static IEnumerator IndexCoroutine()
         {
             // ★ Wait for game to fully load — BlueprintsCache needs Init() to complete
-            Main.LogDebug("[KnowledgeIndex] Waiting for game to finish loading...");
+            Log.MachineSpirit.Debug("[KnowledgeIndex] Waiting for game to finish loading...");
             StatusText = "Waiting for game...";
             yield return new WaitForSeconds(15f);
 
@@ -54,15 +55,15 @@ namespace CompanionAI_v3.MachineSpirit.Knowledge
                 int guidCount = CountCacheEntries();
                 if (guidCount > 0)
                 {
-                    Main.LogDebug($"[KnowledgeIndex] BlueprintsCache has {guidCount} entries, proceeding");
+                    Log.MachineSpirit.Debug($"[KnowledgeIndex] BlueprintsCache has {guidCount} entries, proceeding");
                     break;
                 }
                 retries++;
-                Main.LogDebug($"[KnowledgeIndex] BlueprintsCache empty, retry {retries}/5 in 10s...");
+                Log.MachineSpirit.Debug($"[KnowledgeIndex] BlueprintsCache empty, retry {retries}/5 in 10s...");
                 yield return new WaitForSeconds(10f);
             }
 
-            Main.LogDebug("[KnowledgeIndex] Starting background indexing...");
+            Log.MachineSpirit.Debug("[KnowledgeIndex] Starting background indexing...");
             _entries.Clear();
             _indexedCount = 0;
 
@@ -70,7 +71,7 @@ namespace CompanionAI_v3.MachineSpirit.Knowledge
             // 157K GUIDs × 4 type checks = too slow. Instead: load once, check type.
             var guids = CollectAllGuids();
             _totalEstimate = guids.Count;
-            Main.LogDebug($"[KnowledgeIndex] Single-pass indexing {guids.Count} blueprints...");
+            Log.MachineSpirit.Debug($"[KnowledgeIndex] Single-pass indexing {guids.Count} blueprints...");
 
             StatusText = "Indexing blueprints...";
             int processed = 0;
@@ -152,14 +153,14 @@ namespace CompanionAI_v3.MachineSpirit.Knowledge
                 }
             }
 
-            Main.LogDebug($"[KnowledgeIndex] Blueprint pass: {weapons} weapons, {abilities} abilities, {enemies} enemies, {quests} quests");
+            Log.MachineSpirit.Debug($"[KnowledgeIndex] Blueprint pass: {weapons} weapons, {abilities} abilities, {enemies} enemies, {quests} quests");
 
             // Phase 5: Encyclopedia
             StatusText = "Indexing lore...";
             yield return IndexEncyclopedia();
 
             // Build BM25 index
-            Main.LogDebug($"[KnowledgeIndex] Tokenizing {_entries.Count} entries...");
+            Log.MachineSpirit.Debug($"[KnowledgeIndex] Tokenizing {_entries.Count} entries...");
             for (int i = 0; i < _entries.Count; i++)
             {
                 var entry = _entries[i];
@@ -173,7 +174,7 @@ namespace CompanionAI_v3.MachineSpirit.Knowledge
             _isReady = true;
             _isIndexing = false;
             StatusText = $"Ready ({_entries.Count} entries)";
-            Main.LogDebug($"[KnowledgeIndex] Indexing complete: {_entries.Count} entries, BM25 ready");
+            Log.MachineSpirit.Debug($"[KnowledgeIndex] Indexing complete: {_entries.Count} entries, BM25 ready");
             SaveCache();
 
             // ★ v3.70.0: Notify user that knowledge base is ready
@@ -222,18 +223,18 @@ namespace CompanionAI_v3.MachineSpirit.Knowledge
                 var dict = GetBlueprintsDictionary();
                 if (dict == null)
                 {
-                    Main.LogDebug("[KnowledgeIndex] m_LoadedBlueprints dictionary is null");
+                    Log.MachineSpirit.Debug("[KnowledgeIndex] m_LoadedBlueprints dictionary is null");
                     return _allGuids;
                 }
 
                 foreach (var key in dict.Keys)
                     _allGuids.Add(key.ToString());
 
-                Main.LogDebug($"[KnowledgeIndex] Collected {_allGuids.Count} blueprint GUIDs from cache");
+                Log.MachineSpirit.Debug($"[KnowledgeIndex] Collected {_allGuids.Count} blueprint GUIDs from cache");
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[KnowledgeIndex] CollectAllGuids failed");
+                Log.MachineSpirit.Error(ex, $"[KnowledgeIndex] CollectAllGuids failed");
             }
             return _allGuids;
         }
@@ -247,7 +248,7 @@ namespace CompanionAI_v3.MachineSpirit.Knowledge
             var guids = CollectAllGuids();
             if (guids.Count == 0)
             {
-                Main.LogDebug($"[KnowledgeIndex] No GUIDs available for {category}");
+                Log.MachineSpirit.Debug($"[KnowledgeIndex] No GUIDs available for {category}");
                 yield break;
             }
             _totalEstimate = guids.Count;
@@ -284,7 +285,7 @@ namespace CompanionAI_v3.MachineSpirit.Knowledge
                 if (++batch % 10 == 0) yield return null;
             }
 
-            Main.LogDebug($"[KnowledgeIndex] Indexed {_indexedCount} entries (after {category}, {typeMatches} type matches)");
+            Log.MachineSpirit.Debug($"[KnowledgeIndex] Indexed {_indexedCount} entries (after {category}, {typeMatches} type matches)");
         }
 
         private static IEnumerator IndexEncyclopedia()
@@ -297,7 +298,7 @@ namespace CompanionAI_v3.MachineSpirit.Knowledge
                 var chapterList = Game.Instance?.BlueprintRoot?.UIConfig?.ChapterList;
                 if (chapterList == null)
                 {
-                    Main.LogDebug("[KnowledgeIndex] Encyclopedia ChapterList not available");
+                    Log.MachineSpirit.Debug("[KnowledgeIndex] Encyclopedia ChapterList not available");
                     yield break;
                 }
 
@@ -309,7 +310,7 @@ namespace CompanionAI_v3.MachineSpirit.Knowledge
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[KnowledgeIndex] Encyclopedia collection failed");
+                Log.MachineSpirit.Error(ex, $"[KnowledgeIndex] Encyclopedia collection failed");
             }
 
             // Index collected pages with yielding (outside try/catch)
@@ -320,7 +321,7 @@ namespace CompanionAI_v3.MachineSpirit.Knowledge
                 if (i % 10 == 0) yield return null;
             }
 
-            Main.LogDebug($"[KnowledgeIndex] Indexed {encyclopediaCount} encyclopedia entries");
+            Log.MachineSpirit.Debug($"[KnowledgeIndex] Indexed {encyclopediaCount} encyclopedia entries");
         }
 
         private static void CollectEncyclopediaPages(
@@ -433,12 +434,12 @@ namespace CompanionAI_v3.MachineSpirit.Knowledge
                 _bm25.BuildIndex(_entries);
                 _isReady = true;
                 StatusText = $"Loaded from cache ({_entries.Count} entries)";
-                Main.LogDebug($"[KnowledgeIndex] Loaded {_entries.Count} entries from cache");
+                Log.MachineSpirit.Debug($"[KnowledgeIndex] Loaded {_entries.Count} entries from cache");
                 return true;
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[KnowledgeIndex] Cache load failed");
+                Log.MachineSpirit.Error(ex, $"[KnowledgeIndex] Cache load failed");
                 return false;
             }
         }
@@ -463,11 +464,11 @@ namespace CompanionAI_v3.MachineSpirit.Knowledge
 
                 string json = Newtonsoft.Json.JsonConvert.SerializeObject(saveEntries, Newtonsoft.Json.Formatting.None);
                 System.IO.File.WriteAllText(GetCachePath(), json);
-                Main.LogDebug($"[KnowledgeIndex] Saved {_entries.Count} entries to cache");
+                Log.MachineSpirit.Debug($"[KnowledgeIndex] Saved {_entries.Count} entries to cache");
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[KnowledgeIndex] Cache save failed");
+                Log.MachineSpirit.Error(ex, $"[KnowledgeIndex] Cache save failed");
             }
         }
 

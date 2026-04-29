@@ -15,6 +15,7 @@ using CompanionAI_v3.Analysis;
 using CompanionAI_v3.Core;
 using CompanionAI_v3.Data;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.GameInterface
 {
@@ -55,7 +56,7 @@ namespace CompanionAI_v3.GameInterface
             _cachedUnitId1 = null; _cachedAP1 = 0; _cachedAiTiles1 = null; _cachedTurnNumber1 = -1;
             _cachedUnitId2 = null; _cachedAP2 = 0; _cachedAiTiles2 = null; _cachedTurnNumber2 = -1;
             _lastUsedSlot = 0;
-            if (Main.IsDebugEnabled) Main.LogDebug("[MovementAPI] AI pathfinding cache invalidated (2-slot)");
+            if (Main.IsDebugEnabled) Log.Engine.Debug("[MovementAPI] AI pathfinding cache invalidated (2-slot)");
         }
 
         // ★ v3.111.0 Phase 5: 턴 시작 시 SituationAnalyzer가 설정. EvaluatePosition이 조회.
@@ -111,7 +112,7 @@ namespace CompanionAI_v3.GameInterface
         public static void ClearApproachPathCache()
         {
             _approachPathCache.Clear();
-            if (Main.IsDebugEnabled) Main.LogDebug("[MovementAPI] Approach path cache cleared");
+            if (Main.IsDebugEnabled) Log.Engine.Debug("[MovementAPI] Approach path cache cleared");
         }
 
         /// <summary>특정 유닛의 접근 경로 캐시 클리어</summary>
@@ -387,12 +388,12 @@ namespace CompanionAI_v3.GameInterface
                     ignoreThreateningAreaCost: false
                 );
 
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: Found {tiles?.Count ?? 0} reachable tiles");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: Found {tiles?.Count ?? 0} reachable tiles");
                 return tiles ?? new Dictionary<GraphNode, WarhammerPathPlayerCell>();
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovementAPI] FindAllReachableTilesSync error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[MovementAPI] FindAllReachableTilesSync error");
                 return new Dictionary<GraphNode, WarhammerPathPlayerCell>();
             }
         }
@@ -426,14 +427,14 @@ namespace CompanionAI_v3.GameInterface
                     _cachedTurnNumber1 == currentTurn && Math.Abs(_cachedAP1 - ap) < 0.1f)
                 {
                     _lastUsedSlot = 1;
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: Cache HIT slot1 (AP={ap:F1}, {_cachedAiTiles1.Count} tiles)");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: Cache HIT slot1 (AP={ap:F1}, {_cachedAiTiles1.Count} tiles)");
                     return _cachedAiTiles1;
                 }
                 if (_cachedAiTiles2 != null && _cachedUnitId2 == unitId &&
                     _cachedTurnNumber2 == currentTurn && Math.Abs(_cachedAP2 - ap) < 0.1f)
                 {
                     _lastUsedSlot = 2;
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: Cache HIT slot2 (AP={ap:F1}, {_cachedAiTiles2.Count} tiles)");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: Cache HIT slot2 (AP={ap:F1}, {_cachedAiTiles2.Count} tiles)");
                     return _cachedAiTiles2;
                 }
 
@@ -457,7 +458,7 @@ namespace CompanionAI_v3.GameInterface
                 // 100ms로도 소-중규모 맵 성공 여지 유지, 대규모 맵 100ms 절약
                 if (!task.Wait(100))
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: AI pathfinding timeout, falling back to player version");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: AI pathfinding timeout, falling back to player version");
                     // ★ v3.9.42: 폴백 시에도 위협 데이터 보존 (threatsDict 활용)
                     var fallback = ConvertToAiCells(FindAllReachableTilesSync(unit, maxAP), threatsDict);
                     CacheAiTiles(unitId, ap, currentTurn, fallback);
@@ -467,7 +468,7 @@ namespace CompanionAI_v3.GameInterface
                 var tiles = task.Result;
                 if (tiles == null || tiles.Count == 0)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: AI pathfinding returned null/empty, falling back");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: AI pathfinding returned null/empty, falling back");
                     var fallback = ConvertToAiCells(FindAllReachableTilesSync(unit, maxAP), threatsDict);
                     CacheAiTiles(unitId, ap, currentTurn, fallback);
                     return fallback;
@@ -486,17 +487,17 @@ namespace CompanionAI_v3.GameInterface
                         threatsFound++;
                         if (threatsFound <= 3)  // 최대 3개만 로깅
                         {
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] ThreatData: Node({cell.Position.x:F1},{cell.Position.z:F1}) AoO={cell.ProvokedAttacks}, AoE={cell.EnteredAoE}, DmgAoE={cell.StepsInsideDamagingAoE}");
+                            if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] ThreatData: Node({cell.Position.x:F1},{cell.Position.z:F1}) AoO={cell.ProvokedAttacks}, AoE={cell.EnteredAoE}, DmgAoE={cell.StepsInsideDamagingAoE}");
                         }
                     }
                 }
 
-                Main.Log($"[MovementAPI] {unit.CharacterName}: AI pathfinding found {tiles.Count} tiles, {threatsFound} with threats");
+                Log.Engine.Info($"[MovementAPI] {unit.CharacterName}: AI pathfinding found {tiles.Count} tiles, {threatsFound} with threats");
                 return tiles;
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovementAPI] FindAllReachableTilesWithThreatsSync error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[MovementAPI] FindAllReachableTilesWithThreatsSync error");
                 return ConvertToAiCells(FindAllReachableTilesSync(unit, maxAP));
             }
         }
@@ -547,7 +548,7 @@ namespace CompanionAI_v3.GameInterface
             }
 
             if (threatsRestored > 0 && Main.IsDebugEnabled)
-                Main.LogDebug($"[MovementAPI] ConvertToAiCells: Restored threat data for {threatsRestored}/{result.Count} tiles");
+                Log.Engine.Debug($"[MovementAPI] ConvertToAiCells: Restored threat data for {threatsRestored}/{result.Count} tiles");
 
             return result;
         }
@@ -575,7 +576,7 @@ namespace CompanionAI_v3.GameInterface
                 if (threats.aooUnits != null && threats.aooUnits.Count > 0)
                 {
                     threatScore += threats.aooUnits.Count * 20f;
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] Node has {threats.aooUnits.Count} AoO threats");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] Node has {threats.aooUnits.Count} AoO threats");
                 }
 
                 // ★ v3.8.88: TryFindThreats는 overwatchUnits를 안 채움 - PartOverwatch 직접 체크
@@ -596,7 +597,7 @@ namespace CompanionAI_v3.GameInterface
                     if (overwatchCount > 0)
                     {
                         threatScore += overwatchCount * 25f;
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] Node has {overwatchCount} Overwatch threats (direct check)");
+                        if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] Node has {overwatchCount} Overwatch threats (direct check)");
                     }
                 }
                 catch { }
@@ -605,19 +606,19 @@ namespace CompanionAI_v3.GameInterface
                 if (threats.aes != null && threats.aes.Count > 0)
                 {
                     threatScore += threats.aes.Count * 30f;
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] Node has {threats.aes.Count} AoE threats");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] Node has {threats.aes.Count} AoE threats");
                 }
 
                 // 이동 시 데미지 AoE (화염 지대 등)
                 if (threats.dmgOnMoveAes != null && threats.dmgOnMoveAes.Count > 0)
                 {
                     threatScore += threats.dmgOnMoveAes.Count * 50f;
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] Node has {threats.dmgOnMoveAes.Count} damage-on-move AoE");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] Node has {threats.dmgOnMoveAes.Count} damage-on-move AoE");
                 }
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovementAPI] CalculateThreatScore error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[MovementAPI] CalculateThreatScore error");
             }
 
             return threatScore;
@@ -694,14 +695,14 @@ namespace CompanionAI_v3.GameInterface
                 // ★ 디버그: 실제 경로 위협 데이터 로깅
                 if (totalRisk > 0)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] PathRiskAi: AoO={pathProvokedAttacks}, AoE={pathEnteredAoE}, DmgAoE={pathDamagingAoESteps} -> Risk={totalRisk:F1}");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] PathRiskAi: AoO={pathProvokedAttacks}, AoE={pathEnteredAoE}, DmgAoE={pathDamagingAoESteps} -> Risk={totalRisk:F1}");
                 }
 
                 // ★ v3.110.16: InfluenceMap threat 누적 제거 — EvaluatePosition의 ThreatScore가 이미 커버.
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovementAPI] EvaluatePathRiskAi error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[MovementAPI] EvaluatePathRiskAi error");
                 return 0f;
             }
 
@@ -777,7 +778,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovementAPI] CalculateHitChanceBonus error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[MovementAPI] CalculateHitChanceBonus error");
                 return 0f;
             }
         }
@@ -1239,7 +1240,7 @@ namespace CompanionAI_v3.GameInterface
                 : FindAllReachableTilesWithThreatsSync(unit);
             if (tiles == null || tiles.Count == 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: No reachable tiles (predictedMP={predictedMP:F1})");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: No reachable tiles (predictedMP={predictedMP:F1})");
                 return null;
             }
 
@@ -1277,7 +1278,7 @@ namespace CompanionAI_v3.GameInterface
             {
                 primaryAttack = CombatAPI.FindAnyAttackAbility(unit, Settings.RangePreference.PreferRanged, includeDangerousAoE: true);
                 if (primaryAttack != null && Main.IsDebugEnabled)
-                    Main.LogDebug($"[MovementAPI] {unit.CharacterName}: Using DangerousAoE for position eval: {primaryAttack.Name}");
+                    Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: Using DangerousAoE for position eval: {primaryAttack.Name}");
             }
             bool isScatter = CombatAPI.IsScatterAttack(primaryAttack);
             bool isMelee = primaryAttack?.IsMelee ?? false;
@@ -1421,7 +1422,7 @@ namespace CompanionAI_v3.GameInterface
             // ★ v3.6.18: 공격 가능 위치 없으면 기존 LOS 기반 폴백 (접근 이동용)
             if (best == null)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: No hittable position found, fallback to LOS-based");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: No hittable position found, fallback to LOS-based");
                 best = CollectionHelper.MaxByWhere(scores,
                     s => s.CanStand && s.HasLosToEnemy && s.DistanceScore >= 20f,
                     s => s.TotalScore);
@@ -1450,13 +1451,13 @@ namespace CompanionAI_v3.GameInterface
                     if (d < nearestDist) { nearestDist = d; nearestEnemy = e; }
                 }
                 float nearestTiles = nearestEnemy != null ? CombatAPI.MetersToTiles(nearestDist) : 0f;
-                Main.Log($"[MovementAPI] FindRangedAttackPosition: Best=({best.Position.x:F1},{best.Position.z:F1}), score={best.TotalScore:F1}, nearestDist={nearestTiles:F1}t ({nearestEnemy?.CharacterName ?? "?"}), hittable={best.HittableEnemyCount}, cover={best.BestCover}, enemyLoS={(best.HasLosToEnemy ? 1 : 0)}, selectedBy={selectedBy}");
+                Log.Engine.Info($"[MovementAPI] FindRangedAttackPosition: Best=({best.Position.x:F1},{best.Position.z:F1}), score={best.TotalScore:F1}, nearestDist={nearestTiles:F1}t ({nearestEnemy?.CharacterName ?? "?"}), hittable={best.HittableEnemyCount}, cover={best.BestCover}, enemyLoS={(best.HasLosToEnemy ? 1 : 0)}, selectedBy={selectedBy}");
 
                 // ★ v3.110.8: 점수 컴포넌트 브레이크다운 — 어느 축이 최종 선택을 좌우했는지 진단용
                 // 목적: DistanceScore 수정(0.6→0.5)의 효과가 다른 축에 상쇄되는지 확인
                 if (Main.IsDebugEnabled)
                 {
-                    Main.LogDebug($"[MovementAPI] Best breakdown: Cover={best.CoverScore:F1}, " +
+                    Log.Engine.Debug($"[MovementAPI] Best breakdown: Cover={best.CoverScore:F1}, " +
                         $"Hide={best.HideScore:F1}(F{best.HideFullRatio:F2}/A{best.HideAnyRatio:F2}), " +
                         $"Distance={best.DistanceScore:F1}, " +
                         $"Threat=-{best.ThreatScore:F1}, TurnThreat=-{best.EnemyTurnThreatSum:F1}, " +
@@ -1472,7 +1473,7 @@ namespace CompanionAI_v3.GameInterface
             }
             else
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: No better position found for ranged character with MP={predictedMP:F1}");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: No better position found for ranged character with MP={predictedMP:F1}");
             }
 
             return best;
@@ -1504,7 +1505,7 @@ namespace CompanionAI_v3.GameInterface
                 : FindAllReachableTilesWithThreatsSync(unit);
             if (tiles == null || tiles.Count == 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: No reachable tiles for melee approach (predictedMP={predictedMP:F1})");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: No reachable tiles for melee approach (predictedMP={predictedMP:F1})");
                 return null;
             }
 
@@ -1636,14 +1637,14 @@ namespace CompanionAI_v3.GameInterface
 
             if (candidates.Count == 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: No melee attack positions within range");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: No melee attack positions within range");
                 return null;
             }
 
             // ★ v3.8.48: LINQ → CollectionHelper (0 할당, O(n))
             var best = CollectionHelper.MaxBy(candidates, c => c.TotalScore);
             float finalDistTiles = CombatAPI.GetDistanceInTiles(best.Position, target);
-            Main.Log($"[MovementAPI] {unit.CharacterName}: Melee position at ({best.Position.x:F1},{best.Position.z:F1}) " +
+            Log.Engine.Info($"[MovementAPI] {unit.CharacterName}: Melee position at ({best.Position.x:F1},{best.Position.z:F1}) " +
                 $"dist={finalDistTiles:F1} tiles (range={meleeRange:F0}), score={best.TotalScore:F1}");
 
             return best;
@@ -1696,7 +1697,7 @@ namespace CompanionAI_v3.GameInterface
                 : FindAllReachableTilesWithThreatsSync(unit);
             if (tiles == null || tiles.Count == 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: No reachable tiles for retreat (predictedMP={predictedMP:F1})");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: No reachable tiles for retreat (predictedMP={predictedMP:F1})");
                 return null;
             }
 
@@ -1776,7 +1777,7 @@ namespace CompanionAI_v3.GameInterface
                     {
                         // 사역마와 너무 멀면 큰 패널티 (하지만 완전히 제외하진 않음)
                         familiarDistPenalty = (distToFamiliar - maxFamiliarDistanceMeters) * 5f;
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] Retreat pos ({pos.x:F1},{pos.z:F1}) too far from familiar: {distToFamiliar:F1}m > {maxFamiliarDistanceMeters:F1}m, penalty={familiarDistPenalty:F1}");
+                        if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] Retreat pos ({pos.x:F1},{pos.z:F1}) too far from familiar: {distToFamiliar:F1}m > {maxFamiliarDistanceMeters:F1}m, penalty={familiarDistPenalty:F1}");
                     }
                 }
 
@@ -1788,7 +1789,7 @@ namespace CompanionAI_v3.GameInterface
                     // 초과한 거리의 제곱에 비례하여 패널티 (급격히 증가)
                     float excess = nearestEnemyDist - maxSafeDistance;
                     weaponRangePenalty = excess * excess * 10f;
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] Retreat pos ({pos.x:F1},{pos.z:F1}) exceeds weapon range: {nearestEnemyDist:F1} > {maxSafeDistance:F1}, penalty={weaponRangePenalty:F1}");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] Retreat pos ({pos.x:F1},{pos.z:F1}) exceeds weapon range: {nearestEnemyDist:F1} > {maxSafeDistance:F1}, penalty={weaponRangePenalty:F1}");
                 }
 
                 // 점수 계산: 적에게서 멀수록 + 후퇴 방향 보너스
@@ -1851,7 +1852,7 @@ namespace CompanionAI_v3.GameInterface
                 }
                 catch (System.Exception ex)
                 {
-                    if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovementAPI] hide score silent");
+                    if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[MovementAPI] hide score silent");
                 }
 
                 // ★ v3.111.17 Phase C.3: StayingAwayBonus — 적 이동능력 반영 안전거리 점수.
@@ -1865,7 +1866,7 @@ namespace CompanionAI_v3.GameInterface
                 }
                 catch (System.Exception ex)
                 {
-                    if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovementAPI] retreat staying-away silent");
+                    if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[MovementAPI] retreat staying-away silent");
                 }
 
                 // ★ v3.8.78: LOS 기반 hittable count (기존 CountHittableEnemiesFromPosition 호출 제거)
@@ -1889,7 +1890,7 @@ namespace CompanionAI_v3.GameInterface
             {
                 // ★ v3.7.23: 안전 거리 달성 불가 시 폴백 - 도달 가능한 최대 거리 위치
                 // 사역마 Relocate와 같은 로직 - 최대한 멀리 갈 수 있는 위치로 이동
-                Main.Log($"[MovementAPI] {unit.CharacterName}: No safe retreat positions at {minSafeDistance:F1} tiles, fallback to farthest reachable");
+                Log.Engine.Info($"[MovementAPI] {unit.CharacterName}: No safe retreat positions at {minSafeDistance:F1} tiles, fallback to farthest reachable");
 
                 PositionScore farthestCandidate = null;
                 float farthestDist = 0f;
@@ -1932,11 +1933,11 @@ namespace CompanionAI_v3.GameInterface
 
                 if (farthestCandidate != null)
                 {
-                    Main.Log($"[MovementAPI] {unit.CharacterName}: Fallback retreat to ({farthestCandidate.Position.x:F1},{farthestCandidate.Position.z:F1}) dist={farthestDist:F1} tiles");
+                    Log.Engine.Info($"[MovementAPI] {unit.CharacterName}: Fallback retreat to ({farthestCandidate.Position.x:F1},{farthestCandidate.Position.z:F1}) dist={farthestDist:F1} tiles");
                     return farthestCandidate;
                 }
 
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: No retreat positions at all");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: No retreat positions at all");
                 return null;
             }
 
@@ -1950,10 +1951,10 @@ namespace CompanionAI_v3.GameInterface
             if (best == null)
             {
                 best = CollectionHelper.MaxBy(candidates, c => c.TotalScore);
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: No hittable retreat positions, using best overall");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: No hittable retreat positions, using best overall");
             }
 
-            if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: Retreat to ({best.Position.x:F1},{best.Position.z:F1}) score={best.TotalScore:F1}, hittable={best.HittableEnemyCount}");
+            if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: Retreat to ({best.Position.x:F1},{best.Position.z:F1}) score={best.TotalScore:F1}, hittable={best.HittableEnemyCount}");
 
             return best;
         }
@@ -1975,7 +1976,7 @@ namespace CompanionAI_v3.GameInterface
                 : FindAllReachableTilesWithThreatsSync(unit);
             if (tiles == null || tiles.Count == 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: No reachable tiles for approach");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: No reachable tiles for approach");
                 return null;
             }
 
@@ -1997,7 +1998,7 @@ namespace CompanionAI_v3.GameInterface
                 // ★ v3.18.16: A* 접근 목적지가 DamagingAoE 안이면 거부
                 if (avoidHazardZones && CombatAPI.IsPositionInHazardZone(pathResult.Position, unit))
                 {
-                    Main.Log($"[MovementAPI] {unit.CharacterName}: A* approach REJECTED — destination in damaging AoE ({pathResult.Position.x:F1},{pathResult.Position.z:F1})");
+                    Log.Engine.Info($"[MovementAPI] {unit.CharacterName}: A* approach REJECTED — destination in damaging AoE ({pathResult.Position.x:F1},{pathResult.Position.z:F1})");
                 }
                 else
                 {
@@ -2010,15 +2011,15 @@ namespace CompanionAI_v3.GameInterface
                     {
                         pathResult.HittableEnemyCount = pathHittable;
                         pathResult.HasLosToEnemy = true;
-                        Main.Log($"[MovementAPI] {unit.CharacterName}: A* approach to ({pathResult.Position.x:F1},{pathResult.Position.z:F1}) dist={Vector3.Distance(pathResult.Position, targetPos):F1}m, pathRisk={pathResult.PathRiskScore:F1}, hittable={pathHittable} to {target.CharacterName}");
+                        Log.Engine.Info($"[MovementAPI] {unit.CharacterName}: A* approach to ({pathResult.Position.x:F1},{pathResult.Position.z:F1}) dist={Vector3.Distance(pathResult.Position, targetPos):F1}m, pathRisk={pathResult.PathRiskScore:F1}, hittable={pathHittable} to {target.CharacterName}");
                         return pathResult;
                     }
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: A* approach hittable=0 ({pathResult.Position.x:F1},{pathResult.Position.z:F1}), trying Euclidean hittable-first");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: A* approach hittable=0 ({pathResult.Position.x:F1},{pathResult.Position.z:F1}), trying Euclidean hittable-first");
                 }
             }
             else
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: A* path failed, falling back to Euclidean approach");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: A* path failed, falling back to Euclidean approach");
             }
 
             // ★ v3.110.13: 2-tier 선택 — hittable > 0 우선, 없으면 기존 거리 최소 폴백.
@@ -2092,13 +2093,13 @@ namespace CompanionAI_v3.GameInterface
             // hittable 후보 우선 선택
             if (hittableCandidate != null)
             {
-                Main.Log($"[MovementAPI] {unit.CharacterName}: Euclidean approach (hittable) to ({hittableCandidate.Position.x:F1},{hittableCandidate.Position.z:F1}) dist={hittableClosestDist:F1}m, pathRisk={hittableLowestRisk:F1}, hittable={hittableBestCount} to {target.CharacterName}");
+                Log.Engine.Info($"[MovementAPI] {unit.CharacterName}: Euclidean approach (hittable) to ({hittableCandidate.Position.x:F1},{hittableCandidate.Position.z:F1}) dist={hittableClosestDist:F1}m, pathRisk={hittableLowestRisk:F1}, hittable={hittableBestCount} to {target.CharacterName}");
                 return hittableCandidate;
             }
 
             if (closestCandidate != null)
             {
-                Main.Log($"[MovementAPI] {unit.CharacterName}: Euclidean approach (closest, hittable=0) to ({closestCandidate.Position.x:F1},{closestCandidate.Position.z:F1}) dist={closestDist:F1}m, pathRisk={lowestPathRisk:F1} to {target.CharacterName}");
+                Log.Engine.Info($"[MovementAPI] {unit.CharacterName}: Euclidean approach (closest, hittable=0) to ({closestCandidate.Position.x:F1},{closestCandidate.Position.z:F1}) dist={closestDist:F1}m, pathRisk={lowestPathRisk:F1} to {target.CharacterName}");
             }
 
             return closestCandidate;
@@ -2138,7 +2139,7 @@ namespace CompanionAI_v3.GameInterface
                         int foundIdx = FindNearestNodeOnPath(unit.Position, cached.Path);
                         if (foundIdx >= 0 && foundIdx < cached.Path.Count - 1)
                         {
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: Using cached approach path ({cached.Path.Count} nodes, current at step {foundIdx})");
+                            if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: Using cached approach path ({cached.Path.Count} nodes, current at step {foundIdx})");
 
                             // ★ v3.9.60: currentIdx 이후만 탐색 (현재 위치 선택 방지)
                             int cachedMinIdx = Math.Max(foundIdx + 1, 1);
@@ -2150,7 +2151,7 @@ namespace CompanionAI_v3.GameInterface
 
                     // 캐시 경로 Phase 1 실패 → 캐시 무효화 (오래되었거나 방향 불일치)
                     _approachPathCache.Remove(unitId);
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: Cached path stale — invalidating, computing fresh path");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: Cached path stale — invalidating, computing fresh path");
                 }
 
                 // ── Step 2: 신선한 A* 경로 계산 ──
@@ -2161,7 +2162,7 @@ namespace CompanionAI_v3.GameInterface
 
                 if (fullPath == null || fullPath.error || fullPath.path == null || fullPath.path.Count < 2)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: A* path to target failed or too short");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: A* path to target failed or too short");
                     return null;
                 }
 
@@ -2178,7 +2179,7 @@ namespace CompanionAI_v3.GameInterface
                     };
                 }
 
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: Fresh A* path has {pathNodes.Count} nodes, currentDist={currentDistToTarget:F1}");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: Fresh A* path has {pathNodes.Count} nodes, currentDist={currentDistToTarget:F1}");
 
                 // ── Step 3: Phase 1 — 거리 가드 (적에게 더 가까운 노드 선택) ──
                 var freshResult = SearchApproachPhase1(unit, pathNodes, 1, reachableTiles, targetPos, currentDistToTarget);
@@ -2199,12 +2200,12 @@ namespace CompanionAI_v3.GameInterface
                 float eucProgress = currentDistToTarget - bestEucDist;
                 if (eucProgress >= 1.0f)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: Euclidean progress={eucProgress:F1}m sufficient — deferring to Euclidean");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: Euclidean progress={eucProgress:F1}m sufficient — deferring to Euclidean");
                     return null;
                 }
 
                 // Euclidean 막힘 → A* 경로를 따라 벽 우회 (proximity matching)
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: Euclidean stuck (progress={eucProgress:F1}m) — following A* path detour");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: Euclidean stuck (progress={eucProgress:F1}m) — following A* path detour");
                 for (int i = pathNodes.Count - 1; i >= 1; i--)
                 {
                     var pathNode = pathNodes[i];
@@ -2220,7 +2221,7 @@ namespace CompanionAI_v3.GameInterface
                         + aiCell.EnteredAoE * WEIGHT_AOE_ENTRY
                         + aiCell.StepsInsideDamagingAoE * WEIGHT_DAMAGING_AOE_STEP;
 
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: A* detour step {i}/{pathNodes.Count - 1}, dist={distToTarget:F1}m, pathRisk={pathRisk:F1}");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: A* detour step {i}/{pathNodes.Count - 1}, dist={distToTarget:F1}m, pathRisk={pathRisk:F1}");
 
                     return new PositionScore
                     {
@@ -2231,12 +2232,12 @@ namespace CompanionAI_v3.GameInterface
                     };
                 }
 
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: No A* detour node found ({reachableTiles.Count} reachable tiles)");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: No A* detour node found ({reachableTiles.Count} reachable tiles)");
                 return null;
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[MovementAPI] FindApproachAlongPath error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[MovementAPI] FindApproachAlongPath error");
                 return null;
             }
         }
@@ -2267,14 +2268,14 @@ namespace CompanionAI_v3.GameInterface
                 // 거리 가드: 현재보다 적에게 더 가까운 노드만
                 if (distToTarget >= currentDistToTarget)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: A* step {i} skipped — not closer (dist={distToTarget:F1} >= current={currentDistToTarget:F1})");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: A* step {i} skipped — not closer (dist={distToTarget:F1} >= current={currentDistToTarget:F1})");
                     continue;
                 }
 
                 // 현재 위치와 동일한 노드 제외 (부동소수점 오차 방지)
                 if (Vector3.Distance(node.Vector3Position, unit.Position) < 1.5f)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: A* step {i} skipped — same as current position");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: A* step {i} skipped — same as current position");
                     continue;
                 }
 
@@ -2282,7 +2283,7 @@ namespace CompanionAI_v3.GameInterface
                     + aiCell.EnteredAoE * WEIGHT_AOE_ENTRY
                     + aiCell.StepsInsideDamagingAoE * WEIGHT_DAMAGING_AOE_STEP;
 
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] {unit.CharacterName}: A* approach node at step {i}/{pathNodes.Count - 1}, dist={distToTarget:F1}, pathRisk={pathRisk:F1}");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] {unit.CharacterName}: A* approach node at step {i}/{pathNodes.Count - 1}, dist={distToTarget:F1}, pathRisk={pathRisk:F1}");
 
                 return new PositionScore
                 {
@@ -2435,7 +2436,7 @@ namespace CompanionAI_v3.GameInterface
             // 수정: && 조건 → SharedTarget 보너스가 있는 의미 있는 타일만 로깅 (~50줄)
             if (score.SharedTargetBonus != 0 && score.TacticalAdjustment != 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[MovementAPI] Blackboard: ST={score.SharedTargetBonus:F1}, Tac={score.TacticalAdjustment:F1}, Tactic={tactic}");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[MovementAPI] Blackboard: ST={score.SharedTargetBonus:F1}, Tac={score.TacticalAdjustment:F1}, Tactic={tactic}");
             }
         }
 

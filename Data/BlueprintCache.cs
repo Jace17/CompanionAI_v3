@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Data
 {
@@ -217,7 +218,7 @@ namespace CompanionAI_v3.Data
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[BlueprintCache] Error caching ability");
+                Log.Persistence.Error(ex, $"[BlueprintCache] Error caching ability");
                 return null;
             }
         }
@@ -481,11 +482,11 @@ namespace CompanionAI_v3.Data
                 }
 
                 File.WriteAllText(filename, sb.ToString());
-                Main.Log($"[BlueprintCache] Dumped {snapshot.Count} abilities to: {filename}");
+                Log.Persistence.Info($"[BlueprintCache] Dumped {snapshot.Count} abilities to: {filename}");
             }
             catch (Exception ex)
             {
-                Main.Log($"[BlueprintCache] ERROR dumping to file: {ex.Message}");
+                Log.Persistence.Info($"[BlueprintCache] ERROR dumping to file: {ex.Message}");
             }
         }
 

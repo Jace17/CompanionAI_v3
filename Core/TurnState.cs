@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Kingmaker.EntitySystem.Entities;
 using UnityEngine;
 using CompanionAI_v3.Analysis;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Core
 {
@@ -279,7 +280,7 @@ namespace CompanionAI_v3.Core
                 ConsecutiveFailures++;
             }
 
-            Main.LogDebug($"[TurnState] Action #{ActionCount}: {action} -> {(success ? "SUCCESS" : "FAILED")}");
+            Log.Engine.Debug($"[TurnState] Action #{ActionCount}: {action} -> {(success ? "SUCCESS" : "FAILED")}");
         }
 
         /// <summary>

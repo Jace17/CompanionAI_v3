@@ -6,6 +6,7 @@ using CompanionAI_v3.Analysis;
 using CompanionAI_v3.Diagnostics;
 using CompanionAI_v3.Settings;
 using CompanionAI_v3.Planning.Plans;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Planning
 {
@@ -56,7 +57,7 @@ namespace CompanionAI_v3.Planning
                 ? $"Auto→{effectiveRole}"
                 : effectiveRole.ToString();
 
-            Main.Log($"[TurnPlanner] Planning for {situation.Unit.CharacterName} (Role={roleDisplay}): " +
+            Log.Planning.Info($"[TurnPlanner] Planning for {situation.Unit.CharacterName} (Role={roleDisplay}): " +
                     $"HP={situation.HPPercent:F0}%, AP={effectiveAP:F1}, MP={situation.CurrentMP:F1}, " +
                     $"Enemies={situation.Enemies.Count}, Hittable={situation.HittableEnemies.Count}");
             CombatReportCollector.Instance.LogPhase(
@@ -81,7 +82,7 @@ namespace CompanionAI_v3.Planning
             }
             catch (Exception ex)
             {
-                Main.LogError($"[TurnPlanner] Error: {ex.Message}");
+                Log.Planning.Error($"[TurnPlanner] Error: {ex.Message}");
                 var fallbackActions = new List<PlannedAction> { PlannedAction.EndTurn($"Error: {ex.Message}") };
                 return new TurnPlan(fallbackActions, TurnPriority.EndTurn, "Error fallback");
             }
@@ -115,7 +116,7 @@ namespace CompanionAI_v3.Planning
         public static void ClearDetectedRolesCache()
         {
             _detectedRoles.Clear();
-            Main.Log("[TurnPlanner] Cleared detected roles cache");
+            Log.Planning.Info("[TurnPlanner] Cleared detected roles cache");
         }
 
         /// <summary>

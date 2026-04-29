@@ -10,6 +10,7 @@ using CompanionAI_v3.Core;
 using CompanionAI_v3.Analysis;
 using CompanionAI_v3.GameInterface;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Planning.Planners
 {
@@ -60,7 +61,7 @@ namespace CompanionAI_v3.Planning.Planners
             if (bestHeal == null) return null;
 
             remainingAP -= bestCost;
-            Main.Log($"[{roleName}] Emergency heal: {bestHeal.Name} (score={bestScore:F1}, HP={situation.HPPercent:F0}%)");
+            Log.Planning.Info($"[{roleName}] Emergency heal: {bestHeal.Name} (score={bestScore:F1}, HP={situation.HPPercent:F0}%)");
             return PlannedAction.Heal(bestHeal, situation.Unit,
                 $"Emergency heal (HP={situation.HPPercent:F0}%)", bestCost);
         }
@@ -77,7 +78,7 @@ namespace CompanionAI_v3.Planning.Planners
             // ★ v3.5.10: 이미 다른 Support가 힐 예약한 대상은 스킵
             if (TeamBlackboard.Instance.IsHealReserved(ally))
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] Heal skip - {ally.CharacterName} already reserved for heal");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] Heal skip - {ally.CharacterName} already reserved for heal");
                 return null;
             }
 
@@ -111,7 +112,7 @@ namespace CompanionAI_v3.Planning.Planners
             TeamBlackboard.Instance.ReserveHeal(ally);
 
             remainingAP -= bestCost;
-            Main.Log($"[{roleName}] Heal ally: {bestHeal.Name} -> {ally.CharacterName} (score={bestScore:F1})");
+            Log.Planning.Info($"[{roleName}] Heal ally: {bestHeal.Name} -> {ally.CharacterName} (score={bestScore:F1})");
             return PlannedAction.Heal(bestHeal, ally, $"Heal {ally.CharacterName}", bestCost);
         }
 
@@ -162,7 +163,7 @@ namespace CompanionAI_v3.Planning.Planners
 
             if (_tempHealTargets.Count == 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[HealPlanner] No heal targets available (all reserved or healthy)");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[HealPlanner] No heal targets available (all reserved or healthy)");
                 return null;
             }
 
@@ -273,7 +274,7 @@ namespace CompanionAI_v3.Planning.Planners
 
             if (!bestPos.HasValue)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] MoveToHeal: No reachable tile with LOS within heal range ({maxHealRange}) of {woundedAlly.CharacterName}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] MoveToHeal: No reachable tile with LOS within heal range ({maxHealRange}) of {woundedAlly.CharacterName}");
                 return null;
             }
 
@@ -291,7 +292,7 @@ namespace CompanionAI_v3.Planning.Planners
             _tempHealActions.Add(PlannedAction.Heal(bestHeal, woundedAlly,
                 $"Heal after move: {woundedAlly.CharacterName}", bestHealCost));
 
-            Main.Log($"[{roleName}] MoveToHeal: Moving {CombatAPI.MetersToTiles(Vector3.Distance(unit.Position, bestPos.Value)):F1} tiles to heal {woundedAlly.CharacterName} ({bestHeal.Name}, range={plannedRange})");
+            Log.Planning.Info($"[{roleName}] MoveToHeal: Moving {CombatAPI.MetersToTiles(Vector3.Distance(unit.Position, bestPos.Value)):F1} tiles to heal {woundedAlly.CharacterName} ({bestHeal.Name}, range={plannedRange})");
 
             return _tempHealActions;
         }
@@ -376,7 +377,7 @@ namespace CompanionAI_v3.Planning.Planners
                 if (CombatAPI.CanUseAbilityOn(buff, targetWrapper, out reason))
                 {
                     remainingAP -= cost;
-                    Main.Log($"[{roleName}] Buff ally: {buff.Name} -> {bestTarget.CharacterName}");
+                    Log.Planning.Info($"[{roleName}] Buff ally: {buff.Name} -> {bestTarget.CharacterName}");
                     return PlannedAction.Buff(buff, bestTarget, $"Buff {bestTarget.CharacterName}", cost);
                 }
             }

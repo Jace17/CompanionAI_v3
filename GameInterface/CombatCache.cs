@@ -4,6 +4,7 @@ using System.Linq;
 using Kingmaker.EntitySystem.Entities;
 using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.Utility;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.GameInterface
 {
@@ -84,7 +85,7 @@ namespace CompanionAI_v3.GameInterface
             // ★ v3.13.0: 상한선 초과 시 전체 클리어 (재구축은 94% 히트율 환경에서 즉시)
             if (_distanceCache.Count > MAX_DISTANCE_ENTRIES)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatCache] Distance cache overflow ({_distanceCache.Count}), cleared");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatCache] Distance cache overflow ({_distanceCache.Count}), cleared");
                 _distanceCache.Clear();
             }
             if (_distanceCache.Count > _peakDistance) _peakDistance = _distanceCache.Count;
@@ -148,7 +149,7 @@ namespace CompanionAI_v3.GameInterface
             // ★ v3.13.0: 상한선 초과 방지
             if (_hpPercentCache.Count > MAX_HP_ENTRIES)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatCache] HP cache overflow ({_hpPercentCache.Count}), cleared");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatCache] HP cache overflow ({_hpPercentCache.Count}), cleared");
                 _hpPercentCache.Clear();
             }
             if (_hpPercentCache.Count > _peakHP) _peakHP = _hpPercentCache.Count;
@@ -200,7 +201,7 @@ namespace CompanionAI_v3.GameInterface
                 // ★ v3.13.0: 상한선 초과 방지
                 if (_hitChanceCache.Count > MAX_HITCHANCE_ENTRIES)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatCache] HitChance cache overflow ({_hitChanceCache.Count}), cleared");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatCache] HitChance cache overflow ({_hitChanceCache.Count}), cleared");
                     _hitChanceCache.Clear();
                 }
                 if (_hitChanceCache.Count > _peakHitChance) _peakHitChance = _hitChanceCache.Count;
@@ -254,7 +255,7 @@ namespace CompanionAI_v3.GameInterface
             // ★ v3.13.0: 상한선 초과 방지
             if (_targetingCache.Count > MAX_TARGETING_ENTRIES)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatCache] Targeting cache overflow ({_targetingCache.Count}), cleared");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatCache] Targeting cache overflow ({_targetingCache.Count}), cleared");
                 _targetingCache.Clear();
             }
             if (_targetingCache.Count > _peakTargeting) _peakTargeting = _targetingCache.Count;
@@ -302,7 +303,7 @@ namespace CompanionAI_v3.GameInterface
                     ? (float)HitChanceHits / (HitChanceHits + HitChanceMisses) * 100f
                     : 0f;
 
-                Main.LogDebug($"[CombatCache] Cleared: Distance({distCount}, peak={_peakDistance}, {distHitRate:F0}%), " +
+                Log.Engine.Debug($"[CombatCache] Cleared: Distance({distCount}, peak={_peakDistance}, {distHitRate:F0}%), " +
                              $"Targeting({targetCount}, peak={_peakTargeting}, {targetHitRate:F0}%), " +
                              $"HP({hpCount}, peak={_peakHP}, {hpHitRate:F0}%), " +
                              $"HitChance({hitChanceCount}, peak={_peakHitChance}, {hitChanceHitRate:F0}%)");
@@ -372,7 +373,7 @@ namespace CompanionAI_v3.GameInterface
 
             if (invalidatedDist > 0 || invalidatedTarget > 0 || invalidatedHitChance > 0)
             {
-                Main.LogDebug($"[CombatCache] Invalidated for {target.CharacterName}: " +
+                Log.Engine.Debug($"[CombatCache] Invalidated for {target.CharacterName}: " +
                              $"Distance={invalidatedDist}, Targeting={invalidatedTarget}, HP=1, HitChance={invalidatedHitChance}");
             }
         }
@@ -414,7 +415,7 @@ namespace CompanionAI_v3.GameInterface
 
             if (invalidated > 0 || targetingCleared > 0 || hitChanceCleared > 0)
             {
-                Main.LogDebug($"[CombatCache] Caster moved {caster.CharacterName}: cleared {invalidated} distance, {targetingCleared} targeting, {hitChanceCleared} hitChance");
+                Log.Engine.Debug($"[CombatCache] Caster moved {caster.CharacterName}: cleared {invalidated} distance, {targetingCleared} targeting, {hitChanceCleared} hitChance");
             }
         }
 

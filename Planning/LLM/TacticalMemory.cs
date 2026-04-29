@@ -8,6 +8,7 @@ using System.IO;
 using System.Text;
 using Kingmaker.EntitySystem.Entities;
 using Newtonsoft.Json;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Planning.LLM
 {
@@ -103,13 +104,13 @@ namespace CompanionAI_v3.Planning.LLM
                     {
                         _entries.Clear();
                         _entries.AddRange(loaded);
-                        Main.Log($"[TacticalMemory] Loaded {_entries.Count} entries from disk");
+                        Log.Planning.Info($"[TacticalMemory] Loaded {_entries.Count} entries from disk");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[TacticalMemory] Load failed");
+                Log.Planning.Error(ex, $"[TacticalMemory] Load failed");
             }
         }
 
@@ -124,7 +125,7 @@ namespace CompanionAI_v3.Planning.LLM
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[TacticalMemory] Save failed");
+                Log.Planning.Error(ex, $"[TacticalMemory] Save failed");
             }
         }
 
@@ -238,7 +239,7 @@ namespace CompanionAI_v3.Planning.LLM
 
             _entries.Add(entry);
 
-            Main.Log($"[TacticalMemory] Recorded: {entry.EnemyDescription}, {entry.Outcome}, " +
+            Log.Planning.Info($"[TacticalMemory] Recorded: {entry.EnemyDescription}, {entry.Outcome}, " +
                 $"rounds={rounds}, teamHP={finalTeamHP:F0}%, entries={_entries.Count}");
 
             SaveToFile();

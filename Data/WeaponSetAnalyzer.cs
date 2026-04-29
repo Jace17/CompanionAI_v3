@@ -7,6 +7,7 @@ using Kingmaker.UnitLogic.Abilities;
 using CompanionAI_v3.Analysis;
 using CompanionAI_v3.GameInterface;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Data
 {
@@ -114,14 +115,14 @@ namespace CompanionAI_v3.Data
                     }
 
                     if (Main.IsDebugEnabled)
-                        Main.LogDebug($"[WeaponSetAnalyzer] Set {setIndex} ({result.PrimaryWeaponName ?? "empty"}): " +
+                        Log.Persistence.Debug($"[WeaponSetAnalyzer] Set {setIndex} ({result.PrimaryWeaponName ?? "empty"}): " +
                             $"Ranged={result.HasRangedWeapon}, Melee={result.HasMeleeWeapon}, Range={result.PrimaryWeaponRange:F0}" +
                             (setIndex == currentSet ? " [ACTIVE]" : " [INACTIVE]"));
                 }
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[WeaponSetAnalyzer] Error analyzing sets");
+                Log.Persistence.Error(ex, $"[WeaponSetAnalyzer] Error analyzing sets");
                 return null;
             }
 

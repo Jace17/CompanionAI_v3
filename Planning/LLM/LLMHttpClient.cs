@@ -23,6 +23,7 @@ using System.Text;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Planning.LLM
 {
@@ -277,7 +278,7 @@ namespace CompanionAI_v3.Planning.LLM
                 {
                     callbackFired = true;
                     try { onComplete?.Invoke(response); }
-                    catch (Exception cbEx) { Main.LogDebug($"[LLMHttpClient] onComplete threw: {cbEx.Message}"); }
+                    catch (Exception cbEx) { Log.Planning.Debug($"[LLMHttpClient] onComplete threw: {cbEx.Message}"); }
                 }
             }
         }

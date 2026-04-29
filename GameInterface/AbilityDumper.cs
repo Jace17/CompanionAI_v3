@@ -8,6 +8,7 @@ using Kingmaker.EntitySystem.Entities;
 using Kingmaker.Enums;
 using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Parts;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.GameInterface
 {
@@ -41,7 +42,7 @@ namespace CompanionAI_v3.GameInterface
                 {
                     sb.AppendLine("ERROR: No party members found. Start combat first!");
                     File.WriteAllText(DumpFilePath, sb.ToString());
-                    Main.Log($"[AbilityDumper] No party found");
+                    Log.Engine.Info($"[AbilityDumper] No party found");
                     return;
                 }
 
@@ -96,11 +97,11 @@ namespace CompanionAI_v3.GameInterface
                 }
 
                 File.WriteAllText(DumpFilePath, sb.ToString());
-                Main.Log($"[AbilityDumper] Pet ability dump saved: {DumpFilePath}");
+                Log.Engine.Info($"[AbilityDumper] Pet ability dump saved: {DumpFilePath}");
             }
             catch (Exception ex)
             {
-                Main.Log($"[AbilityDumper] Error: {ex.Message}");
+                Log.Engine.Info($"[AbilityDumper] Error: {ex.Message}");
             }
         }
 
@@ -280,11 +281,11 @@ namespace CompanionAI_v3.GameInterface
 
                 string allDumpPath = Path.Combine(Main.ModPath, "AllAbilities_Dump.txt");
                 File.WriteAllText(allDumpPath, sb.ToString());
-                Main.Log($"[AbilityDumper] All abilities dump saved: {allDumpPath}");
+                Log.Engine.Info($"[AbilityDumper] All abilities dump saved: {allDumpPath}");
             }
             catch (Exception ex)
             {
-                Main.Log($"[AbilityDumper] Error: {ex.Message}");
+                Log.Engine.Info($"[AbilityDumper] Error: {ex.Message}");
             }
         }
 
@@ -325,11 +326,11 @@ namespace CompanionAI_v3.GameInterface
                     }
                 }
 
-                Main.Log(sb.ToString());
+                Log.Engine.Info(sb.ToString());
             }
             catch (Exception ex)
             {
-                Main.Log($"[AbilityDumper] Search error: {ex.Message}");
+                Log.Engine.Info($"[AbilityDumper] Search error: {ex.Message}");
             }
         }
     }

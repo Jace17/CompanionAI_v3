@@ -13,6 +13,7 @@ using CompanionAI_v3.Analysis;
 using CompanionAI_v3.Data;
 using CompanionAI_v3.GameInterface;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Planning.Planners
 {
@@ -57,7 +58,7 @@ namespace CompanionAI_v3.Planning.Planners
 
             if (candidateTargets.Count == 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanAttack: No candidate targets");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanAttack: No candidate targets");
                 return null;
             }
 
@@ -80,7 +81,7 @@ namespace CompanionAI_v3.Planning.Planners
                 if (cost > remainingAP)
                 {
                     apInsufficientCount++;
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanAttack: {attack.Name} too expensive ({cost:F1} > {remainingAP:F1} AP)");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanAttack: {attack.Name} too expensive ({cost:F1} > {remainingAP:F1} AP)");
                     continue;
                 }
 
@@ -89,7 +90,7 @@ namespace CompanionAI_v3.Planning.Planners
                 if (CombatAPI.CanUseAbilityOn(attack, targetWrapper, out reason))
                 {
                     remainingAP -= cost;
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] Attack: {attack.Name} -> {target.CharacterName}");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] Attack: {attack.Name} -> {target.CharacterName}");
                     return PlannedAction.Attack(attack, target, $"Attack with {attack.Name}", cost);
                 }
                 else
@@ -100,17 +101,17 @@ namespace CompanionAI_v3.Planning.Planners
                     if (context != null && context.HasPendingMove && situation.HittableEnemies.Contains(target))
                     {
                         remainingAP -= cost;
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] Attack (pending move bypass): {attack.Name} -> {target.CharacterName} (was: {reason})");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] Attack (pending move bypass): {attack.Name} -> {target.CharacterName} (was: {reason})");
                         return PlannedAction.Attack(attack, target, $"Attack with {attack.Name}", cost);
                     }
 
                     canUseFailedCount++;
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanAttack: CanUseAbility failed for {attack.Name} -> {target.CharacterName} ({reason})");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanAttack: CanUseAbility failed for {attack.Name} -> {target.CharacterName} ({reason})");
                 }
             }
 
             // ★ v3.5.11: 전체 실패 요약
-            if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanAttack failed: {candidateTargets.Count} targets checked - " +
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanAttack failed: {candidateTargets.Count} targets checked - " +
                 $"SelectBestAttack null={attackNullCount}, AP insufficient={apInsufficientCount}, CanUse failed={canUseFailedCount}");
 
             return null;
@@ -133,7 +134,7 @@ namespace CompanionAI_v3.Planning.Planners
         {
             if (situation.AvailableAttacks.Count == 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[AttackPlanner] SelectBestAttack: No attacks available");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[AttackPlanner] SelectBestAttack: No attacks available");
                 if (context != null) context.AllAbilitiesFiltered = true;
                 return null;
             }
@@ -145,7 +146,7 @@ namespace CompanionAI_v3.Planning.Planners
             bool isInThreatArea = CombatAPI.IsInThreateningArea(situation.Unit);
             if (isInThreatArea)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[AttackPlanner] Unit is in threatening area - applying AOO filters");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[AttackPlanner] Unit is in threatening area - applying AOO filters");
             }
 
             // ★ v3.8.94: DangerousAoE 필터 제거 — 모든 AoE는 아군 안전 체크(UtilityScorer + AoESafetyChecker)에서 통합 관리
@@ -183,7 +184,7 @@ namespace CompanionAI_v3.Planning.Planners
                 {
                     if (weaponAttacks.Count < filteredAttacks.Count)
                     {
-                        Main.Log($"[AttackPlanner] ★ Filtered {filteredAttacks.Count - weaponAttacks.Count} accessory-slot attacks (Stinger Ring etc.)");
+                        Log.Planning.Info($"[AttackPlanner] ★ Filtered {filteredAttacks.Count - weaponAttacks.Count} accessory-slot attacks (Stinger Ring etc.)");
                     }
                     filteredAttacks = weaponAttacks;
                 }
@@ -193,7 +194,7 @@ namespace CompanionAI_v3.Planning.Planners
             // ★ v3.5.11: 필터링 결과 로깅
             if (filteredAttacks.Count == 0 && situation.AvailableAttacks.Count > 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[AttackPlanner] SelectBestAttack: All {situation.AvailableAttacks.Count} attacks filtered out");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[AttackPlanner] SelectBestAttack: All {situation.AvailableAttacks.Count} attacks filtered out");
                 if (context != null) context.AllAbilitiesFiltered = true;
             }
 
@@ -231,7 +232,7 @@ namespace CompanionAI_v3.Planning.Planners
             // ★ v3.5.11: 스코어링 결과 로깅
             if (scoredAttacks.Count == 0 && filteredAttacks.Count > 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[AttackPlanner] SelectBestAttack: {filteredAttacks.Count} filtered attacks, but all scored 0 or less");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[AttackPlanner] SelectBestAttack: {filteredAttacks.Count} filtered attacks, but all scored 0 or less");
             }
 
             for (int i = 0; i < scoredAttacks.Count; i++)
@@ -245,7 +246,7 @@ namespace CompanionAI_v3.Planning.Planners
                 {
                     if (!CombatAPI.IsAoEHeightInRange(attack, situation.Unit, target))
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[AttackPlanner] AOE height failed: {attack.Name} -> {target.CharacterName}");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[AttackPlanner] AOE height failed: {attack.Name} -> {target.CharacterName}");
                         if (context != null) context.HeightCheckFailed = true;
                         continue;
                     }
@@ -265,7 +266,7 @@ namespace CompanionAI_v3.Planning.Planners
 
                         if (distanceToTarget > patternRadius)
                         {
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[AttackPlanner] DangerousAoE pattern range failed: {attack.Name} -> {target.CharacterName} " +
+                            if (Main.IsDebugEnabled) Log.Planning.Debug($"[AttackPlanner] DangerousAoE pattern range failed: {attack.Name} -> {target.CharacterName} " +
                                 $"(dist={distanceToTarget:F1} > patternRadius={patternRadius:F0} tiles)");
                             continue;
                         }
@@ -294,11 +295,11 @@ namespace CompanionAI_v3.Planning.Planners
                                 nativePattern = CombatAPI.GetAffectedNodes(attack, target.Position, situation.Unit.Position);
                                 nativePatternReady = !nativePattern.IsEmpty;
                                 if (nativePatternReady && Main.IsDebugEnabled)
-                                    Main.LogDebug($"[AoESafety][Native] DangerousAoE {attack.Name}: pattern precomputed");
+                                    Log.Planning.Debug($"[AoESafety][Native] DangerousAoE {attack.Name}: pattern precomputed");
                             }
                             catch (Exception ex)
                             {
-                                Main.LogWarning($"[AoESafety][Native] DangerousAoE precompute failed for {attack.Name}: {ex.Message}");
+                                Log.Planning.Warn($"[AoESafety][Native] DangerousAoE precompute failed for {attack.Name}: {ex.Message}");
                             }
                         }
 
@@ -338,7 +339,7 @@ namespace CompanionAI_v3.Planning.Planners
 
                         if (alliesInAoE > aoeConfig.MaxPlayerAlliesHit)
                         {
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[AttackPlanner] DangerousAoE {attack.Name} rejected: {alliesInAoE} allies in AoE (max {aoeConfig.MaxPlayerAlliesHit})");
+                            if (Main.IsDebugEnabled) Log.Planning.Debug($"[AttackPlanner] DangerousAoE {attack.Name} rejected: {alliesInAoE} allies in AoE (max {aoeConfig.MaxPlayerAlliesHit})");
                             continue;
                         }
                     }
@@ -350,7 +351,7 @@ namespace CompanionAI_v3.Planning.Planners
                     // ★ v3.8.70: 공통 안전 체크 (CombatHelpers 중앙집중)
                     if (!CombatHelpers.IsAttackSafeForTarget(attack, situation.Unit, target, situation.Allies))
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[AttackPlanner] Ally safety blocked: {attack.Name} -> {target.CharacterName}");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[AttackPlanner] Ally safety blocked: {attack.Name} -> {target.CharacterName}");
                         continue;
                     }
 
@@ -359,7 +360,7 @@ namespace CompanionAI_v3.Planning.Planners
                 else
                 {
                     // ★ v3.5.11: CanUseAbilityOn 실패 원인 로깅
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[AttackPlanner] CanUseAbilityOn failed: {attack.Name} -> {target.CharacterName} ({reason})");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[AttackPlanner] CanUseAbilityOn failed: {attack.Name} -> {target.CharacterName} ({reason})");
 
                     // ★ v3.8.44: 사거리 부족 감지 (문자열 매칭 없이 거리 비교)
                     if (context != null)
@@ -381,7 +382,7 @@ namespace CompanionAI_v3.Planning.Planners
                 {
                     if (!CombatAPI.IsAoEHeightInRange(situation.PrimaryAttack, situation.Unit, target))
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[AttackPlanner] PrimaryAttack AOE height failed: {situation.PrimaryAttack.Name} -> {target.CharacterName}");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[AttackPlanner] PrimaryAttack AOE height failed: {situation.PrimaryAttack.Name} -> {target.CharacterName}");
                         if (context != null) context.HeightCheckFailed = true;
                         return null;  // ★ v3.6.10: 폴백도 실패
                     }
@@ -398,7 +399,7 @@ namespace CompanionAI_v3.Planning.Planners
 
                         if (distanceToTarget > patternRadius)
                         {
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[AttackPlanner] PrimaryAttack DangerousAoE pattern range failed: {situation.PrimaryAttack.Name} -> {target.CharacterName} " +
+                            if (Main.IsDebugEnabled) Log.Planning.Debug($"[AttackPlanner] PrimaryAttack DangerousAoE pattern range failed: {situation.PrimaryAttack.Name} -> {target.CharacterName} " +
                                 $"(dist={distanceToTarget:F1} > patternRadius={patternRadius:F0} tiles)");
                             return null;
                         }
@@ -409,7 +410,7 @@ namespace CompanionAI_v3.Planning.Planners
                 bool canUsePrimary = CombatAPI.CanUseAbilityOn(situation.PrimaryAttack, targetWrapper, out fallbackReason);
                 if (!canUsePrimary)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[AttackPlanner] PrimaryAttack fallback also failed: {situation.PrimaryAttack.Name} -> {target.CharacterName} ({fallbackReason})");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[AttackPlanner] PrimaryAttack fallback also failed: {situation.PrimaryAttack.Name} -> {target.CharacterName} ({fallbackReason})");
 
                     // ★ v3.8.44: PrimaryAttack 폴백 사거리 부족 감지
                     if (context != null)
@@ -428,7 +429,7 @@ namespace CompanionAI_v3.Planning.Planners
                 {
                     if (!AoESafetyChecker.IsAoESafeForUnitTarget(situation.PrimaryAttack, situation.Unit, target, situation.Allies))
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[AttackPlanner] PrimaryAttack ally safety blocked: {situation.PrimaryAttack.Name} -> {target.CharacterName}");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[AttackPlanner] PrimaryAttack ally safety blocked: {situation.PrimaryAttack.Name} -> {target.CharacterName}");
                         return null;
                     }
                 }
@@ -439,7 +440,7 @@ namespace CompanionAI_v3.Planning.Planners
             // ★ v3.8.44: context 요약 로그
             if (context != null)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[AttackPlanner] {context}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[AttackPlanner] {context}");
             }
 
             return null;
@@ -459,13 +460,13 @@ namespace CompanionAI_v3.Planning.Planners
                 effectiveTarget = FindNearestEnemyFromPosition(moveDestination.Value, situation.Enemies, situation.Unit);
                 if (effectiveTarget == null)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanPostMoveAttack: No enemy reachable from destination");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanPostMoveAttack: No enemy reachable from destination");
                     return null;
                 }
 
                 if (effectiveTarget != target)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanPostMoveAttack: Target changed from {target?.CharacterName} to {effectiveTarget.CharacterName} based on move destination");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanPostMoveAttack: Target changed from {target?.CharacterName} to {effectiveTarget.CharacterName} based on move destination");
                 }
             }
 
@@ -474,7 +475,7 @@ namespace CompanionAI_v3.Planning.Planners
             // ★ v3.40.8: 면역 타겟 공격 방지
             if (CombatAPI.IsTargetImmuneToDamage(effectiveTarget, situation.Unit))
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanPostMoveAttack: {effectiveTarget.CharacterName} is damage-immune, skipping");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanPostMoveAttack: {effectiveTarget.CharacterName} is damage-immune, skipping");
                 return null;
             }
 
@@ -515,7 +516,7 @@ namespace CompanionAI_v3.Planning.Planners
                     {
                         if (!AoESafetyChecker.IsAoESafeForUnitTarget(attack, situation.Unit, effectiveTarget, situation.Allies))
                         {
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PostMoveAttack FindAny ally safety blocked: {attack.Name} -> {effectiveTarget.CharacterName}");
+                            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PostMoveAttack FindAny ally safety blocked: {attack.Name} -> {effectiveTarget.CharacterName}");
                             attack = null;
                         }
                     }
@@ -538,7 +539,7 @@ namespace CompanionAI_v3.Planning.Planners
                 float attackRange = CombatAPI.GetAbilityRangeInTiles(attack);
                 if (distFromDest > attackRange)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PostMoveAttack: {attack.Name} out of range ({distFromDest:F1} > {attackRange:F1} tiles)");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PostMoveAttack: {attack.Name} out of range ({distFromDest:F1} > {attackRange:F1} tiles)");
                     return null;
                 }
             }
@@ -548,7 +549,7 @@ namespace CompanionAI_v3.Planning.Planners
             if (cost > remainingAP) return null;
 
             remainingAP -= cost;
-            if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PostMoveAttack: {attack.Name} -> {effectiveTarget.CharacterName}");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PostMoveAttack: {attack.Name} -> {effectiveTarget.CharacterName}");
             return PlannedAction.Attack(attack, effectiveTarget, $"Post-move attack with {attack.Name}", cost);
         }
 
@@ -659,12 +660,12 @@ namespace CompanionAI_v3.Planning.Planners
                 if (best.CanKill)
                 {
                     int hp = CombatAPI.GetActualHP(target);
-                    Main.Log($"[{roleName}] Finisher (KILL): {best.Finisher.Name} -> {target.CharacterName} (HP={hp}, Score={best.Score:F0})");
+                    Log.Planning.Info($"[{roleName}] Finisher (KILL): {best.Finisher.Name} -> {target.CharacterName} (HP={hp}, Score={best.Score:F0})");
                     return PlannedAction.Attack(best.Finisher, target, $"Finisher KILL on {target.CharacterName}", best.Cost);
                 }
                 else
                 {
-                    Main.Log($"[{roleName}] Finisher: {best.Finisher.Name} -> {target.CharacterName} (Score={best.Score:F0})");
+                    Log.Planning.Info($"[{roleName}] Finisher: {best.Finisher.Name} -> {target.CharacterName} (Score={best.Score:F0})");
                     return PlannedAction.Attack(best.Finisher, target, $"Finisher on {target.CharacterName}", best.Cost);
                 }
             }
@@ -714,7 +715,7 @@ namespace CompanionAI_v3.Planning.Planners
                     // ★ v3.9.82: 체인/AoE 아군 안전 체크 (기존 누락 — 일반 공격 경로에서만 체크되고 있었음)
                     if (!CombatHelpers.IsAttackSafeForTarget(ability, situation.Unit, target, situation.Allies))
                     {
-                        Main.LogDebug($"[{roleName}] Special ability ally safety blocked: {ability.Name} -> {target.CharacterName}");
+                        Log.Planning.Debug($"[{roleName}] Special ability ally safety blocked: {ability.Name} -> {target.CharacterName}");
                         continue;
                     }
 
@@ -723,7 +724,7 @@ namespace CompanionAI_v3.Planning.Planners
                     string abilityType = AbilityDatabase.IsDOTIntensify(ability) ? "DoT Intensify" :
                                         AbilityDatabase.IsChainEffect(ability) ? "Chain Effect" : "Special";
 
-                    Main.Log($"[{roleName}] {abilityType}: {ability.Name} -> {target.CharacterName}");
+                    Log.Planning.Info($"[{roleName}] {abilityType}: {ability.Name} -> {target.CharacterName}");
                     return PlannedAction.Attack(ability, target, $"{abilityType} on {target.CharacterName}", entry.Cost);
                 }
             }
@@ -782,7 +783,7 @@ namespace CompanionAI_v3.Planning.Planners
                     {
                         if (!AoESafetyChecker.IsAoESafeForUnitTarget(attack, situation.Unit, target, situation.Allies))
                         {
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] Skipping {attack.Name} - ally in scatter zone of {target.CharacterName}");
+                            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] Skipping {attack.Name} - ally in scatter zone of {target.CharacterName}");
                             continue;
                         }
                     }
@@ -791,7 +792,7 @@ namespace CompanionAI_v3.Planning.Planners
                     if (CombatAPI.CanUseAbilityOn(attack, targetWrapper, out reason))
                     {
                         remainingAP -= cost;
-                        Main.Log($"[{roleName}] Safe attack: {attack.Name} -> {target.CharacterName}");
+                        Log.Planning.Info($"[{roleName}] Safe attack: {attack.Name} -> {target.CharacterName}");
                         return PlannedAction.Attack(attack, target, $"Safe attack on {target.CharacterName}", cost);
                     }
                 }
@@ -934,12 +935,12 @@ namespace CompanionAI_v3.Planning.Planners
                         string dirReason;
                         if (!CombatAPI.CanUseAbilityOnPoint(ability, directionPoint, out dirReason))
                         {
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] DangerousAoE direction blocked: {ability.Name} - {dirReason}");
+                            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] DangerousAoE direction blocked: {ability.Name} - {dirReason}");
                             continue;
                         }
 
                         remainingAP -= cost;
-                        Main.Log($"[{roleName}] Directional DangerousAoE ({patternType}): {ability.Name} -> direction of {primaryTarget.CharacterName} " +
+                        Log.Planning.Info($"[{roleName}] Directional DangerousAoE ({patternType}): {ability.Name} -> direction of {primaryTarget.CharacterName} " +
                             $"- {bestResult.EnemiesHit} enemies, {bestResult.AlliesHit} allies");
 
                         return PlannedAction.PositionalAttack(
@@ -954,12 +955,12 @@ namespace CompanionAI_v3.Planning.Planners
                     string reason;
                     if (!CombatAPI.CanUseAbilityOn(ability, targetWrapper, out reason))
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] Directional AOE blocked: {ability.Name} - {reason}");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] Directional AOE blocked: {ability.Name} - {reason}");
                         continue;
                     }
 
                     remainingAP -= cost;
-                    Main.Log($"[{roleName}] Directional AOE ({patternType}): {ability.Name} -> {primaryTarget.CharacterName} " +
+                    Log.Planning.Info($"[{roleName}] Directional AOE ({patternType}): {ability.Name} -> {primaryTarget.CharacterName} " +
                         $"- {bestResult.EnemiesHit} enemies, {bestResult.AlliesHit} allies");
 
                     return PlannedAction.Attack(
@@ -1001,13 +1002,13 @@ namespace CompanionAI_v3.Planning.Planners
                     string reason;
                     if (!CombatAPI.CanUseAbilityOnPoint(ability, bestResult.Position, out reason))
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] AOE blocked: {ability.Name} - {reason}");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] AOE blocked: {ability.Name} - {reason}");
                         continue;
                     }
 
                     remainingAP -= cost;
                     string aoEMethod = useAoEOptimization ? "Cluster" : "Legacy";
-                    Main.Log($"[{roleName}] AOE ({aoEMethod}): {ability.Name} at ({bestResult.Position.x:F1},{bestResult.Position.z:F1}) " +
+                    Log.Planning.Info($"[{roleName}] AOE ({aoEMethod}): {ability.Name} at ({bestResult.Position.x:F1},{bestResult.Position.z:F1}) " +
                         $"- {bestResult.EnemiesHit} enemies, {bestResult.AlliesHit} allies");
 
                     return PlannedAction.PositionalAttack(
@@ -1090,7 +1091,7 @@ namespace CompanionAI_v3.Planning.Planners
                         if (alliesHit > maxAlliesAllowed)
                         {
                             if (Main.IsDebugEnabled)
-                                Main.LogDebug($"[{roleName}] Unit AoE {ability.Name} -> {enemy.CharacterName}: " +
+                                Log.Planning.Debug($"[{roleName}] Unit AoE {ability.Name} -> {enemy.CharacterName}: " +
                                     $"{alliesHit} allies > max {maxAlliesAllowed} - BLOCKED");
                             continue;
                         }
@@ -1103,7 +1104,7 @@ namespace CompanionAI_v3.Planning.Planners
                             cost);
 
                         if (Main.IsDebugEnabled)
-                            Main.LogDebug($"[{roleName}] Unit AoE candidate: {ability.Name} -> {enemy.CharacterName} " +
+                            Log.Planning.Debug($"[{roleName}] Unit AoE candidate: {ability.Name} -> {enemy.CharacterName} " +
                                 $"({enemiesHit} enemies, {alliesHit} allies)");
                     }
                 }
@@ -1112,7 +1113,7 @@ namespace CompanionAI_v3.Planning.Planners
             if (bestAction != null)
             {
                 remainingAP -= bestAction.APCost;
-                Main.Log($"[{roleName}] Unit-targeted AoE: {bestAction.Ability.Name} -> {(bestAction.Target.Entity as BaseUnitEntity)?.CharacterName} " +
+                Log.Planning.Info($"[{roleName}] Unit-targeted AoE: {bestAction.Ability.Name} -> {(bestAction.Target.Entity as BaseUnitEntity)?.CharacterName} " +
                     $"({bestEnemyCount} enemies)");
             }
 
@@ -1366,7 +1367,7 @@ namespace CompanionAI_v3.Planning.Planners
                 remainingAP -= bestAoEAction.APCost;
                 // 이동은 MP 소모 (AP 비용 없음)
 
-                Main.Log($"[{roleName}] AoE reposition: {bestAoEAction.Ability?.Name} " +
+                Log.Planning.Info($"[{roleName}] AoE reposition: {bestAoEAction.Ability?.Name} " +
                     $"({bestEnemiesHit} enemies hit, score={bestScore:F0}, " +
                     $"vs singleTarget={singleTargetValue:F0})");
 
@@ -1375,7 +1376,7 @@ namespace CompanionAI_v3.Planning.Planners
 
             if (bestMoveAction != null && Main.IsDebugEnabled)
             {
-                Main.LogDebug($"[{roleName}] AoE reposition rejected: " +
+                Log.Planning.Debug($"[{roleName}] AoE reposition rejected: " +
                     $"aoEValue={aoEValue:F0} vs singleTarget={singleTargetValue:F0}");
             }
 
@@ -1548,12 +1549,12 @@ namespace CompanionAI_v3.Planning.Planners
                 string reason;
                 if (!CombatAPI.CanUseAbilityOnPoint(ability, bestPosition.Position, out reason))
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] AOE Taunt blocked: {ability.Name} - {reason}");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] AOE Taunt blocked: {ability.Name} - {reason}");
                     continue;
                 }
 
                 remainingAP -= cost;
-                Main.Log($"[{roleName}] AOE Taunt: {ability.Name} at ({bestPosition.Position.x:F1},{bestPosition.Position.z:F1}) " +
+                Log.Planning.Info($"[{roleName}] AOE Taunt: {ability.Name} at ({bestPosition.Position.x:F1},{bestPosition.Position.z:F1}) " +
                     $"- {bestPosition.EnemiesHit} enemies");
 
                 return PlannedAction.PositionalBuff(
@@ -1625,20 +1626,20 @@ namespace CompanionAI_v3.Planning.Planners
                         adjacentAllies++;
                 }
                 if (Main.IsDebugEnabled && adjacentEnemies > 0)
-                    Main.LogDebug($"[{roleName}] Self-AoE {attack.Name}: pattern empty, distance fallback: {adjacentEnemies} enemies, {adjacentAllies} allies within 1 cell");
+                    Log.Planning.Debug($"[{roleName}] Self-AoE {attack.Name}: pattern empty, distance fallback: {adjacentEnemies} enemies, {adjacentAllies} allies within 1 cell");
             }
 
             // ★ v3.8.94: MaxPlayerAlliesHit로 통합 — 모든 AoE 동일 기준
             if (adjacentAllies > aoeConfig.MaxPlayerAlliesHit)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] Self-AoE {attack.Name} skipped: {adjacentAllies} > {aoeConfig.MaxPlayerAlliesHit} allies in pattern");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] Self-AoE {attack.Name} skipped: {adjacentAllies} > {aoeConfig.MaxPlayerAlliesHit} allies in pattern");
                 return null;
             }
 
             // 효율성 체크: 설정된 최소 적 수 미만이면 낭비
             if (adjacentEnemies < aoeConfig.SelfAoeMinAdjacentEnemies)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] Self-AoE {attack.Name} skipped: {adjacentEnemies} < {aoeConfig.SelfAoeMinAdjacentEnemies} enemies in pattern");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] Self-AoE {attack.Name} skipped: {adjacentEnemies} < {aoeConfig.SelfAoeMinAdjacentEnemies} enemies in pattern");
                 return null;
             }
 
@@ -1647,12 +1648,12 @@ namespace CompanionAI_v3.Planning.Planners
             string reason;
             if (!CombatAPI.CanUseAbilityOn(attack, selfTarget, out reason))
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] Self-AoE {attack.Name} unavailable: {reason}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] Self-AoE {attack.Name} unavailable: {reason}");
                 return null;
             }
 
             remainingAP -= cost;
-            Main.Log($"[{roleName}] Self-AoE: {attack.Name} (hitting {adjacentEnemies} enemies, {adjacentAllies} allies nearby)");
+            Log.Planning.Info($"[{roleName}] Self-AoE: {attack.Name} (hitting {adjacentEnemies} enemies, {adjacentAllies} allies nearby)");
 
             // ★ 자신을 타겟으로 하는 Buff 형태로 반환
             return PlannedAction.Buff(attack, caster,
@@ -1719,7 +1720,7 @@ namespace CompanionAI_v3.Planning.Planners
                     var enemy = hittableEnemies[enemyIdx];
                     if (enemy == null) continue;
                     try { if (enemy.LifeState?.IsDead == true) continue; }
-                    catch (System.Exception ex) { if (Main.IsDebugEnabled) Main.LogError(ex, $"[AttackPlanner] LifeState check silent"); }
+                    catch (System.Exception ex) { if (Main.IsDebugEnabled) Log.Planning.Error(ex, $"[AttackPlanner] LifeState check silent"); }
 
                     // ★ v3.9.10: 패턴 1회 계산으로 적+아군 동시 카운트
                     CombatAPI.CountUnitsInPattern(
@@ -1744,12 +1745,12 @@ namespace CompanionAI_v3.Planning.Planners
                     string reason;
                     if (!CombatAPI.CanUseAbilityOn(ability, targetWrapper, out reason))
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] Melee AOE {ability.Name} blocked on {bestTarget.CharacterName}: {reason}");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] Melee AOE {ability.Name} blocked on {bestTarget.CharacterName}: {reason}");
                         continue;
                     }
 
                     remainingAP -= cost;
-                    Main.Log($"[{roleName}] Melee AOE: {ability.Name} -> {bestTarget.CharacterName} " +
+                    Log.Planning.Info($"[{roleName}] Melee AOE: {ability.Name} -> {bestTarget.CharacterName} " +
                         $"(hitting {bestEnemyCount} enemies)");
 
                     return PlannedAction.Attack(ability, bestTarget,
@@ -1831,7 +1832,7 @@ namespace CompanionAI_v3.Planning.Planners
                     {
                         if (!AoESafetyChecker.IsAoESafeForUnitTarget(ability, situation.Unit, target, situation.Allies))
                         {
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[AttackPlanner] Kill sequence BLOCKED by ally safety: {ability.Name} -> {target.CharacterName}");
+                            if (Main.IsDebugEnabled) Log.Planning.Debug($"[AttackPlanner] Kill sequence BLOCKED by ally safety: {ability.Name} -> {target.CharacterName}");
                             actions.Clear();
                             return actions;
                         }
@@ -1842,7 +1843,7 @@ namespace CompanionAI_v3.Planning.Planners
 
             if (actions.Count > 0)
             {
-                Main.Log($"[AttackPlanner] Kill sequence: {string.Join(" → ", sequence.Abilities.Select(a => a.Name))} = {sequence.TotalDamage:F0} dmg");
+                Log.Planning.Info($"[AttackPlanner] Kill sequence: {string.Join(" → ", sequence.Abilities.Select(a => a.Name))} = {sequence.TotalDamage:F0} dmg");
             }
 
             return actions;
@@ -1883,7 +1884,7 @@ namespace CompanionAI_v3.Planning.Planners
 
             if (bestTarget != null)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[AttackPlanner] Best kill target: {bestTarget.CharacterName} (efficiency={bestEfficiency:F1})");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[AttackPlanner] Best kill target: {bestTarget.CharacterName} (efficiency={bestEfficiency:F1})");
             }
 
             return bestTarget;

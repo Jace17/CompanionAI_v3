@@ -8,6 +8,7 @@ using Kingmaker.UnitLogic.Buffs.Blueprints;
 using Kingmaker.UnitLogic.Mechanics.Actions;
 using CompanionAI_v3.Data;
 using CompanionAI_v3.GameInterface;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Core
 {
@@ -96,7 +97,7 @@ namespace CompanionAI_v3.Core
 
             _initialized = true;
 
-            Main.LogDebug($"[AllyStateCache] Refreshed: {_states.Count} allies, " +
+            Log.Engine.Debug($"[AllyStateCache] Refreshed: {_states.Count} allies, " +
                 $"{_masterWarpRelayBuffCount} master WR buff types, " +
                 $"coverage={GetPsychicBuffCoverage():P0}");
         }
@@ -150,16 +151,16 @@ namespace CompanionAI_v3.Core
                     if (!string.IsNullOrEmpty(guid) && _masterWarpRelayBuffGuids.Add(guid))
                     {
                         _masterWarpRelayBuffCount++;
-                        Main.LogDebug($"[AllyStateCache] WR buff discovered: {abilityData.Name} ({guid})");
+                        Log.Engine.Debug($"[AllyStateCache] WR buff discovered: {abilityData.Name} ({guid})");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Main.LogError(ex, $"[AllyStateCache] DiscoverWRBuffs error");
+                    Log.Engine.Error(ex, $"[AllyStateCache] DiscoverWRBuffs error");
                 }
             }
 
-            Main.LogDebug($"[AllyStateCache] Master {master.CharacterName}: {_masterWarpRelayBuffCount} Warp Relay buff types");
+            Log.Engine.Debug($"[AllyStateCache] Master {master.CharacterName}: {_masterWarpRelayBuffCount} Warp Relay buff types");
         }
 
         #endregion
@@ -313,7 +314,7 @@ namespace CompanionAI_v3.Core
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[AllyStateCache] GetBuffMappings error for {ability.Name}");
+                Log.Engine.Error(ex, $"[AllyStateCache] GetBuffMappings error for {ability.Name}");
             }
 
             _abilityToBuffs[abilityGuid] = mappings;
@@ -356,7 +357,7 @@ namespace CompanionAI_v3.Core
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[AllyStateCache] HasBuff error");
+                Log.Engine.Error(ex, $"[AllyStateCache] HasBuff error");
             }
 
             return false;

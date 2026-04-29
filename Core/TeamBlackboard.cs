@@ -6,6 +6,7 @@ using CompanionAI_v3.Analysis;
 using CompanionAI_v3.Data;      // ★ v3.26.0: AbilityDatabase.IsHeroicAct
 using CompanionAI_v3.GameInterface;
 using CompanionAI_v3.Settings;  // ★ v3.26.0: AIRole, SC
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Core
 {
@@ -107,7 +108,7 @@ namespace CompanionAI_v3.Core
         {
             if (string.IsNullOrEmpty(masterId) || string.IsNullOrEmpty(targetId)) return;
             _mastiffApprehendTargets[masterId] = targetId;
-            Main.LogDebug($"[TeamBlackboard] Mastiff Apprehend target set: {targetId}");
+            Log.Engine.Debug($"[TeamBlackboard] Mastiff Apprehend target set: {targetId}");
         }
 
         /// <summary>마스티프 Apprehend 대상 조회 (없으면 null)</summary>
@@ -122,7 +123,7 @@ namespace CompanionAI_v3.Core
         {
             if (string.IsNullOrEmpty(masterId)) return;
             if (_mastiffApprehendTargets.Remove(masterId))
-                Main.LogDebug($"[TeamBlackboard] Mastiff Apprehend target cleared for {masterId}");
+                Log.Engine.Debug($"[TeamBlackboard] Mastiff Apprehend target cleared for {masterId}");
         }
 
         #endregion
@@ -247,7 +248,7 @@ namespace CompanionAI_v3.Core
             Clear();
             IsCombatActive = true;
             _currentRound = 1;
-            Main.Log("[TeamBlackboard] Combat initialized");
+            Log.Engine.Info("[TeamBlackboard] Combat initialized");
         }
 
         /// <summary>
@@ -295,7 +296,7 @@ namespace CompanionAI_v3.Core
             _cmdSnapshotAllyCritical = false;
             TacticalMemoryContext = null;
 
-            Main.LogDebug("[TeamBlackboard] Cleared");
+            Log.Engine.Debug("[TeamBlackboard] Cleared");
         }
 
         /// <summary>
@@ -307,7 +308,7 @@ namespace CompanionAI_v3.Core
             if (_currentRound > 0)
             {
                 KillMomentum = Math.Min(1f, _roundKillCount * 0.25f);
-                Main.LogDebug($"[TeamBlackboard] Round {_currentRound} end: Kills={_roundKillCount}, Momentum={KillMomentum:F2}");
+                Log.Engine.Debug($"[TeamBlackboard] Round {_currentRound} end: Kills={_roundKillCount}, Momentum={KillMomentum:F2}");
             }
 
             // 데미지 비율 업데이트
@@ -326,7 +327,7 @@ namespace CompanionAI_v3.Core
             // ★ v3.7.87: 라운드 행동 기록 초기화 (보너스 턴 대응)
             ClearActedThisRound();
 
-            Main.Log($"[TeamBlackboard] Round {roundNumber} started. Combat kills={_combatKillCount}, DmgRatio={DamageRatio:F2}");
+            Log.Engine.Info($"[TeamBlackboard] Round {roundNumber} started. Combat kills={_combatKillCount}, DmgRatio={DamageRatio:F2}");
         }
 
         /// <summary>
@@ -342,7 +343,7 @@ namespace CompanionAI_v3.Core
             // 킬 시 즉시 모멘텀 보너스 (+0.15)
             KillMomentum = Math.Min(1f, KillMomentum + 0.15f);
 
-            Main.Log($"[TeamBlackboard] Kill recorded: {enemy.CharacterName}. Round kills={_roundKillCount}, Momentum={KillMomentum:F2}");
+            Log.Engine.Info($"[TeamBlackboard] Kill recorded: {enemy.CharacterName}. Round kills={_roundKillCount}, Momentum={KillMomentum:F2}");
 
             // 팀 상태 재평가
             UpdateTeamAssessment();
@@ -358,7 +359,7 @@ namespace CompanionAI_v3.Core
             _roundDamageDealt += damage;
             _combatDamageDealt += damage;
 
-            Main.LogDebug($"[TeamBlackboard] Damage dealt: {damage:F0}. Round total={_roundDamageDealt:F0}");
+            Log.Engine.Debug($"[TeamBlackboard] Damage dealt: {damage:F0}. Round total={_roundDamageDealt:F0}");
         }
 
         /// <summary>
@@ -370,7 +371,7 @@ namespace CompanionAI_v3.Core
 
             _roundDamageTaken += damage;
 
-            Main.LogDebug($"[TeamBlackboard] Damage taken: {damage:F0}. Round total={_roundDamageTaken:F0}");
+            Log.Engine.Debug($"[TeamBlackboard] Damage taken: {damage:F0}. Round total={_roundDamageTaken:F0}");
         }
 
         #endregion
@@ -385,7 +386,7 @@ namespace CompanionAI_v3.Core
             if (string.IsNullOrEmpty(unitId) || situation == null) return;
 
             _unitSituations[unitId] = situation;
-            Main.LogDebug($"[TeamBlackboard] Registered situation for {situation.Unit?.CharacterName}");
+            Log.Engine.Debug($"[TeamBlackboard] Registered situation for {situation.Unit?.CharacterName}");
         }
 
         /// <summary>
@@ -400,7 +401,7 @@ namespace CompanionAI_v3.Core
             // 계획 등록 시마다 팀 상태 재계산
             UpdateTeamAssessment();
 
-            Main.LogDebug($"[TeamBlackboard] Registered plan for {unitId}, Tactic={CurrentTactic}");
+            Log.Engine.Debug($"[TeamBlackboard] Registered plan for {unitId}, Tactic={CurrentTactic}");
         }
 
         #endregion
@@ -427,7 +428,7 @@ namespace CompanionAI_v3.Core
             CalculateConfidence();
 
             // ★ v3.5.36: ConfidenceState 포함
-            Main.LogDebug($"[TeamBlackboard] Team: AvgHP={AverageAllyHP:F0}%, " +
+            Log.Engine.Debug($"[TeamBlackboard] Team: AvgHP={AverageAllyHP:F0}%, " +
                 $"LowHP={LowHPAlliesCount}, Critical={CriticalHPAlliesCount}, " +
                 $"Tactic={CurrentTactic}, Confidence={TeamConfidence:F2} ({GetConfidenceState()}), Target={SharedTarget?.CharacterName ?? "None"}");
         }
@@ -549,7 +550,7 @@ namespace CompanionAI_v3.Core
             ));
 
             // ★ v3.5.36: ConfidenceState 포함
-            Main.LogDebug($"[TeamBlackboard] Confidence={TeamConfidence:F2} ({GetConfidenceState()}) " +
+            Log.Engine.Debug($"[TeamBlackboard] Confidence={TeamConfidence:F2} ({GetConfidenceState()}) " +
                 $"(AllyHP={allyHPFactor:F2}, EnemyDmg={enemyDamageFactor:F2}, Numbers={numberFactor:F2}, " +
                 $"Momentum={momentumFactor:F2}, DmgRatio={damageRatioFactor:F2})");
         }
@@ -658,7 +659,7 @@ namespace CompanionAI_v3.Core
         {
             if (target == null || target.LifeState.IsDead) return;
             SharedTarget = target;
-            Main.Log($"[TeamBlackboard] Shared target set: {target.CharacterName}");
+            Log.Engine.Info($"[TeamBlackboard] Shared target set: {target.CharacterName}");
         }
 
         #endregion
@@ -676,7 +677,7 @@ namespace CompanionAI_v3.Core
             string id = unit.UniqueId ?? unit.CharacterName ?? "unknown";
             if (_actedThisRound.Add(id))
             {
-                Main.Log($"[Blackboard] ★ Unit acted this round: {unit.CharacterName}");
+                Log.Engine.Info($"[Blackboard] ★ Unit acted this round: {unit.CharacterName}");
             }
         }
 
@@ -696,7 +697,7 @@ namespace CompanionAI_v3.Core
 
                 if (acted)
                 {
-                    Main.LogDebug($"[Blackboard] Unit already acted this round (Game API): {unit.CharacterName}");
+                    Log.Engine.Debug($"[Blackboard] Unit already acted this round (Game API): {unit.CharacterName}");
                 }
 
                 return acted;
@@ -704,7 +705,7 @@ namespace CompanionAI_v3.Core
             catch (Exception ex)
             {
                 // API 접근 실패 시 폴백 (레거시 방식)
-                Main.LogError(ex, $"[Blackboard] Initiative API failed, using fallback");
+                Log.Engine.Error(ex, $"[Blackboard] Initiative API failed, using fallback");
                 string id = unit.UniqueId ?? unit.CharacterName ?? "unknown";
                 return _actedThisRound.Contains(id);
             }
@@ -720,7 +721,7 @@ namespace CompanionAI_v3.Core
 
             if (count > 0)
             {
-                Main.LogDebug($"[Blackboard] Cleared {count} acted units for new round");
+                Log.Engine.Debug($"[Blackboard] Cleared {count} acted units for new round");
             }
         }
 
@@ -736,7 +737,7 @@ namespace CompanionAI_v3.Core
         {
             if (string.IsNullOrEmpty(unitId) || target == null) return;
             _previousTargets[unitId] = target;
-            Main.LogDebug($"[Blackboard] Previous target set: {unitId} -> {target.CharacterName}");
+            Log.Engine.Debug($"[Blackboard] Previous target set: {unitId} -> {target.CharacterName}");
         }
 
         /// <summary>
@@ -782,12 +783,12 @@ namespace CompanionAI_v3.Core
             string id = target.UniqueId ?? target.CharacterName ?? "unknown";
             if (_reservedTauntTargets.Contains(id))
             {
-                Main.LogDebug($"[Blackboard] Taunt already reserved: {target.CharacterName}");
+                Log.Engine.Debug($"[Blackboard] Taunt already reserved: {target.CharacterName}");
                 return false;
             }
 
             _reservedTauntTargets.Add(id);
-            Main.Log($"[Blackboard] Taunt reserved: {target.CharacterName}");
+            Log.Engine.Info($"[Blackboard] Taunt reserved: {target.CharacterName}");
             return true;
         }
 
@@ -803,12 +804,12 @@ namespace CompanionAI_v3.Core
             string id = target.UniqueId ?? target.CharacterName ?? "unknown";
             if (_reservedHealTargets.Contains(id))
             {
-                Main.LogDebug($"[Blackboard] Heal already reserved: {target.CharacterName}");
+                Log.Engine.Debug($"[Blackboard] Heal already reserved: {target.CharacterName}");
                 return false;
             }
 
             _reservedHealTargets.Add(id);
-            Main.Log($"[Blackboard] Heal reserved: {target.CharacterName}");
+            Log.Engine.Info($"[Blackboard] Heal reserved: {target.CharacterName}");
             return true;
         }
 
@@ -840,7 +841,7 @@ namespace CompanionAI_v3.Core
             if (target == null) return;
             string id = target.UniqueId ?? target.CharacterName ?? "unknown";
             if (_reservedTauntTargets.Remove(id))
-                Main.Log($"[Blackboard] Taunt released: {target.CharacterName}");
+                Log.Engine.Info($"[Blackboard] Taunt released: {target.CharacterName}");
         }
 
         /// <summary>
@@ -851,7 +852,7 @@ namespace CompanionAI_v3.Core
             if (target == null) return;
             string id = target.UniqueId ?? target.CharacterName ?? "unknown";
             if (_reservedHealTargets.Remove(id))
-                Main.Log($"[Blackboard] Heal released: {target.CharacterName}");
+                Log.Engine.Info($"[Blackboard] Heal released: {target.CharacterName}");
         }
 
         /// <summary>
@@ -872,7 +873,7 @@ namespace CompanionAI_v3.Core
 
             if (tauntCount > 0 || healCount > 0 || posCount > 0)
             {
-                Main.LogDebug($"[Blackboard] Reservations cleared: {tauntCount} taunts, {healCount} heals, {posCount} positions");
+                Log.Engine.Debug($"[Blackboard] Reservations cleared: {tauntCount} taunts, {healCount} heals, {posCount} positions");
             }
         }
 
@@ -887,7 +888,7 @@ namespace CompanionAI_v3.Core
         public void ReserveMovePosition(UnityEngine.Vector3 position)
         {
             _reservedMovePositions.Add(position);
-            Main.LogDebug($"[Blackboard] Position reserved: ({position.x:F1}, {position.z:F1}). Total={_reservedMovePositions.Count}");
+            Log.Engine.Debug($"[Blackboard] Position reserved: ({position.x:F1}, {position.z:F1}). Total={_reservedMovePositions.Count}");
         }
 
         /// <summary>
@@ -970,7 +971,7 @@ namespace CompanionAI_v3.Core
 
             _heroicActPriorityUnitId = bestId;
             if (bestId != null && Main.IsDebugEnabled)
-                Main.LogDebug($"[TeamBlackboard] HeroicAct priority: {bestId} (score={bestScore:F0})");
+                Log.Engine.Debug($"[TeamBlackboard] HeroicAct priority: {bestId} (score={bestScore:F0})");
         }
 
         #endregion

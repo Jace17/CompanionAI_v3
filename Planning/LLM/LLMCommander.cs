@@ -11,6 +11,7 @@ using CompanionAI_v3.Analysis;
 using CompanionAI_v3.Core;
 using CompanionAI_v3.GameInterface;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Planning.LLM
 {
@@ -118,7 +119,7 @@ namespace CompanionAI_v3.Planning.LLM
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[LLMCommander] Parse failed");
+                Log.Planning.Error(ex, $"[LLMCommander] Parse failed");
             }
 
             return d;
@@ -179,7 +180,7 @@ namespace CompanionAI_v3.Planning.LLM
         {
             if (_isCommanding)
             {
-                Main.Log("[LLMCommander] Already commanding — fallback to default");
+                Log.Planning.Info("[LLMCommander] Already commanding — fallback to default");
                 onResult?.Invoke(new CommanderDirective());
                 yield break;
             }
@@ -204,7 +205,7 @@ namespace CompanionAI_v3.Planning.LLM
                 }
                 catch (Exception msgEx)
                 {
-                    Main.LogWarning($"[LLMCommander] Message build failed: {msgEx.Message}");
+                    Log.Planning.Warn($"[LLMCommander] Message build failed: {msgEx.Message}");
                     _isCommanding = false;
                     onResult?.Invoke(new CommanderDirective());
                     yield break;
@@ -227,7 +228,7 @@ namespace CompanionAI_v3.Planning.LLM
 
                 // ★ v3.110.4: 토큰 회귀 감지용 — user msg 길이 + 대략 토큰 (chars/4)
                 int userChars = userMsg?.Length ?? 0;
-                Main.LogDebug($"[LLMCommander] → {LLMHttpClient.NormalizeBaseUrl(baseUrl)}/api/chat, model={model}, allies={allySituations.Count}, enemies={enemyCount}, userMsg={userChars}ch (~{userChars / 4}tok)");
+                Log.Planning.Debug($"[LLMCommander] → {LLMHttpClient.NormalizeBaseUrl(baseUrl)}/api/chat, model={model}, allies={allySituations.Count}, enemies={enemyCount}, userMsg={userChars}ch (~{userChars / 4}tok)");
 
                 // 4. HTTP 요청 (LLMHttpClient.PostChatAsync 위임)
                 LLMHttpClient.Response response = default(LLMHttpClient.Response);
@@ -240,12 +241,12 @@ namespace CompanionAI_v3.Planning.LLM
                 if (response.Success)
                 {
                     string raw = response.RawJson ?? "";
-                    Main.LogDebug($"[LLMCommander] Raw ({raw.Length} chars): {Truncate(raw, 300)}");
+                    Log.Planning.Debug($"[LLMCommander] Raw ({raw.Length} chars): {Truncate(raw, 300)}");
                     string content = LLMHttpClient.ExtractContent(raw);
                     directive = CommanderDirective.Parse(content, enemyCount);
                     stopwatch.Stop();
                     LastCommanderTimeMs = stopwatch.ElapsedMilliseconds;
-                    Main.Log($"[LLMCommander] {directive} ({LastCommanderTimeMs}ms)");
+                    Log.Planning.Info($"[LLMCommander] {directive} ({LastCommanderTimeMs}ms)");
                 }
                 else
                 {
@@ -255,7 +256,7 @@ namespace CompanionAI_v3.Planning.LLM
                     string errorText = response.WasTimeout
                         ? "Commander timeout exceeded"
                         : $"HTTP {response.HttpStatusCode}: {response.ErrorMessage}";
-                    Main.Log($"[LLMCommander] Failed: {errorText} — default directive ({LastCommanderTimeMs}ms)");
+                    Log.Planning.Info($"[LLMCommander] Failed: {errorText} — default directive ({LastCommanderTimeMs}ms)");
                 }
 
                 onResult?.Invoke(directive);

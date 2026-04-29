@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Kingmaker;
 using Kingmaker.EntitySystem.Entities;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Planning.LLM
 {
@@ -92,7 +93,7 @@ namespace CompanionAI_v3.Planning.LLM
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[InitiativeTracker] Failed");
+                Log.Planning.Error(ex, $"[InitiativeTracker] Failed");
                 return new Dictionary<BaseUnitEntity, int>();
             }
         }

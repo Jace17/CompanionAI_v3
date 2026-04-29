@@ -14,6 +14,7 @@ using CompanionAI_v3.Data;
 using CompanionAI_v3.Diagnostics;
 using CompanionAI_v3.GameInterface;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Planning.Plans
 {
@@ -41,15 +42,15 @@ namespace CompanionAI_v3.Planning.Plans
             // 사역마가 없으면 DPS 폴백 (하지만 이 Plan이 선택되었다면 사역마가 있어야 함)
             if (!situation.HasFamiliar)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] Warning: No familiar detected, unexpected state");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] Warning: No familiar detected, unexpected state");
             }
 
-            if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] CreatePlan: AP={remainingAP:F1}, MP={remainingMP:F1}, " +
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] CreatePlan: AP={remainingAP:F1}, MP={remainingMP:F1}, " +
                 $"FamiliarType={situation.FamiliarType}, HasFamiliar={situation.HasFamiliar}");
 
             // ★ v3.19.4: 통합 AP 예산 — CreateAPBudget 팩토리 + CalculateMasterMinAttackAP
             var budget = CreateAPBudget(situation, remainingAP, CalculateMasterMinAttackAP(situation));
-            Main.Log($"[Overseer] {budget}");
+            Log.Planning.Info($"[Overseer] {budget}");
 
             // ★ v3.22.0: 전략 평가/재사용 — BasePlan.EvaluateOrReuseStrategy()로 통합
             TurnStrategy strategy = EvaluateOrReuseStrategy(situation, turnState, ref budget, "Overseer", Settings.AIRole.Overseer);
@@ -67,7 +68,7 @@ namespace CompanionAI_v3.Planning.Plans
                 if (switchActions.Count > 0)
                 {
                     actions.AddRange(switchActions);
-                    Main.Log($"[Overseer] Phase 1.55: Switch-First — switching weapon for better effectiveness");
+                    Log.Planning.Info($"[Overseer] Phase 1.55: Switch-First — switching weapon for better effectiveness");
                     return new TurnPlan(actions, TurnPriority.DirectAttack, "Overseer weapon switch-first");
                 }
             }
@@ -93,7 +94,7 @@ namespace CompanionAI_v3.Planning.Plans
                     heroicAction.FailurePolicy = GroupFailurePolicy.SkipRemainingInGroup;
                 }
                 actions.Add(heroicAction);
-                Main.Log($"[Overseer] Phase 2: HeroicAct planned (Momentum will be active for WarpRelay)");
+                Log.Planning.Info($"[Overseer] Phase 2: HeroicAct planned (Momentum will be active for WarpRelay)");
             }
 
             // 이번 턴 WarpRelay 사용 여부 추적
@@ -106,7 +107,7 @@ namespace CompanionAI_v3.Planning.Plans
             bool isRavenBuffPhase = situation.OptimalFamiliarPosition?.IsBuffPhase ?? true;
             if (situation.FamiliarType == PetType.Raven && situation.HasFamiliar)
             {
-                Main.Log($"[Overseer] Raven Turn Phase: {(isRavenBuffPhase ? "BUFF MODE (아군 버프 배포 우선)" : "DEBUFF MODE (적 디버프 전환)")}");
+                Log.Planning.Info($"[Overseer] Raven Turn Phase: {(isRavenBuffPhase ? "BUFF MODE (아군 버프 배포 우선)" : "DEBUFF MODE (적 디버프 전환)")}");
                 CombatReportCollector.Instance.LogPhase($"Raven: {(isRavenBuffPhase ? "BUFF" : "DEBUFF")} MODE");
             }
 
@@ -137,7 +138,7 @@ namespace CompanionAI_v3.Planning.Plans
                                 $"Reactivate {situation.Familiar.CharacterName}", apCost);
                             reactivateAction.IsFamiliarTarget = true;
                             actions.Add(reactivateAction);
-                            Main.Log($"[Overseer] Phase 2.9: ★ Familiar Reactivation — {situation.Familiar.CharacterName}");
+                            Log.Planning.Info($"[Overseer] Phase 2.9: ★ Familiar Reactivation — {situation.Familiar.CharacterName}");
 
                             return new TurnPlan(actions, TurnPriority.Emergency,
                                 "Overseer familiar reactivation",
@@ -147,18 +148,18 @@ namespace CompanionAI_v3.Planning.Plans
                         else
                         {
                             // Case 2: 사거리 밖 → 사역마 쪽으로 이동 후 재활성화 시도
-                            Main.LogDebug($"[Overseer] Phase 2.9: Reactivate blocked ({reason}), attempting move toward familiar");
+                            Log.Planning.Debug($"[Overseer] Phase 2.9: Reactivate blocked ({reason}), attempting move toward familiar");
 
                             float reactivateRange = CombatAPI.GetAbilityRangeInTiles(reactivate);
                             float distToFamiliar = CombatAPI.GetDistanceInTiles(situation.Unit, situation.Familiar);
-                            Main.LogDebug($"[Overseer] Phase 2.9: Familiar dist={distToFamiliar:F1} tiles, reactivate range={reactivateRange} tiles");
+                            Log.Planning.Debug($"[Overseer] Phase 2.9: Familiar dist={distToFamiliar:F1} tiles, reactivate range={reactivateRange} tiles");
 
                             // 이동으로 사거리 이내 도달 가능한지 확인
                             var approachPos = MovementAPI.FindBestApproachPosition(situation.Unit, situation.Familiar);
                             if (approachPos != null)
                             {
                                 float distAfterMove = CombatAPI.GetDistanceInTiles(approachPos.Position, situation.Familiar);
-                                Main.LogDebug($"[Overseer] Phase 2.9: After move dist={distAfterMove:F1} tiles to familiar");
+                                Log.Planning.Debug($"[Overseer] Phase 2.9: After move dist={distAfterMove:F1} tiles to familiar");
 
                                 if (distAfterMove <= reactivateRange)
                                 {
@@ -170,7 +171,7 @@ namespace CompanionAI_v3.Planning.Plans
                                         $"Reactivate {situation.Familiar.CharacterName}", apCost);
                                     moveReactivateAction.IsFamiliarTarget = true;
                                     actions.Add(moveReactivateAction);
-                                    Main.Log($"[Overseer] Phase 2.9: ★ Move + Reactivate — {situation.Familiar.CharacterName} (dist after move: {distAfterMove:F1})");
+                                    Log.Planning.Info($"[Overseer] Phase 2.9: ★ Move + Reactivate — {situation.Familiar.CharacterName} (dist after move: {distAfterMove:F1})");
 
                                     return new TurnPlan(actions, TurnPriority.Emergency,
                                         "Overseer move + familiar reactivation",
@@ -184,19 +185,19 @@ namespace CompanionAI_v3.Planning.Plans
                                         $"Approach unconscious {situation.Familiar.CharacterName} (out of reactivation range)"));
                                     // ★ v3.42.0: MP 차감 — 후속 Phase에서 이동 예산 과대 계획 방지
                                     remainingMP = 0;  // 접근 이동은 전체 MP 소비로 간주 (보수적)
-                                    Main.Log($"[Overseer] Phase 2.9: Approaching familiar — dist after move: {distAfterMove:F1} (need {reactivateRange})");
+                                    Log.Planning.Info($"[Overseer] Phase 2.9: Approaching familiar — dist after move: {distAfterMove:F1} (need {reactivateRange})");
                                     // 접근만 하고 나머지 턴은 정상 진행 (break하지 않음)
                                 }
                             }
                             else
                             {
-                                Main.LogDebug($"[Overseer] Phase 2.9: No reachable tiles toward familiar");
+                                Log.Planning.Debug($"[Overseer] Phase 2.9: No reachable tiles toward familiar");
                             }
                         }
                     }
                     else
                     {
-                        Main.LogDebug($"[Overseer] Phase 2.9: Not enough AP for reactivation (need {apCost}, have {remainingAP})");
+                        Log.Planning.Debug($"[Overseer] Phase 2.9: Not enough AP for reactivation (need {apCost}, have {remainingAP})");
                     }
                 }
             }
@@ -216,7 +217,7 @@ namespace CompanionAI_v3.Planning.Plans
                     if (prioritySignal != null)
                     {
                         actions.Add(prioritySignal);
-                        Main.Log($"[Overseer] Phase 3.1: Priority Signal");
+                        Log.Planning.Info($"[Overseer] Phase 3.1: Priority Signal");
                     }
                 }
 
@@ -265,7 +266,7 @@ namespace CompanionAI_v3.Planning.Plans
                         if (preRelocateBuffs.Count > 0)
                         {
                             actions.AddRange(preRelocateBuffs);
-                            Main.Log($"[Overseer] Phase 3.2.5: {preRelocateBuffs.Count} keystone BUFFS delivered BEFORE relocate");
+                            Log.Planning.Info($"[Overseer] Phase 3.2.5: {preRelocateBuffs.Count} keystone BUFFS delivered BEFORE relocate");
 
                             foreach (var action in preRelocateBuffs)
                             {
@@ -281,7 +282,7 @@ namespace CompanionAI_v3.Planning.Plans
 
                         if (postRelocateDebuffs.Count > 0)
                         {
-                            Main.Log($"[Overseer] Phase 3.2.5: {postRelocateDebuffs.Count} keystone DEBUFFS deferred to after relocate");
+                            Log.Planning.Info($"[Overseer] Phase 3.2.5: {postRelocateDebuffs.Count} keystone DEBUFFS deferred to after relocate");
                         }
 
                         preRelocateKeystoneDone = true;
@@ -295,7 +296,7 @@ namespace CompanionAI_v3.Planning.Plans
                 if (familiarRelocate != null)
                 {
                     actions.Add(familiarRelocate);
-                    Main.Log($"[Overseer] Phase 3.3: Familiar Relocate");
+                    Log.Planning.Info($"[Overseer] Phase 3.3: Familiar Relocate");
                 }
 
                 // ★ v3.18.12: Phase 3.3.5 - Post-relocate Debuffs
@@ -303,7 +304,7 @@ namespace CompanionAI_v3.Planning.Plans
                 if (postRelocateDebuffs != null && postRelocateDebuffs.Count > 0)
                 {
                     actions.AddRange(postRelocateDebuffs);
-                    Main.Log($"[Overseer] Phase 3.3.5: {postRelocateDebuffs.Count} keystone DEBUFFS after relocate");
+                    Log.Planning.Info($"[Overseer] Phase 3.3.5: {postRelocateDebuffs.Count} keystone DEBUFFS after relocate");
 
                     foreach (var action in postRelocateDebuffs)
                     {
@@ -336,7 +337,7 @@ namespace CompanionAI_v3.Planning.Plans
                         }
 
                         actions.AddRange(keystoneActions);
-                        Main.Log($"[Overseer] Phase 3.4: {keystoneActions.Count} keystone abilities planned");
+                        Log.Planning.Info($"[Overseer] Phase 3.4: {keystoneActions.Count} keystone abilities planned");
 
                         // ★ v3.7.93: 실제 사용된 능력 GUID 추적 (아군 버프에서 중복 방지)
                         foreach (var action in keystoneActions)
@@ -365,7 +366,7 @@ namespace CompanionAI_v3.Planning.Plans
                     if (cycle != null)
                     {
                         actions.Add(cycle);
-                        Main.Log($"[Overseer] Phase 3.5: Raven Cycle");
+                        Log.Planning.Info($"[Overseer] Phase 3.5: Raven Cycle");
                     }
                 }
 
@@ -385,7 +386,7 @@ namespace CompanionAI_v3.Planning.Plans
                 bool deferDebuffTransition = isRavenBuffPhase && usedWarpRelay && situation.FamiliarType == PetType.Raven;
                 if (deferDebuffTransition)
                 {
-                    Main.Log($"[Overseer] ★ v3.111.6: BUFF→DEBUFF transition DEFERRED — WarpRelay 쓴 턴에 aggressive relocate 금지 (Raven 아군 근처 유지)");
+                    Log.Planning.Info($"[Overseer] ★ v3.111.6: BUFF→DEBUFF transition DEFERRED — WarpRelay 쓴 턴에 aggressive relocate 금지 (Raven 아군 근처 유지)");
                 }
 
                 // ────────────────────────────────────────────────────────────
@@ -404,7 +405,7 @@ namespace CompanionAI_v3.Planning.Plans
                     {
                         actions.Add(aggressiveRelocate);
                         didAggressiveRelocate = true;  // ★ v3.18.0
-                        Main.Log($"[Overseer] Phase 3.5.5: Raven aggressive relocate to enemy cluster (DEBUFF MODE)");
+                        Log.Planning.Info($"[Overseer] Phase 3.5.5: Raven aggressive relocate to enemy cluster (DEBUFF MODE)");
                     }
                 }
 
@@ -420,7 +421,7 @@ namespace CompanionAI_v3.Planning.Plans
                     if (hex != null)
                     {
                         actions.Add(hex);
-                        Main.Log($"[Overseer] Phase 3.6: Raven Hex (DEBUFF MODE)");
+                        Log.Planning.Info($"[Overseer] Phase 3.6: Raven Hex (DEBUFF MODE)");
                     }
                 }
 
@@ -437,7 +438,7 @@ namespace CompanionAI_v3.Planning.Plans
                         purification.GroupTag = "OverseerHeroicWarp";
                         purification.FailurePolicy = GroupFailurePolicy.SkipRemainingInGroup;
                         actions.Add(purification);
-                        Main.Log($"[Overseer] Phase 3.6.5: Purification Discharge (Overcharge active)");
+                        Log.Planning.Info($"[Overseer] Phase 3.6.5: Purification Discharge (Overcharge active)");
                     }
                 }
 
@@ -461,7 +462,7 @@ namespace CompanionAI_v3.Planning.Plans
 
                     if (mastiffApprehendActive)
                     {
-                        Main.Log($"[Overseer] Phase 3.7: Mastiff Apprehend active — all mastiff commands SKIPPED (AP saved for master)");
+                        Log.Planning.Info($"[Overseer] Phase 3.7: Mastiff Apprehend active — all mastiff commands SKIPPED (AP saved for master)");
                     }
                     else
                     {
@@ -470,7 +471,7 @@ namespace CompanionAI_v3.Planning.Plans
                         if (mastiffFast != null)
                         {
                             actions.Add(mastiffFast);
-                            Main.Log($"[Overseer] Phase 3.7: Mastiff Fast (pre-Apprehend)");
+                            Log.Planning.Info($"[Overseer] Phase 3.7: Mastiff Fast (pre-Apprehend)");
                         }
 
                         // Apprehend → JumpClaws → Claws → Roam (폴백 체인)
@@ -478,7 +479,7 @@ namespace CompanionAI_v3.Planning.Plans
                         if (apprehend != null)
                         {
                             actions.Add(apprehend);
-                            Main.Log($"[Overseer] Phase 3.7: Mastiff Apprehend");
+                            Log.Planning.Info($"[Overseer] Phase 3.7: Mastiff Apprehend");
                         }
                         else
                         {
@@ -486,7 +487,7 @@ namespace CompanionAI_v3.Planning.Plans
                             if (jumpClaws != null)
                             {
                                 actions.Add(jumpClaws);
-                                Main.Log($"[Overseer] Phase 3.7: Mastiff JumpClaws");
+                                Log.Planning.Info($"[Overseer] Phase 3.7: Mastiff JumpClaws");
                             }
                             else
                             {
@@ -494,7 +495,7 @@ namespace CompanionAI_v3.Planning.Plans
                                 if (claws != null)
                                 {
                                     actions.Add(claws);
-                                    Main.Log($"[Overseer] Phase 3.7: Mastiff Claws");
+                                    Log.Planning.Info($"[Overseer] Phase 3.7: Mastiff Claws");
                                 }
                                 else
                                 {
@@ -502,7 +503,7 @@ namespace CompanionAI_v3.Planning.Plans
                                     if (roam != null)
                                     {
                                         actions.Add(roam);
-                                        Main.Log($"[Overseer] Phase 3.7: Mastiff Roam");
+                                        Log.Planning.Info($"[Overseer] Phase 3.7: Mastiff Roam");
                                     }
                                 }
                             }
@@ -520,7 +521,7 @@ namespace CompanionAI_v3.Planning.Plans
                     if (obstruct != null)
                     {
                         actions.Add(obstruct);
-                        Main.Log($"[Overseer] Phase 3.8: Eagle Obstruct");
+                        Log.Planning.Info($"[Overseer] Phase 3.8: Eagle Obstruct");
                     }
 
                     // Blinding Dive (이동+실명 공격)
@@ -528,7 +529,7 @@ namespace CompanionAI_v3.Planning.Plans
                     if (blindingDive != null)
                     {
                         actions.Add(blindingDive);
-                        Main.Log($"[Overseer] Phase 3.8: Eagle Blinding Dive");
+                        Log.Planning.Info($"[Overseer] Phase 3.8: Eagle Blinding Dive");
                     }
 
                     // Aerial Rush (돌진 공격)
@@ -536,7 +537,7 @@ namespace CompanionAI_v3.Planning.Plans
                     if (aerialRush != null)
                     {
                         actions.Add(aerialRush);
-                        Main.Log($"[Overseer] Phase 3.8: Eagle Aerial Rush");
+                        Log.Planning.Info($"[Overseer] Phase 3.8: Eagle Aerial Rush");
                     }
 
                     // Claws 폴백 (BlindingDive, AerialRush 둘 다 실패 시)
@@ -546,7 +547,7 @@ namespace CompanionAI_v3.Planning.Plans
                         if (eagleClaws != null)
                         {
                             actions.Add(eagleClaws);
-                            Main.Log($"[Overseer] Phase 3.8: Eagle Claws (fallback)");
+                            Log.Planning.Info($"[Overseer] Phase 3.8: Eagle Claws (fallback)");
                         }
                     }
 
@@ -555,7 +556,7 @@ namespace CompanionAI_v3.Planning.Plans
                     if (screen != null)
                     {
                         actions.Add(screen);
-                        Main.Log($"[Overseer] Phase 3.8: Eagle Screen");
+                        Log.Planning.Info($"[Overseer] Phase 3.8: Eagle Screen");
                     }
                 }
 
@@ -568,7 +569,7 @@ namespace CompanionAI_v3.Planning.Plans
                     if (vitalitySignal != null)
                     {
                         actions.Add(vitalitySignal);
-                        Main.Log($"[Overseer] Phase 3.9: Vitality Signal");
+                        Log.Planning.Info($"[Overseer] Phase 3.9: Vitality Signal");
                     }
                 }
             }
@@ -580,14 +581,14 @@ namespace CompanionAI_v3.Planning.Plans
             var usedBuffGuids = new HashSet<string>();
             int positionalBuffCount = ExecutePositionalBuffPhase(actions, situation, ref remainingAP, usedBuffGuids);
             if (positionalBuffCount > 0)
-                Main.Log($"[Overseer] Phase 4: {positionalBuffCount} Positional Buffs planned");
+                Log.Planning.Info($"[Overseer] Phase 4: {positionalBuffCount} Positional Buffs planned");
 
             // Stratagem
             var stratagemAction = PlanStratagem(situation, ref remainingAP);
             if (stratagemAction != null)
             {
                 actions.Add(stratagemAction);
-                Main.Log($"[Overseer] Phase 4: Stratagem");
+                Log.Planning.Info($"[Overseer] Phase 4: Stratagem");
             }
 
             // Marker
@@ -598,7 +599,7 @@ namespace CompanionAI_v3.Planning.Plans
                 if (markerAction != null)
                 {
                     actions.Add(markerAction);
-                    Main.Log($"[Overseer] Phase 4: Marker");
+                    Log.Planning.Info($"[Overseer] Phase 4: Marker");
                 }
             }
 
@@ -634,7 +635,7 @@ namespace CompanionAI_v3.Planning.Plans
 
                 actions.Add(allyBuffAction);
                 allyBuffCount++;
-                Main.Log($"[Overseer] Phase 4.5: Ally Buff #{allyBuffCount} - {allyBuffAction.Ability?.Name} -> {buffTarget?.CharacterName}");
+                Log.Planning.Info($"[Overseer] Phase 4.5: Ally Buff #{allyBuffCount} - {allyBuffAction.Ability?.Name} -> {buffTarget?.CharacterName}");
             }
 
             // ══════════════════════════════════════════════════════════════
@@ -652,7 +653,7 @@ namespace CompanionAI_v3.Planning.Plans
                     if (postBuffRelocate != null)
                     {
                         actions.Add(postBuffRelocate);
-                        Main.Log($"[Overseer] Phase 4.6: Raven relocate to enemy cluster (DEBUFF MODE, post-buff)");
+                        Log.Planning.Info($"[Overseer] Phase 4.6: Raven relocate to enemy cluster (DEBUFF MODE, post-buff)");
                     }
                 }
             }
@@ -686,7 +687,7 @@ namespace CompanionAI_v3.Planning.Plans
                             if (gcPreMove != null) actions.Add(gcPreMove);
                             actions.Add(gcAction);
                             didPlanGapCloserPhase49 = true;  // ★ v3.18.16
-                            Main.Log($"[Overseer] Phase 4.9: GapCloser replaces MoveToAttack{(gcPreMove != null ? " (walk+jump)" : "")}");
+                            Log.Planning.Info($"[Overseer] Phase 4.9: GapCloser replaces MoveToAttack{(gcPreMove != null ? " (walk+jump)" : "")}");
                             var landingPos = gcAction.MoveDestination ?? gcAction.Target?.Point;
                             if (landingPos.HasValue)
                                 RecalculateHittableFromDestination(situation, landingPos.Value);
@@ -694,13 +695,13 @@ namespace CompanionAI_v3.Planning.Plans
                         else
                         {
                             actions.Add(tacticalMoveAction);
-                            Main.Log($"[Overseer] Phase 4.9: Tactical pre-attack move");
+                            Log.Planning.Info($"[Overseer] Phase 4.9: Tactical pre-attack move");
                         }
                     }
                     else
                     {
                         actions.Add(tacticalMoveAction);
-                        Main.Log($"[Overseer] Phase 4.9: Tactical pre-attack move");
+                        Log.Planning.Info($"[Overseer] Phase 4.9: Tactical pre-attack move");
                     }
                 }
                 else if (!situation.HasHittableEnemies)
@@ -715,7 +716,7 @@ namespace CompanionAI_v3.Planning.Plans
                         if (gcPreMove != null) actions.Add(gcPreMove);
                         actions.Add(gcAction);
                         didPlanGapCloserPhase49 = true;  // ★ v3.18.16
-                        Main.Log($"[Overseer] Phase 4.9: GapCloser as last resort{(gcPreMove != null ? " (walk+jump)" : "")}");
+                        Log.Planning.Info($"[Overseer] Phase 4.9: GapCloser as last resort{(gcPreMove != null ? " (walk+jump)" : "")}");
                         var landingPos = gcAction.MoveDestination ?? gcAction.Target?.Point;
                         if (landingPos.HasValue)
                             RecalculateHittableFromDestination(situation, landingPos.Value);
@@ -732,7 +733,7 @@ namespace CompanionAI_v3.Planning.Plans
                 if (clearMPRetreat != null)
                 {
                     actions.Add(clearMPRetreat);
-                    Main.Log("[Overseer] Phase 4.95: Preemptive retreat before ClearMP ability");
+                    Log.Planning.Info("[Overseer] Phase 4.95: Preemptive retreat before ClearMP ability");
                 }
             }
 
@@ -750,7 +751,7 @@ namespace CompanionAI_v3.Planning.Plans
                 if (masterBuff != null)
                 {
                     actions.Add(masterBuff);
-                    Main.Log($"[Overseer] Phase 4.955: Master PreAttackBuff: {masterBuff.Ability?.Name}");
+                    Log.Planning.Info($"[Overseer] Phase 4.955: Master PreAttackBuff: {masterBuff.Ability?.Name}");
                 }
             }
 
@@ -771,7 +772,7 @@ namespace CompanionAI_v3.Planning.Plans
                 {
                     actions.Add(meleeAoE);
                     didPlanAoE = true;
-                    Main.Log($"[Overseer] Phase 4.96: Melee AoE planned");
+                    Log.Planning.Info($"[Overseer] Phase 4.96: Melee AoE planned");
                 }
             }
 
@@ -787,7 +788,7 @@ namespace CompanionAI_v3.Planning.Plans
                 {
                     actions.Add(aoE);
                     didPlanAoE = true;
-                    Main.Log($"[Overseer] Phase 4.97: Point-target AoE planned");
+                    Log.Planning.Info($"[Overseer] Phase 4.97: Point-target AoE planned");
                 }
                 if (!didPlanAoE)
                 {
@@ -796,7 +797,7 @@ namespace CompanionAI_v3.Planning.Plans
                     {
                         actions.Add(unitAoE);
                         didPlanAoE = true;
-                        Main.Log($"[Overseer] Phase 4.97b: Unit-targeted AoE planned");
+                        Log.Planning.Info($"[Overseer] Phase 4.97b: Unit-targeted AoE planned");
                     }
                 }
             }
@@ -861,7 +862,7 @@ namespace CompanionAI_v3.Planning.Plans
 
             if (didPlanAttack)
             {
-                Main.Log($"[Overseer] Phase 5: {attacksPlanned} attacks planned");
+                Log.Planning.Info($"[Overseer] Phase 5: {attacksPlanned} attacks planned");
             }
 
             // ★ v3.8.72: Hittable mismatch 사후 보정
@@ -875,7 +876,7 @@ namespace CompanionAI_v3.Planning.Plans
             if (!didPlanAttack && !situation.PrefersRanged && situation.NearestEnemy != null
                 && !CombatAPI.IsTargetImmuneToDamage(situation.NearestEnemy, situation.Unit))
             {
-                Main.Log($"[Overseer] Phase 5.6: Trying GapCloser fallback");
+                Log.Planning.Info($"[Overseer] Phase 5.6: Trying GapCloser fallback");
                 PlannedAction gcPreMove;
                 var gc = PlanGapCloser(situation, situation.NearestEnemy,
                     ref remainingAP, ref remainingMP, out gcPreMove);
@@ -884,7 +885,7 @@ namespace CompanionAI_v3.Planning.Plans
                     if (gcPreMove != null) actions.Add(gcPreMove);
                     actions.Add(gc);
                     didPlanAttack = true;
-                    Main.Log($"[Overseer] Phase 5.6: GapCloser fallback success" +
+                    Log.Planning.Info($"[Overseer] Phase 5.6: GapCloser fallback success" +
                         (gcPreMove != null ? " (walk+jump)" : ""));
                 }
             }
@@ -900,7 +901,7 @@ namespace CompanionAI_v3.Planning.Plans
                 {
                     actions.Add(selfAoE);
                     didPlanAttack = true;
-                    Main.Log($"[Overseer] Phase 5.7: Self-AoE finisher");
+                    Log.Planning.Info($"[Overseer] Phase 5.7: Self-AoE finisher");
                 }
             }
 
@@ -922,7 +923,7 @@ namespace CompanionAI_v3.Planning.Plans
                     if (expectedMP > 0)
                     {
                         remainingMP += expectedMP;
-                        Main.Log($"[Overseer] Phase 6: {postAction.Ability.Name} will restore ~{expectedMP:F0} MP");
+                        Log.Planning.Info($"[Overseer] Phase 6: {postAction.Ability.Name} will restore ~{expectedMP:F0} MP");
                     }
                 }
             }
@@ -933,7 +934,7 @@ namespace CompanionAI_v3.Planning.Plans
             {
                 actions.AddRange(oppHealActions);
                 remainingMP = 0;
-                Main.Log($"[Overseer] Phase 6.5: Opportunistic ally heal");
+                Log.Planning.Info($"[Overseer] Phase 6.5: Opportunistic ally heal");
             }
 
             // ══════════════════════════════════════════════════════════════
@@ -954,7 +955,7 @@ namespace CompanionAI_v3.Planning.Plans
                 {
                     actions.Add(retreatAction);
                     hasMoveInPlan = true;
-                    Main.Log($"[Overseer] Phase 7: Retreat within familiar ability range");
+                    Log.Planning.Info($"[Overseer] Phase 7: Retreat within familiar ability range");
                 }
             }
 
@@ -992,7 +993,7 @@ namespace CompanionAI_v3.Planning.Plans
                     moveAction = PlanMoveToEnemy(situation);
                     if (moveAction != null)
                     {
-                        Main.Log($"[Overseer] Phase 8: Approach enemy (PreferMelee)");
+                        Log.Planning.Info($"[Overseer] Phase 8: Approach enemy (PreferMelee)");
                     }
                 }
                 else
@@ -1002,7 +1003,7 @@ namespace CompanionAI_v3.Planning.Plans
                     moveAction = PlanOverseerMovement(situation, remainingMP, !didPlanAttack && attackContext.ShouldForceMove);
                     if (moveAction != null)
                     {
-                        Main.Log($"[Overseer] Phase 8: Movement (within familiar range)");
+                        Log.Planning.Info($"[Overseer] Phase 8: Movement (within familiar range)");
                     }
                 }
 
@@ -1024,7 +1025,7 @@ namespace CompanionAI_v3.Planning.Plans
                         {
                             actions.Add(postMoveAttack);
                             didPlanAttack = true;
-                            Main.Log($"[Overseer] Phase 8: Post-move attack after approach");
+                            Log.Planning.Info($"[Overseer] Phase 8: Post-move attack after approach");
                         }
                     }
                 }
@@ -1066,7 +1067,7 @@ namespace CompanionAI_v3.Planning.Plans
                     if (safeRetreatAction != null)
                     {
                         actions.Add(safeRetreatAction);
-                        Main.Log($"[Overseer] Phase 8.5: Safe retreat within familiar range: {retreatReason}");
+                        Log.Planning.Info($"[Overseer] Phase 8.5: Safe retreat within familiar range: {retreatReason}");
                     }
                 }
             }
@@ -1079,7 +1080,7 @@ namespace CompanionAI_v3.Planning.Plans
                 {
                     actions.Add(tacticalRepos);
                     hasMoveAfterPhase8 = true;
-                    Main.Log($"[Overseer] Phase 8.7: Tactical reposition (all attacks on cooldown, MP={remainingMP:F1})");
+                    Log.Planning.Info($"[Overseer] Phase 8.7: Tactical reposition (all attacks on cooldown, MP={remainingMP:F1})");
                 }
             }
 
@@ -1094,7 +1095,7 @@ namespace CompanionAI_v3.Planning.Plans
                 if (finalAction != null)
                 {
                     actions.Add(finalAction);
-                    Main.Log($"[Overseer] Phase 9: Final AP utilization");
+                    Log.Planning.Info($"[Overseer] Phase 9: Final AP utilization");
                 }
             }
 
@@ -1109,7 +1110,7 @@ namespace CompanionAI_v3.Planning.Plans
                 if (protect != null)
                 {
                     actions.Add(protect);
-                    Main.Log($"[Overseer] Phase 9.5: Mastiff Protect (end-of-turn)");
+                    Log.Planning.Info($"[Overseer] Phase 9.5: Mastiff Protect (end-of-turn)");
                 }
             }
 
@@ -1121,13 +1122,13 @@ namespace CompanionAI_v3.Planning.Plans
                 bool hasRecoveryMove = actions.Any(a => a.Type == ActionType.Move);
                 if (!hasRecoveryMove && situation.HasLivingEnemies && remainingMP > 0)
                 {
-                    Main.Log($"[Overseer] ★ Post-validation recovery: attempting movement (AP={remainingAP:F1}, MP={remainingMP:F1})");
+                    Log.Planning.Info($"[Overseer] ★ Post-validation recovery: attempting movement (AP={remainingAP:F1}, MP={remainingMP:F1})");
                     var recoveryCtx = new AttackPhaseContext { RangeWasIssue = true };
                     var recoveryMove = PlanOverseerMovement(situation, remainingMP, true);
                     if (recoveryMove != null)
                     {
                         actions.Add(recoveryMove);
-                        Main.Log($"[Overseer] ★ Post-validation recovery: movement planned");
+                        Log.Planning.Info($"[Overseer] ★ Post-validation recovery: movement planned");
                     }
                 }
             }
@@ -1150,7 +1151,7 @@ namespace CompanionAI_v3.Planning.Plans
             var priority = DeterminePriority(actions, situation);
             var reasoning = $"Overseer: {DetermineReasoning(actions, situation)}";
 
-            if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] Plan complete: {actions.Count} actions, AP={remainingAP:F1}, MP={remainingMP:F1}");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] Plan complete: {actions.Count} actions, AP={remainingAP:F1}, MP={remainingMP:F1}");
 
             int zeroAPAttackCount = CombatAPI.GetZeroAPAttacks(situation.Unit).Count;
             // ★ v3.9.26: NormalHittableCount 사용 — DangerousAoE 부풀림이 replan을 불필요하게 유발 방지
@@ -1171,13 +1172,13 @@ namespace CompanionAI_v3.Planning.Plans
             float maxFamiliarRange = FamiliarAPI.GetMaxFamiliarAbilityRange(situation.Unit);
             float currentDistToFamiliar = Vector3.Distance(situation.Unit.Position, situation.FamiliarPosition);
             Vector3 currentPos = situation.Unit.Position;
-            if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] PlanOverseerRetreat: maxFamiliarRange={maxFamiliarRange:F1}m, currentDist={currentDistToFamiliar:F1}m");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] PlanOverseerRetreat: maxFamiliarRange={maxFamiliarRange:F1}m, currentDist={currentDistToFamiliar:F1}m");
 
             // 도달 가능한 타일 조회
             var tiles = MovementAPI.FindAllReachableTilesSync(situation.Unit, remainingMP);
             if (tiles == null || tiles.Count == 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] PlanOverseerRetreat: No reachable tiles, using standard retreat");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] PlanOverseerRetreat: No reachable tiles, using standard retreat");
                 return PlanRetreat(situation);
             }
 
@@ -1296,11 +1297,11 @@ namespace CompanionAI_v3.Planning.Plans
                 // 후퇴 효과 검증: 적과 2m 이상 멀어지거나, 현재보다 5m 이상 이동해야 함
                 if (distImprovement < 2f && distFromCurrent < 5f)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] PlanOverseerRetreat: Not worth it (enemy dist improvement={distImprovement:F1}m, move dist={distFromCurrent:F1}m)");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] PlanOverseerRetreat: Not worth it (enemy dist improvement={distImprovement:F1}m, move dist={distFromCurrent:F1}m)");
                     return null;
                 }
 
-                Main.Log($"[Overseer] Retreat within {maxFamiliarRange:F0}m of familiar (enemy dist +{distImprovement:F1}m)");
+                Log.Planning.Info($"[Overseer] Retreat within {maxFamiliarRange:F0}m of familiar (enemy dist +{distImprovement:F1}m)");
                 // ★ v3.10.0: 후퇴 위치 예약 (다른 유닛 밀집 방지)
                 TeamBlackboard.Instance?.ReserveMovePosition(bestPos.Value);
                 return PlannedAction.Move(bestPos.Value, $"Safe retreat (within {maxFamiliarRange:F0}m of familiar)");
@@ -1309,14 +1310,14 @@ namespace CompanionAI_v3.Planning.Plans
             // ★ v3.7.98: 사역마 사거리 내 위치가 없으면 사역마 쪽으로 이동
             if (closestToFamiliarPos.HasValue && closestToFamiliarDist < currentDistToFamiliar)
             {
-                Main.Log($"[Overseer] Retreating toward familiar (current={currentDistToFamiliar:F1}m → {closestToFamiliarDist:F1}m)");
+                Log.Planning.Info($"[Overseer] Retreating toward familiar (current={currentDistToFamiliar:F1}m → {closestToFamiliarDist:F1}m)");
                 // ★ v3.10.0: 후퇴 위치 예약
                 TeamBlackboard.Instance?.ReserveMovePosition(closestToFamiliarPos.Value);
                 return PlannedAction.Move(closestToFamiliarPos.Value, $"Retreat toward familiar ({closestToFamiliarDist:F1}m)");
             }
 
             // 사역마 쪽으로도 이동 불가면 표준 후퇴
-            if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] PlanOverseerRetreat: Cannot reach familiar, using standard retreat");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] PlanOverseerRetreat: Cannot reach familiar, using standard retreat");
             return PlanRetreat(situation);
         }
 
@@ -1330,13 +1331,13 @@ namespace CompanionAI_v3.Planning.Plans
             // 사역마 스킬 최대 사거리 조회
             float maxFamiliarRange = FamiliarAPI.GetMaxFamiliarAbilityRange(situation.Unit);
             float currentDistToFamiliar = Vector3.Distance(situation.Unit.Position, situation.FamiliarPosition);
-            if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] PlanOverseerMovement: maxFamiliarRange={maxFamiliarRange:F1}m, currentDist={currentDistToFamiliar:F1}m, needsAttackPosition={needsAttackPosition}");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] PlanOverseerMovement: maxFamiliarRange={maxFamiliarRange:F1}m, currentDist={currentDistToFamiliar:F1}m, needsAttackPosition={needsAttackPosition}");
 
             // 도달 가능한 타일 조회
             var tiles = MovementAPI.FindAllReachableTilesSync(situation.Unit, remainingMP);
             if (tiles == null || tiles.Count == 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] PlanOverseerMovement: No reachable tiles");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] PlanOverseerMovement: No reachable tiles");
                 return null;
             }
 
@@ -1468,12 +1469,12 @@ namespace CompanionAI_v3.Planning.Plans
                 // 이동 거리가 짧거나 점수 개선이 미미하면 이동 안 함
                 if (distFromCurrent < 4f && scoreImprovement < MIN_SCORE_IMPROVEMENT)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] PlanOverseerMovement: Not worth moving (dist={distFromCurrent:F1}m, improvement={scoreImprovement:F1})");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] PlanOverseerMovement: Not worth moving (dist={distFromCurrent:F1}m, improvement={scoreImprovement:F1})");
                     return null;
                 }
 
                 float finalDist = Vector3.Distance(bestPos.Value, situation.FamiliarPosition);
-                Main.Log($"[Overseer] Movement within {maxFamiliarRange:F0}m of familiar (dist={finalDist:F1}m, improvement={scoreImprovement:F1})");
+                Log.Planning.Info($"[Overseer] Movement within {maxFamiliarRange:F0}m of familiar (dist={finalDist:F1}m, improvement={scoreImprovement:F1})");
                 // ★ v3.10.0: 이동 위치 예약 (다른 유닛 밀집 방지)
                 TeamBlackboard.Instance?.ReserveMovePosition(bestPos.Value);
                 return PlannedAction.Move(bestPos.Value, $"Attack position (within {maxFamiliarRange:F0}m of familiar)");
@@ -1483,13 +1484,13 @@ namespace CompanionAI_v3.Planning.Plans
             if (closestToFamiliarPos.HasValue && closestToFamiliarDist < currentDistToFamiliar)
             {
                 // 현재보다 사역마에 가까워지는 경우에만 이동
-                Main.Log($"[Overseer] Moving toward familiar (current={currentDistToFamiliar:F1}m → {closestToFamiliarDist:F1}m)");
+                Log.Planning.Info($"[Overseer] Moving toward familiar (current={currentDistToFamiliar:F1}m → {closestToFamiliarDist:F1}m)");
                 // ★ v3.10.0: 이동 위치 예약
                 TeamBlackboard.Instance?.ReserveMovePosition(closestToFamiliarPos.Value);
                 return PlannedAction.Move(closestToFamiliarPos.Value, $"Move toward familiar ({closestToFamiliarDist:F1}m)");
             }
 
-            if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] PlanOverseerMovement: No valid position (familiar too far: {currentDistToFamiliar:F1}m)");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] PlanOverseerMovement: No valid position (familiar too far: {currentDistToFamiliar:F1}m)");
             return null;
         }
 
@@ -1504,7 +1505,7 @@ namespace CompanionAI_v3.Planning.Plans
             //   v3.111.8 sprinkle(Phase 3.5.5, Phase 4.6) push-down.
             if (situation.IsExtraTurn)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] RavenAggressiveRelocate: skip (extra turn, AP={situation.CurrentAP:F1}, MP={situation.CurrentMP:F1})");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] RavenAggressiveRelocate: skip (extra turn, AP={situation.CurrentAP:F1}, MP={situation.CurrentMP:F1})");
                 return null;
             }
 
@@ -1514,7 +1515,7 @@ namespace CompanionAI_v3.Planning.Plans
 
             if (relocate == null)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] RavenAggressiveRelocate: No relocate ability");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] RavenAggressiveRelocate: No relocate ability");
                 return null;
             }
 
@@ -1522,7 +1523,7 @@ namespace CompanionAI_v3.Planning.Plans
             float apCost = CombatAPI.GetAbilityAPCost(relocate);
             if (remainingAP < apCost)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] RavenAggressiveRelocate: Not enough AP ({remainingAP:F1} < {apCost:F1})");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] RavenAggressiveRelocate: Not enough AP ({remainingAP:F1} < {apCost:F1})");
                 return null;
             }
 
@@ -1552,7 +1553,7 @@ namespace CompanionAI_v3.Planning.Plans
             }
             // 여유 3t — familiar이 Master 반경 내에 있되 소폭 초과 허용
             float masterBuffRangeConstraintTiles = maxKeystoneBuffRangeTiles + 3f;
-            if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] RavenAggressiveRelocate: Master keystone buff max range={maxKeystoneBuffRangeTiles}t, constraint={masterBuffRangeConstraintTiles}t");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] RavenAggressiveRelocate: Master keystone buff max range={maxKeystoneBuffRangeTiles}t, constraint={masterBuffRangeConstraintTiles}t");
 
             var validAllies = situation.Allies?
                 .Where(a => a != null && a.IsConscious && !FamiliarAPI.IsFamiliar(a))
@@ -1570,13 +1571,13 @@ namespace CompanionAI_v3.Planning.Plans
                 // 버프 커버리지가 충분하지 않으면 공격 모드 진입 안 함
                 if (buffCoverage < 0.5f || alliesInRavenRange < 2)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] RavenAggressiveRelocate: Buff coverage too low ({buffCoverage:P0}, {alliesInRavenRange} allies)");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] RavenAggressiveRelocate: Buff coverage too low ({buffCoverage:P0}, {alliesInRavenRange} allies)");
                     return null;
                 }
             }
             else
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] RavenAggressiveRelocate: Coverage check skipped (post-buff phase)");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] RavenAggressiveRelocate: Coverage check skipped (post-buff phase)");
             }
 
             // 적 밀집 지역 중심 찾기
@@ -1587,7 +1588,7 @@ namespace CompanionAI_v3.Planning.Plans
             // ★ v3.8.56: 적 1명이라도 있으면 재배치 시도 (사람처럼 일단 뭐라도 하기)
             if (validEnemies.Count < 1)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] RavenAggressiveRelocate: No conscious enemies");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] RavenAggressiveRelocate: No conscious enemies");
                 return null;
             }
 
@@ -1601,7 +1602,7 @@ namespace CompanionAI_v3.Planning.Plans
             float distToEnemyCluster = Vector3.Distance(raven.Position, enemyCenter);
             if (distToEnemyCluster < 5f)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] RavenAggressiveRelocate: Already near enemy cluster ({distToEnemyCluster:F1}m)");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] RavenAggressiveRelocate: Already near enemy cluster ({distToEnemyCluster:F1}m)");
                 return null;
             }
 
@@ -1610,7 +1611,7 @@ namespace CompanionAI_v3.Planning.Plans
             // 노드 검색에서 사거리 제한이 적용되므로, 도달 가능한 가장 적에 가까운 위치를 자동 선택
             if (distToEnemyCluster > MAX_RAVEN_RELOCATE_METERS)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] RavenAggressiveRelocate: Enemy cluster beyond support range ({distToEnemyCluster:F1}m > {MAX_RAVEN_RELOCATE_METERS:F1}m) - will find closest reachable position");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] RavenAggressiveRelocate: Enemy cluster beyond support range ({distToEnemyCluster:F1}m > {MAX_RAVEN_RELOCATE_METERS:F1}m) - will find closest reachable position");
             }
 
             // 적 클러스터 근처에서 최적 위치 찾기 (Relocate 사거리 내)
@@ -1675,7 +1676,7 @@ namespace CompanionAI_v3.Planning.Plans
             // ★ v3.8.56: 적 1명이라도 커버 가능하면 재배치 진행
             if (!bestPos.HasValue || bestEnemies < 1)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] RavenAggressiveRelocate: No good position found (bestEnemies={bestEnemies})");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] RavenAggressiveRelocate: No good position found (bestEnemies={bestEnemies})");
                 return null;
             }
 
@@ -1685,7 +1686,7 @@ namespace CompanionAI_v3.Planning.Plans
             {
                 remainingAP -= apCost;
                 float finalDist = Vector3.Distance(ravenPos, bestPos.Value);
-                Main.Log($"[Overseer] ★ Raven aggressive relocate to enemy cluster ({bestEnemies} enemies, dist={finalDist:F1}m from Raven)");
+                Log.Planning.Info($"[Overseer] ★ Raven aggressive relocate to enemy cluster ({bestEnemies} enemies, dist={finalDist:F1}m from Raven)");
                 return PlannedAction.PositionalBuff(
                     relocate,
                     bestPos.Value,
@@ -1693,7 +1694,7 @@ namespace CompanionAI_v3.Planning.Plans
                     apCost);
             }
 
-            if (Main.IsDebugEnabled) Main.LogDebug($"[Overseer] RavenAggressiveRelocate: Best position blocked ({reason})");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[Overseer] RavenAggressiveRelocate: Best position blocked ({reason})");
             return null;
         }
 

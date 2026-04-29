@@ -13,6 +13,7 @@ using Kingmaker.Utility;
 using Pathfinding;
 using UnityEngine;
 using CompanionAI_v3.Data;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.GameInterface
 {
@@ -36,7 +37,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetPatternSettings failed for {ability?.Name}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] GetPatternSettings failed for {ability?.Name}");
                 return null;
             }
         }
@@ -57,7 +58,7 @@ namespace CompanionAI_v3.GameInterface
             // ★ v3.13.0: 로깅 추가 (기본값 0f는 이미 보수적 — AoE 무시)
             catch (Exception ex)
             {
-                Main.LogWarning($"[CombatAPI] GetAoERadius failed for {ability?.Name}: {ex.Message}");
+                Log.Engine.Warn($"[CombatAPI] GetAoERadius failed for {ability?.Name}: {ex.Message}");
                 return 0f;
             }
         }
@@ -74,7 +75,7 @@ namespace CompanionAI_v3.GameInterface
             // ★ v3.13.0: 로깅 추가 (기본값 null은 이미 보수적 — 패턴 불명)
             catch (Exception ex)
             {
-                Main.LogWarning($"[CombatAPI] GetPatternType failed for {ability?.Name}: {ex.Message}");
+                Log.Engine.Warn($"[CombatAPI] GetPatternType failed for {ability?.Name}: {ex.Message}");
                 return null;
             }
         }
@@ -90,7 +91,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetAoETargetType failed for {ability?.Name}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] GetAoETargetType failed for {ability?.Name}");
                 return Kingmaker.UnitLogic.Abilities.Components.TargetType.Enemy;
             }
         }
@@ -121,7 +122,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsPointTargetAbility failed for {ability?.Name}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsPointTargetAbility failed for {ability?.Name}");
                 return false;
             }
         }
@@ -169,7 +170,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetPatternAngle error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] GetPatternAngle error");
                 return 90f;
             }
         }
@@ -220,7 +221,7 @@ namespace CompanionAI_v3.GameInterface
                     }
                     catch (Exception ex)
                     {
-                        if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetActualIsDirectional(custom) failed for {ability?.Name}");
+                        if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] GetActualIsDirectional(custom) failed for {ability?.Name}");
                         return false;
                     }
                 }
@@ -236,17 +237,17 @@ namespace CompanionAI_v3.GameInterface
                 if (directionalField != null)
                 {
                     bool result = (bool)directionalField.GetValue(patternSettings);
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] {ability.Name}: m_Directional field = {result}");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] {ability.Name}: m_Directional field = {result}");
                     return result;
                 }
 
                 // 필드를 찾지 못하면 타입 기반 폴백 (CanBeDirectional이면 true 가정)
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] {ability.Name}: m_Directional field not found, using CanBeDirectional fallback");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] {ability.Name}: m_Directional field not found, using CanBeDirectional fallback");
                 return pattern.CanBeDirectional;
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetActualIsDirectional error for {ability?.Name}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] GetActualIsDirectional error for {ability?.Name}");
                 return IsDirectionalPattern(GetPatternType(ability));  // 폴백
             }
         }
@@ -269,7 +270,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsRamAbility failed for {ability?.Name}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsRamAbility failed for {ability?.Name}");
                 return false;
             }
         }
@@ -303,7 +304,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsRamThroughAbility failed for {ability?.Name}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsRamThroughAbility failed for {ability?.Name}");
                 return false;
             }
         }
@@ -334,7 +335,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsSelfTargetedAoEAttack failed for {ability?.Name}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsSelfTargetedAoEAttack failed for {ability?.Name}");
                 return false;
             }
         }
@@ -365,7 +366,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsMeleeAoEAbility failed for {ability?.Name}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsMeleeAoEAbility failed for {ability?.Name}");
                 return false;
             }
         }
@@ -403,7 +404,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] CountAdjacentAllies failed for {unit?.CharacterName}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] CountAdjacentAllies failed for {unit?.CharacterName}");
                 return 0;
             }
         }
@@ -442,7 +443,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] CountAdjacentEnemies failed for {unit?.CharacterName}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] CountAdjacentEnemies failed for {unit?.CharacterName}");
                 return 0;
             }
         }
@@ -507,7 +508,7 @@ namespace CompanionAI_v3.GameInterface
                 // ★ v3.8.09: 디버그 로그 (새 능력일 때만)
                 if (actualIsDirectional != canBeDirectional || isRam)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] PatternInfo for {ability.Name}: Type={patternType}, " +
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] PatternInfo for {ability.Name}: Type={patternType}, " +
                         $"CanBeDirectional={canBeDirectional}, IsDirectional={actualIsDirectional}, " +
                         $"IsRam={isRam}, RamThrough={isRamThrough}, Radius={info.Radius}");
                 }
@@ -527,7 +528,7 @@ namespace CompanionAI_v3.GameInterface
         public static void ClearPatternCache()
         {
             PatternCache.Clear();
-            Main.LogDebug("[CombatAPI] Pattern cache cleared");
+            Log.Engine.Debug("[CombatAPI] Pattern cache cleared");
         }
 
         #endregion
@@ -552,7 +553,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetAffectedNodes error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] GetAffectedNodes error");
                 return OrientedPatternData.Empty;
             }
         }
@@ -596,7 +597,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] CountEnemiesInPattern error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] CountEnemiesInPattern error");
                 return 0;
             }
         }
@@ -641,7 +642,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] CountAlliesInPattern error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] CountAlliesInPattern error");
                 return 0;
             }
         }
@@ -694,7 +695,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] CountUnitsInPattern error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] CountUnitsInPattern error");
             }
         }
 
@@ -725,7 +726,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsUnitInPattern error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsUnitInPattern error");
                 return false;
             }
         }
@@ -760,7 +761,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetUnitsInPattern error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] GetUnitsInPattern error");
             }
             return result;
         }
@@ -815,7 +816,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] EvaluateAoEPosition error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] EvaluateAoEPosition error");
                 return (0, 0, 0);
             }
         }
@@ -853,7 +854,7 @@ namespace CompanionAI_v3.GameInterface
                 if (patternType.HasValue)
                 {
                     isDirectional = GetActualIsDirectional(ability);  // ★ v3.8.09: 게임 실제 로직
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] AOE height: {ability.Name} PatternType={patternType.Value}, IsDirectional={isDirectional}");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] AOE height: {ability.Name} PatternType={patternType.Value}, IsDirectional={isDirectional}");
                 }
                 else
                 {
@@ -861,7 +862,7 @@ namespace CompanionAI_v3.GameInterface
                     float aoERadius = GetAoERadius(ability);
                     if (aoERadius > 0)
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] AOE height: {ability.Name} PatternType=null but AOE r={aoERadius}, treating as Circle");
+                        if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] AOE height: {ability.Name} PatternType=null but AOE r={aoERadius}, treating as Circle");
                     }
                     // isDirectional = false → Circle 임계값(1.6m) 사용
                 }
@@ -876,7 +877,7 @@ namespace CompanionAI_v3.GameInterface
 
                 if (!inRange)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] AOE height check failed: {ability.Name} " +
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] AOE height check failed: {ability.Name} " +
                         $"heightDiff={heightDiff:F2}m > threshold={threshold:F2}m ({(isDirectional ? "Directional" : "Circle")})");
                 }
 
@@ -884,7 +885,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsAoEHeightInRange error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsAoEHeightInRange error");
                 return true;  // 에러 시 안전하게 허용
             }
         }

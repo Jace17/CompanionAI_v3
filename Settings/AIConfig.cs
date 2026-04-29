@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Newtonsoft.Json;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Settings
 {
@@ -87,26 +88,26 @@ namespace CompanionAI_v3.Settings
                         if (Instance.AoE == null) Instance.AoE = new AoEConfig();
                         if (Instance.WeaponRotation == null) Instance.WeaponRotation = new WeaponRotationConfig();
 
-                        Main.Log($"[AIConfig] Loaded from {configPath}");
+                        Log.Persistence.Info($"[AIConfig] Loaded from {configPath}");
                         return;
                     }
                 }
             }
             catch (Exception ex)
             {
-                Main.LogError($"[AIConfig] Failed to load: {ex.Message}");
+                Log.Persistence.Error($"[AIConfig] Failed to load: {ex.Message}");
             }
 
             Instance = CreateDefault();
             Save();
-            Main.Log("[AIConfig] Created default aiconfig.json");
+            Log.Persistence.Info("[AIConfig] Created default aiconfig.json");
         }
 
         public static void Save()
         {
             if (string.IsNullOrEmpty(_modPath))
             {
-                Main.LogError("[AIConfig] Cannot save - modPath not set");
+                Log.Persistence.Error("[AIConfig] Cannot save - modPath not set");
                 return;
             }
 
@@ -117,11 +118,11 @@ namespace CompanionAI_v3.Settings
                 if (Instance == null) Instance = CreateDefault();
                 string json = JsonConvert.SerializeObject(Instance, Formatting.Indented);
                 File.WriteAllText(configPath, json);
-                Main.LogDebug("[AIConfig] Settings saved to aiconfig.json");
+                Log.Persistence.Debug("[AIConfig] Settings saved to aiconfig.json");
             }
             catch (Exception ex)
             {
-                Main.LogError($"[AIConfig] Failed to save: {ex.Message}");
+                Log.Persistence.Error($"[AIConfig] Failed to save: {ex.Message}");
             }
         }
 

@@ -9,6 +9,7 @@ using UnityEngine.Networking;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.MachineSpirit
 {
@@ -252,7 +253,7 @@ namespace CompanionAI_v3.MachineSpirit
                 baseUrl = baseUrl.Substring(0, baseUrl.Length - 3);
             string url = baseUrl + "/api/chat";
 
-            Main.LogDebug($"[MachineSpirit] Ollama streaming → {url}, model={config.Model}");
+            Log.MachineSpirit.Debug($"[MachineSpirit] Ollama streaming → {url}, model={config.Model}");
 
             var handler = new StreamHandler();
             var request = new UnityWebRequest(url, "POST");
@@ -473,8 +474,8 @@ namespace CompanionAI_v3.MachineSpirit
 
                 string tokensInfo = isThinkingModel ? "unlimited (thinking model)" : config.MaxTokens.ToString();
                 if (finishReason == "length")
-                    Main.Log($"[MachineSpirit] Response truncated (finish_reason=length, max_tokens={tokensInfo}).");
-                Main.LogDebug($"[MachineSpirit] finish_reason={finishReason}, max_tokens={tokensInfo}, response_len={content?.Length ?? 0}");
+                    Log.MachineSpirit.Info($"[MachineSpirit] Response truncated (finish_reason=length, max_tokens={tokensInfo}).");
+                Log.MachineSpirit.Debug($"[MachineSpirit] finish_reason={finishReason}, max_tokens={tokensInfo}, response_len={content?.Length ?? 0}");
 
                 if (string.IsNullOrEmpty(content))
                     onError?.Invoke("Empty response from LLM");
@@ -573,7 +574,7 @@ namespace CompanionAI_v3.MachineSpirit
                 }
                 catch (Exception ex)
                 {
-                    Main.LogError(ex, $"[MachineSpirit] Summary parse error");
+                    Log.MachineSpirit.Error(ex, $"[MachineSpirit] Summary parse error");
                 }
             }
 

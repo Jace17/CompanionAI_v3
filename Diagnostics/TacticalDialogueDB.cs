@@ -5,6 +5,7 @@ using CompanionAI_v3.Analysis;
 using CompanionAI_v3.Settings;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Diagnostics
 {
@@ -71,7 +72,7 @@ namespace CompanionAI_v3.Diagnostics
 
             if (!File.Exists(filePath))
             {
-                Main.Log("[TacticalDialogueDB] No dialogue files found, using hardcoded fallback");
+                Log.Diagnostics.Info("[TacticalDialogueDB] No dialogue files found, using hardcoded fallback");
                 LoadHardcodedFallback();
                 return;
             }
@@ -117,12 +118,12 @@ namespace CompanionAI_v3.Diagnostics
                 }
 
                 _isLoaded = true;
-                Main.Log($"[TacticalDialogueDB] Loaded from {filePath}: " +
+                Log.Diagnostics.Info($"[TacticalDialogueDB] Loaded from {filePath}: " +
                     $"sit={_situation.Count} plan={_plan.Count} personality={_personality.Count} companions");
             }
             catch (Exception ex)
             {
-                Main.LogError($"[TacticalDialogueDB] Failed to load {filePath}: {ex.Message}");
+                Log.Diagnostics.Error($"[TacticalDialogueDB] Failed to load {filePath}: {ex.Message}");
                 LoadHardcodedFallback();
             }
         }

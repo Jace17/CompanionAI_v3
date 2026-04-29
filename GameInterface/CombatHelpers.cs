@@ -6,6 +6,7 @@ using Kingmaker.UnitLogic.Abilities;
 using UnityEngine;
 using CompanionAI_v3.Data;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.GameInterface
 {
@@ -439,10 +440,10 @@ namespace CompanionAI_v3.GameInterface
 
                 if (rangedOnly.Count > 0)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatHelpers] RangeFilter: {preference} - {rangedOnly.Count} ranged (filtered {abilities.Count - rangedOnly.Count} melee)");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatHelpers] RangeFilter: {preference} - {rangedOnly.Count} ranged (filtered {abilities.Count - rangedOnly.Count} melee)");
                     return rangedOnly;
                 }
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatHelpers] No ranged abilities - fallback to all");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatHelpers] No ranged abilities - fallback to all");
             }
             else if (preference == RangePreference.PreferMelee)
             {
@@ -453,10 +454,10 @@ namespace CompanionAI_v3.GameInterface
 
                 if (meleeOnly.Count > 0)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatHelpers] RangeFilter: PreferMelee - {meleeOnly.Count} melee (filtered {abilities.Count - meleeOnly.Count} ranged)");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatHelpers] RangeFilter: PreferMelee - {meleeOnly.Count} melee (filtered {abilities.Count - meleeOnly.Count} ranged)");
                     return meleeOnly;
                 }
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatHelpers] No melee abilities - fallback to all");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatHelpers] No melee abilities - fallback to all");
             }
 
             return abilities;  // Adaptive: 필터 없음

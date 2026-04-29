@@ -15,6 +15,7 @@ using CompanionAI_v3.Data;  // ★ v3.11.2: AbilityDatabase.IsTaunt
 using CompanionAI_v3.Diagnostics;  // ★ v3.20.0: CombatReportCollector
 using CompanionAI_v3.Settings;     // ★ v3.21.0: AIRole, RangePreference
 using CompanionAI_v3.Planning.LLM;  // ★ Phase 3: LLM-as-Judge
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Core
 {
@@ -151,19 +152,19 @@ namespace CompanionAI_v3.Core
                         turnState.WaitCount++;
                         if (turnState.WaitCount > GameConstants.COMMAND_WAIT_TIMEOUT_FRAMES)
                         {
-                            Main.LogWarning($"[Orchestrator] {unitName}: Weapon switch timeout — forcing continue");
+                            Log.Engine.Warn($"[Orchestrator] {unitName}: Weapon switch timeout — forcing continue");
                             turnState.PendingWeaponSwitchTarget = -1;
                             turnState.WaitCount = 0;
                         }
                         else
                         {
-                            Main.LogDebug($"[Orchestrator] {unitName}: Waiting for weapon switch to Set {turnState.PendingWeaponSwitchTarget} (current={unit.Body.CurrentHandEquipmentSetIndex}, wait={turnState.WaitCount})");
+                            Log.Engine.Debug($"[Orchestrator] {unitName}: Waiting for weapon switch to Set {turnState.PendingWeaponSwitchTarget} (current={unit.Body.CurrentHandEquipmentSetIndex}, wait={turnState.WaitCount})");
                             return ExecutionResult.Waiting("Weapon switch pending");
                         }
                     }
                     else
                     {
-                        Main.Log($"[Orchestrator] {unitName}: ★ Weapon switch confirmed — Set {turnState.PendingWeaponSwitchTarget} active, forcing fresh analysis");
+                        Log.Engine.Info($"[Orchestrator] {unitName}: ★ Weapon switch confirmed — Set {turnState.PendingWeaponSwitchTarget} active, forcing fresh analysis");
                         turnState.PendingWeaponSwitchTarget = -1;
                         turnState.WaitCount = 0;
                         turnState.CurrentComputePhase = ComputePhase.Ready;
@@ -188,8 +189,8 @@ namespace CompanionAI_v3.Core
             }
             catch (Exception ex)
             {
-                Main.LogError($"[Orchestrator] {unitName}: Critical error - {ex.Message}");
-                Main.LogError($"[Orchestrator] Stack: {ex.StackTrace}");
+                Log.Engine.Error($"[Orchestrator] {unitName}: Critical error - {ex.Message}");
+                Log.Engine.Error($"[Orchestrator] Stack: {ex.StackTrace}");
                 return ExecutionResult.EndTurn($"Exception: {ex.Message}");
             }
         }
@@ -206,7 +207,7 @@ namespace CompanionAI_v3.Core
             var situation = _analyzer.Analyze(unit, turnState);
             if (situation == null)
             {
-                Main.LogWarning($"[Orchestrator] {unitName}: Situation analysis returned null");
+                Log.Engine.Warn($"[Orchestrator] {unitName}: Situation analysis returned null");
                 return ExecutionResult.EndTurn("Situation analysis failed");
             }
 
@@ -223,7 +224,7 @@ namespace CompanionAI_v3.Core
             turnState.PendingSituation = situation;
             turnState.CurrentComputePhase = ComputePhase.WaitingForPlan;
 
-            Main.LogDebug($"[Orchestrator] {unitName}: Analysis complete ({_profilerStopwatch.ElapsedMilliseconds}ms) — deferring plan to next frame");
+            Log.Engine.Debug($"[Orchestrator] {unitName}: Analysis complete ({_profilerStopwatch.ElapsedMilliseconds}ms) — deferring plan to next frame");
             return ExecutionResult.Waiting("Analysis complete");
         }
 
@@ -240,12 +241,12 @@ namespace CompanionAI_v3.Core
                 turnState.ConsecutiveFailures++;
                 if (turnState.ConsecutiveFailures >= GameConstants.MAX_CONSECUTIVE_FAILURES)
                 {
-                    Main.LogWarning($"[Orchestrator] {unitName}: PendingSituation lost {turnState.ConsecutiveFailures}x — ending turn");
+                    Log.Engine.Warn($"[Orchestrator] {unitName}: PendingSituation lost {turnState.ConsecutiveFailures}x — ending turn");
                     turnState.ConsecutiveFailures = 0;
                     turnState.CurrentComputePhase = ComputePhase.Ready;
                     return ExecutionResult.EndTurn("PendingSituation lost (failure cap)");
                 }
-                Main.LogWarning($"[Orchestrator] {unitName}: PendingSituation null — re-analyzing (attempt {turnState.ConsecutiveFailures}/{GameConstants.MAX_CONSECUTIVE_FAILURES})");
+                Log.Engine.Warn($"[Orchestrator] {unitName}: PendingSituation null — re-analyzing (attempt {turnState.ConsecutiveFailures}/{GameConstants.MAX_CONSECUTIVE_FAILURES})");
                 turnState.CurrentComputePhase = ComputePhase.Ready;
                 return ExecutionResult.Waiting("Re-analyzing after lost situation");
             }
@@ -275,12 +276,12 @@ namespace CompanionAI_v3.Core
                     if (apUnchanged && noAttack)
                     {
                         turnState.StagnantPlanCount++;
-                        Main.LogWarning($"[Orchestrator] {unitName}: Stagnant plan #{turnState.StagnantPlanCount} " +
+                        Log.Engine.Warn($"[Orchestrator] {unitName}: Stagnant plan #{turnState.StagnantPlanCount} " +
                             $"(AP={currentGameAP:F1} unchanged, no attack)");
 
                         if (turnState.StagnantPlanCount >= 3)
                         {
-                            Main.LogWarning($"[Orchestrator] {unitName}: ★ Ending turn — {turnState.StagnantPlanCount} " +
+                            Log.Engine.Warn($"[Orchestrator] {unitName}: ★ Ending turn — {turnState.StagnantPlanCount} " +
                                 $"stagnant plans (AP={currentGameAP:F1}, actions={turnState.ActionCount})");
                             return ExecutionResult.EndTurn("Stagnant AP - no progress");
                         }
@@ -292,7 +293,7 @@ namespace CompanionAI_v3.Core
                 }
                 turnState.APAtLastPlanStart = currentGameAP;
 
-                Main.Log($"[Orchestrator] {unitName}: Creating new turn plan (continuation={turnState.Plan?.IsComplete ?? false})");
+                Log.Engine.Info($"[Orchestrator] {unitName}: Creating new turn plan (continuation={turnState.Plan?.IsComplete ?? false})");
                 turnState.Plan = _planner.CreatePlan(situation, turnState);
                 Data.CompanionDialogue.AnnouncePlan(unit, turnState.Plan);  // ★ v3.9.32: AI Speech
                 TeamBlackboard.Instance.RegisterUnitPlan(unitId, turnState.Plan);
@@ -317,7 +318,7 @@ namespace CompanionAI_v3.Core
             if (turnState.Plan.NeedsReplan(situation))
             {
                 CaptureStrategicContextOnReplan(turnState);
-                Main.Log($"[Orchestrator] {unitName}: Replanning due to situation change");
+                Log.Engine.Info($"[Orchestrator] {unitName}: Replanning due to situation change");
                 turnState.Plan = _planner.CreatePlan(situation, turnState);
                 Data.CompanionDialogue.AnnouncePlan(unit, turnState.Plan);  // ★ v3.9.32: AI Speech (replan)
                 TeamBlackboard.Instance.RegisterUnitPlan(unitId, turnState.Plan);
@@ -398,7 +399,7 @@ namespace CompanionAI_v3.Core
                 if (turnState.Plan.NeedsReplan(situation))
                 {
                     CaptureStrategicContextOnReplan(turnState);
-                    Main.Log($"[LLM Judge] {unitName}: Replanning due to situation change");
+                    Log.Engine.Info($"[LLM Judge] {unitName}: Replanning due to situation change");
                     turnState.Plan = _planner.CreatePlan(situation, turnState);
                     Data.CompanionDialogue.AnnouncePlan(unit, turnState.Plan);
                     TeamBlackboard.Instance.RegisterUnitPlan(unitId, turnState.Plan);
@@ -448,7 +449,7 @@ namespace CompanionAI_v3.Core
                             allySituations, TeamBlackboard.Instance, enemyCount,
                             result => _commanderResult = result));
 
-                        Main.Log($"[LLM Commander] {unitName}: Started team commander (round={currentRound}, allies={allySituations.Count})");
+                        Log.Engine.Info($"[LLM Commander] {unitName}: Started team commander (round={currentRound}, allies={allySituations.Count})");
                         return ExecutionResult.Waiting("LLM Commander analyzing");
                     }
                     else
@@ -472,7 +473,7 @@ namespace CompanionAI_v3.Core
                 int currentRound = Kingmaker.Game.Instance?.TurnController?.CombatRound ?? 1;
                 var directive = _commanderResult ?? new CommanderDirective();
                 TeamBlackboard.Instance.SetCommanderDirective(directive, currentRound, situation);
-                Main.Log($"[LLM Commander] {unitName}: {directive} ({LLMCommander.LastCommanderTimeMs}ms)");
+                Log.Engine.Info($"[LLM Commander] {unitName}: {directive} ({LLMCommander.LastCommanderTimeMs}ms)");
             }
 
             // ══════════════════════════════════════════════════
@@ -489,7 +490,7 @@ namespace CompanionAI_v3.Core
                 {
                     _scorerStarted = true;
                     _pendingWeights = preWeights;
-                    Main.Log($"[LLM Scorer] {unitName}: Pre-computed hit ({preWeights})");
+                    Log.Engine.Info($"[LLM Scorer] {unitName}: Pre-computed hit ({preWeights})");
                     // Phase 2 스킵 → Phase 3으로 바로 진행 (다음 프레임)
                 }
                 // ★ v3.82.0: Semantic cache 확인
@@ -500,7 +501,7 @@ namespace CompanionAI_v3.Core
                     {
                         _scorerStarted = true;
                         _pendingWeights = cachedWeights;
-                        Main.Log($"[LLM Scorer] {unitName}: Cache hit (hash={cacheHash}, {cachedWeights})");
+                        Log.Engine.Info($"[LLM Scorer] {unitName}: Cache hit (hash={cacheHash}, {cachedWeights})");
                     }
                     else
                     {
@@ -519,7 +520,7 @@ namespace CompanionAI_v3.Core
                                     LLMScorerCache.Store(_lastScorerCacheHash, weights);
                             }));
 
-                        Main.Log($"[LLM Scorer] {unitName}: Started scoring (enemies={enemyCount})");
+                        Log.Engine.Info($"[LLM Scorer] {unitName}: Started scoring (enemies={enemyCount})");
                         UI.LLMCombatPanel.ShowAnalyzing(unitName, scorerRole.ToString());
 
                         return ExecutionResult.Waiting("LLM Scorer analyzing");
@@ -557,7 +558,7 @@ namespace CompanionAI_v3.Core
                         turnState.StagnantPlanCount++;
                         if (turnState.StagnantPlanCount >= 3)
                         {
-                            Main.LogWarning($"[LLM Judge] {unitName}: Ending turn — {turnState.StagnantPlanCount} stagnant plans");
+                            Log.Engine.Warn($"[LLM Judge] {unitName}: Ending turn — {turnState.StagnantPlanCount} stagnant plans");
                             return ExecutionResult.EndTurn("Stagnant AP - no progress");
                         }
                     }
@@ -571,7 +572,7 @@ namespace CompanionAI_v3.Core
                 // 후보 플랜 생성 (동기) — ScorerWeights 전달
                 var role = GetEffectiveRole(unit, situation);
                 var weights = _pendingWeights ?? new ScorerWeights();
-                Main.Log($"[LLM Scorer] {unitName}: Weights={weights} ({LLMScorer.LastScorerTimeMs}ms)");
+                Log.Engine.Info($"[LLM Scorer] {unitName}: Weights={weights} ({LLMScorer.LastScorerTimeMs}ms)");
 
                 _pendingCandidates = CandidatePlanGenerator.Generate(
                     situation, turnState, _planner, role, weights);
@@ -586,7 +587,7 @@ namespace CompanionAI_v3.Core
                         string singleStratLabel = single.Strategy != null
                             ? single.Strategy.Sequence.ToString()
                             : single.Plan?.Priority.ToString() ?? "Unknown";
-                        Main.Log($"[LLM Judge] {unitName}: Single candidate — using directly ({singleStratLabel})");
+                        Log.Engine.Info($"[LLM Judge] {unitName}: Single candidate — using directly ({singleStratLabel})");
 
                         // 패널에 결과 표시 — single candidate라 Judge 호출 없음.
                         // narration: Scorer.Reasoning 우선 사용 (LLM의 진짜 의도)
@@ -595,7 +596,7 @@ namespace CompanionAI_v3.Core
                         string singleNarration = !string.IsNullOrEmpty(weights?.Reasoning)
                             ? weights.Reasoning
                             : $"Only one viable strategy — direct execution of {singleStratLabel}.";
-                        Main.Log($"[LLM Scorer] {unitName}: Narration: {singleNarration}");
+                        Log.Engine.Info($"[LLM Scorer] {unitName}: Narration: {singleNarration}");
                         UI.LLMCombatPanel.ShowResult(unitName, role.ToString(),
                             weightsTag, "Plan A",
                             single.Summary ?? singleStratLabel,
@@ -621,7 +622,7 @@ namespace CompanionAI_v3.Core
                     }
 
                     // 0개 — 일반 플래너 폴백
-                    Main.Log($"[LLM Judge] {unitName}: No candidates — falling back to normal planner");
+                    Log.Engine.Info($"[LLM Judge] {unitName}: No candidates — falling back to normal planner");
                     _pendingCandidates = null;
                     return FallbackToNormalPlan(unit, unitId, unitName, turnState, situation);
                 }
@@ -639,7 +640,7 @@ namespace CompanionAI_v3.Core
                         _judgeResult = conf.PreferredIndex;
                     }));
 
-                Main.Log($"[LLM Judge] {unitName}: Started judging {_pendingCandidates.Count} candidates (confidence mode)");
+                Log.Engine.Info($"[LLM Judge] {unitName}: Started judging {_pendingCandidates.Count} candidates (confidence mode)");
                 UI.LLMCombatPanel.ShowEvaluating(unitName, _pendingCandidates.Count);
 
                 return ExecutionResult.Waiting("LLM Judge deciding");
@@ -688,7 +689,7 @@ namespace CompanionAI_v3.Core
                     // Plan A = LLM weights, Plan B = baseline (default weights)
                     var blendedWeights = ScorerWeights.Blend(_pendingWeights, new ScorerWeights(), ratioA, ratioB);
 
-                    Main.Log($"[LLM Judge] {unitName}: Blending weights A:{ratioA:F2} B:{ratioB:F2} → {blendedWeights}");
+                    Log.Engine.Info($"[LLM Judge] {unitName}: Blending weights A:{ratioA:F2} B:{ratioB:F2} → {blendedWeights}");
 
                     // 블렌딩된 가중치로 최종 플랜 생성
                     var blendedCandidates = CandidatePlanGenerator.Generate(
@@ -728,9 +729,9 @@ namespace CompanionAI_v3.Core
                 string strategyLabel = finalStrategy != null
                     ? finalStrategy.Sequence.ToString()
                     : finalPlan?.Priority.ToString() ?? "Unknown";
-                Main.Log($"[LLM Judge] {unitName}: {blendLabel} " +
+                Log.Engine.Info($"[LLM Judge] {unitName}: {blendLabel} " +
                     $"({strategyLabel}, scorer={LLMScorer.LastScorerTimeMs}ms, judge={LLMJudge.LastJudgeTimeMs}ms)");
-                Main.Log($"[LLM Judge] {unitName}: {finalSummary}");
+                Log.Engine.Info($"[LLM Judge] {unitName}: {finalSummary}");
 
                 // LLMCombatPanel: 결과 표시
                 {
@@ -777,7 +778,7 @@ namespace CompanionAI_v3.Core
             }
 
             // Judge 결과 유효하지 않음 — 일반 플래너 폴백
-            Main.LogWarning($"[LLM Judge] {unitName}: Invalid judge result ({_judgeResult}) — falling back to normal planner");
+            Log.Engine.Warn($"[LLM Judge] {unitName}: Invalid judge result ({_judgeResult}) — falling back to normal planner");
             _pendingCandidates = null;
             return FallbackToNormalPlan(unit, unitId, unitName, turnState, situation);
         }
@@ -858,7 +859,7 @@ namespace CompanionAI_v3.Core
             {
                 _combatBestTurnScore = turnScore;
                 _combatDominantWeights = weights;
-                Main.LogDebug($"[TacticalMemory] Best-turn weights updated: score={turnScore:F0} {weights}");
+                Log.Engine.Debug($"[TacticalMemory] Best-turn weights updated: score={turnScore:F0} {weights}");
             }
         }
 
@@ -884,7 +885,7 @@ namespace CompanionAI_v3.Core
             }
             catch (System.Exception ex)
             {
-                Main.LogError(ex, $"[TrainingData] StoreTrainingContext failed");
+                Log.Engine.Error(ex, $"[TrainingData] StoreTrainingContext failed");
             }
         }
 
@@ -920,18 +921,18 @@ namespace CompanionAI_v3.Core
                 var pendingAction = turnState.Plan?.PeekNextAction();
                 if (pendingAction?.Type == ActionType.Move && currentMP > 0)
                 {
-                    Main.Log($"[Orchestrator] {unitName}: AP=0 but Move pending with MP={currentMP:F1} - continuing");
+                    Log.Engine.Info($"[Orchestrator] {unitName}: AP=0 but Move pending with MP={currentMP:F1} - continuing");
                 }
                 // ★ v3.5.88: 0 AP 공격이 있으면 계속 진행 (Break Through → Slash 등)
                 // ★ v3.9.10: 단순 존재 확인이 아닌 사거리 도달 가능성까지 검증
                 // 0 AP 공격이 있어도 MP로 도달 불가하면 무한 이동 루프 방지를 위해 턴 종료
                 else if (CombatAPI.HasZeroAPAttack(unit) && CombatAPI.CanAnyZeroAPAttackReachEnemy(unit, currentMP))
                 {
-                    Main.Log($"[Orchestrator] {unitName}: AP=0 but 0 AP attacks reachable (MP={currentMP:F1}) - continuing");
+                    Log.Engine.Info($"[Orchestrator] {unitName}: AP=0 but 0 AP attacks reachable (MP={currentMP:F1}) - continuing");
                 }
                 else
                 {
-                    Main.Log($"[Orchestrator] {unitName}: Game AP=0 with {turnState.ActionCount} actions done - ending turn");
+                    Log.Engine.Info($"[Orchestrator] {unitName}: Game AP=0 with {turnState.ActionCount} actions done - ending turn");
                     return ExecutionResult.EndTurn("No AP remaining");
                 }
             }
@@ -939,7 +940,7 @@ namespace CompanionAI_v3.Core
             // 안전 체크: 최대 행동 수
             if (turnState.HasReachedMaxActions)
             {
-                Main.LogWarning($"[Orchestrator] {unitName}: Max actions reached ({TurnState.MaxActionsPerTurn})");
+                Log.Engine.Warn($"[Orchestrator] {unitName}: Max actions reached ({TurnState.MaxActionsPerTurn})");
                 return ExecutionResult.EndTurn("Max actions reached");
             }
 
@@ -953,12 +954,12 @@ namespace CompanionAI_v3.Core
                     turnState.FallbackReplanCount++;
                     turnState.ConsecutiveFailures = 0;
                     turnState.Plan?.Cancel($"Consecutive failure reset #{turnState.FallbackReplanCount}");
-                    Main.Log($"[Orchestrator] {unitName}: Consecutive failures reset - fallback replan #{turnState.FallbackReplanCount} (AP={currentAPForReset:F1})");
+                    Log.Engine.Info($"[Orchestrator] {unitName}: Consecutive failures reset - fallback replan #{turnState.FallbackReplanCount} (AP={currentAPForReset:F1})");
                     // null 반환 = 검증 통과 → CreateOrUpdatePlan에서 IsComplete=true → 새 계획
                 }
                 else
                 {
-                    Main.LogWarning($"[Orchestrator] {unitName}: Too many consecutive failures, no recovery left (FallbackReplans={turnState.FallbackReplanCount})");
+                    Log.Engine.Warn($"[Orchestrator] {unitName}: Too many consecutive failures, no recovery left (FallbackReplans={turnState.FallbackReplanCount})");
                     return ExecutionResult.EndTurn("Too many failures");
                 }
             }
@@ -977,11 +978,11 @@ namespace CompanionAI_v3.Core
                 turnState.WaitCount++;
                 if (turnState.WaitCount > GameConstants.COMMAND_WAIT_TIMEOUT_FRAMES)
                 {
-                    Main.LogWarning($"[Orchestrator] {unitName}: Wait timeout ({turnState.WaitCount} frames) - forcing end turn");
+                    Log.Engine.Warn($"[Orchestrator] {unitName}: Wait timeout ({turnState.WaitCount} frames) - forcing end turn");
                     turnState.WaitCount = 0;
                     return ExecutionResult.EndTurn("Wait timeout");
                 }
-                Main.LogDebug($"[Orchestrator] {unitName}: Waiting for previous command to complete (wait={turnState.WaitCount})");
+                Log.Engine.Debug($"[Orchestrator] {unitName}: Waiting for previous command to complete (wait={turnState.WaitCount})");
                 return ExecutionResult.Waiting("Command in progress");
             }
             turnState.WaitCount = 0;  // 대기 성공 시 초기화
@@ -999,7 +1000,7 @@ namespace CompanionAI_v3.Core
                 int currentRound = turnController.CombatRound;
                 if (_lastProcessedRound != currentRound)
                 {
-                    Main.Log($"[Orchestrator] Round changed: {_lastProcessedRound} → {currentRound}");
+                    Log.Engine.Info($"[Orchestrator] Round changed: {_lastProcessedRound} → {currentRound}");
 
                     // ★ v3.20.0: [CombatReport] 전투 최초 시작 감지
                     if (_lastProcessedRound == -1)
@@ -1019,13 +1020,13 @@ namespace CompanionAI_v3.Core
                                     {
                                         string memoryContext = TacticalMemory.FormatForPrompt(memories);
                                         TeamBlackboard.Instance.TacticalMemoryContext = memoryContext;
-                                        Main.Log($"[TacticalMemory] Recalled {memories.Count} memories for this combat");
+                                        Log.Engine.Info($"[TacticalMemory] Recalled {memories.Count} memories for this combat");
                                     }
                                 }
                             }
                             catch (Exception ex)
                             {
-                                Main.LogError(ex, $"[TacticalMemory] Recall failed");
+                                Log.Engine.Error(ex, $"[TacticalMemory] Recall failed");
                             }
                         }
                     }
@@ -1061,14 +1062,14 @@ namespace CompanionAI_v3.Core
                 {
                     turnState.EmptyPlanEndCount++;
                     turnState.Plan?.Cancel("Safety replan: AP remaining after plan complete");
-                    Main.LogWarning($"[Orchestrator] {unitName}: Plan empty but AP={remainingAP:F1} remaining — safety replan #{turnState.EmptyPlanEndCount}");
+                    Log.Engine.Warn($"[Orchestrator] {unitName}: Plan empty but AP={remainingAP:F1} remaining — safety replan #{turnState.EmptyPlanEndCount}");
                     return ExecutionResult.Continue();
                 }
 
                 if (remainingAP > 0)
-                    Main.LogWarning($"[Orchestrator] {unitName}: EndTurn with AP={remainingAP:F1} remaining (safety replan exhausted)");
+                    Log.Engine.Warn($"[Orchestrator] {unitName}: EndTurn with AP={remainingAP:F1} remaining (safety replan exhausted)");
                 else
-                    Main.Log($"[Orchestrator] {unitName}: No more actions in plan");
+                    Log.Engine.Info($"[Orchestrator] {unitName}: No more actions in plan");
 
                 return ExecutionResult.EndTurn("Plan complete");
             }
@@ -1077,7 +1078,7 @@ namespace CompanionAI_v3.Core
             _profilerStopwatch.Restart();
 
             // 행동 실행
-            Main.Log($"[Orchestrator] {unitName}: Executing {nextAction}");
+            Log.Engine.Info($"[Orchestrator] {unitName}: Executing {nextAction}");
             var result = _executor.Execute(nextAction, situation);
 
             // ★ v3.8.48: 실행 시간 기록 + 10턴마다 평균 출력
@@ -1086,7 +1087,7 @@ namespace CompanionAI_v3.Core
             _profilerTurnCount++;
             if (_profilerTurnCount % 10 == 0)
             {
-                Main.Log($"[Profiler] Last {_profilerTurnCount} turns avg: " +
+                Log.Engine.Info($"[Profiler] Last {_profilerTurnCount} turns avg: " +
                     $"Analyze={_totalAnalyzeMs / _profilerTurnCount}ms, " +
                     $"Plan={_totalPlanMs / _profilerTurnCount}ms, " +
                     $"Execute={_totalExecuteMs / _profilerTurnCount}ms");
@@ -1113,7 +1114,7 @@ namespace CompanionAI_v3.Core
                 if (nextAction.FailurePolicy == GroupFailurePolicy.SkipRemainingInGroup)
                 {
                     turnState.Plan.FailGroup(nextAction.GroupTag);
-                    Main.Log($"[Orchestrator] {unitName}: Group '{nextAction.GroupTag}' failed — remaining actions purged");
+                    Log.Engine.Info($"[Orchestrator] {unitName}: Group '{nextAction.GroupTag}' failed — remaining actions purged");
                 }
                 // ContinueGroup은 아무것도 안 함 (그룹 내 다른 액션 계속 실행)
             }
@@ -1224,7 +1225,7 @@ namespace CompanionAI_v3.Core
             // Tier 3 (300+): 턴 종료 필수 (AP 없음 등)
             if (errorType.RequiresEndTurn())
             {
-                Main.Log($"[Orchestrator] {unitName}: EndTurn-class failure ({errorType}: {result.Reason})");
+                Log.Engine.Info($"[Orchestrator] {unitName}: EndTurn-class failure ({errorType}: {result.Reason})");
                 turnState.Plan?.Cancel("EndTurn failure");
                 return ExecutionResult.EndTurn($"Execution failed: {result.Reason}");
             }
@@ -1232,7 +1233,7 @@ namespace CompanionAI_v3.Core
             // Tier 1 (100-199): 회복 가능 — 큐에 남은 액션 있으면 스킵
             if (errorType.IsRecoverable() && turnState.Plan?.RemainingActionCount > 0)
             {
-                Main.LogWarning($"[Orchestrator] {unitName}: Recoverable failure ({errorType}: {result.Reason}) - skipping to next action");
+                Log.Engine.Warn($"[Orchestrator] {unitName}: Recoverable failure ({errorType}: {result.Reason}) - skipping to next action");
                 return ExecutionResult.Continue();
             }
 
@@ -1247,12 +1248,12 @@ namespace CompanionAI_v3.Core
                 CaptureStrategicContextOnReplan(turnState);
                 turnState.Plan?.Cancel($"Fallback replan #{turnState.FallbackReplanCount} ({errorType}: {result.Reason})");
 
-                Main.Log($"[Orchestrator] {unitName}: Fallback replan #{turnState.FallbackReplanCount} triggered ({errorType}: {result.Reason}) - AP={currentAP:F1}");
+                Log.Engine.Info($"[Orchestrator] {unitName}: Fallback replan #{turnState.FallbackReplanCount} triggered ({errorType}: {result.Reason}) - AP={currentAP:F1}");
                 return ExecutionResult.Continue();  // → 다음 ProcessTurn에서 IsComplete=true → 새 계획 생성
             }
 
             // 모든 복구 경로 소진 → 턴 종료
-            Main.LogWarning($"[Orchestrator] {unitName}: All recovery paths exhausted ({errorType}: {result.Reason}, FallbackReplans={turnState.FallbackReplanCount}) - ending turn");
+            Log.Engine.Warn($"[Orchestrator] {unitName}: All recovery paths exhausted ({errorType}: {result.Reason}, FallbackReplans={turnState.FallbackReplanCount}) - ending turn");
             turnState.Plan?.Cancel("All recovery exhausted");
             return ExecutionResult.EndTurn($"Execution failed: {result.Reason}");
         }
@@ -1304,13 +1305,13 @@ namespace CompanionAI_v3.Core
                     state = new TurnState(unit, currentAP, currentMP);
                     _turnStates[unitId] = state;
 
-                    Main.Log($"[Orchestrator] New turn state for {unit.CharacterName}: AP={currentAP:F1}, MP={currentMP:F1}");
+                    Log.Engine.Info($"[Orchestrator] New turn state for {unit.CharacterName}: AP={currentAP:F1}, MP={currentMP:F1}");
                 }
                 else
                 {
                     // ★ v3.0.77: 게임 AP 표시 (TurnState.RemainingAP는 레거시)
                     float gameAP = CombatAPI.GetCurrentAP(unit);
-                    Main.LogDebug($"[Orchestrator] Continuing turn for {unit.CharacterName}: AP={gameAP:F1} (game)");
+                    Log.Engine.Debug($"[Orchestrator] Continuing turn for {unit.CharacterName}: AP={gameAP:F1} (game)");
                 }
             }
             else
@@ -1322,7 +1323,7 @@ namespace CompanionAI_v3.Core
                 state = new TurnState(unit, currentAP, currentMP);
                 _turnStates[unitId] = state;
 
-                Main.Log($"[Orchestrator] New turn state for {unit.CharacterName}: AP={currentAP:F1}, MP={currentMP:F1}");
+                Log.Engine.Info($"[Orchestrator] New turn state for {unit.CharacterName}: AP={currentAP:F1}, MP={currentMP:F1}");
             }
 
             _currentUnitId = unitId;
@@ -1350,7 +1351,7 @@ namespace CompanionAI_v3.Core
             if (currentTurnUnit == null || currentTurnUnit.UniqueId != unit.UniqueId)
             {
                 // 다른 유닛의 턴인데 왜 여기로 왔지? → 새 턴 처리
-                Main.LogDebug($"[Orchestrator] CurrentTurnUnit mismatch: {currentTurnUnit?.CharacterName ?? "null"} vs {unit.CharacterName}");
+                Log.Engine.Debug($"[Orchestrator] CurrentTurnUnit mismatch: {currentTurnUnit?.CharacterName ?? "null"} vs {unit.CharacterName}");
                 return true;
             }
 
@@ -1358,7 +1359,7 @@ namespace CompanionAI_v3.Core
             int currentRound = turnController.CombatRound;
             if (state.CombatRound > 0 && state.CombatRound != currentRound)
             {
-                Main.LogDebug($"[Orchestrator] Combat round changed: {state.CombatRound} → {currentRound}");
+                Log.Engine.Debug($"[Orchestrator] Combat round changed: {state.CombatRound} → {currentRound}");
                 return true;
             }
 
@@ -1450,7 +1451,7 @@ namespace CompanionAI_v3.Core
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[Orchestrator] BattlefieldGrid expand check failed");
+                Log.Engine.Error(ex, $"[Orchestrator] BattlefieldGrid expand check failed");
             }
 
             // ★ v3.9.02: 우리 유닛 턴에서 게임 AI 타임아웃 확장
@@ -1463,12 +1464,12 @@ namespace CompanionAI_v3.Core
                 {
                     _originalAiTimeout = currentTimeout;
                     AiBrainController.SecondsAiTimeout = 300f;
-                    Main.LogDebug($"[Orchestrator] AI timeout extended: {currentTimeout}s → 300s");
+                    Log.Engine.Debug($"[Orchestrator] AI timeout extended: {currentTimeout}s → 300s");
                 }
             }
-            catch (Exception ex) { Main.LogError(ex, $"[Orchestrator] AI timeout extend failed"); }
+            catch (Exception ex) { Log.Engine.Error(ex, $"[Orchestrator] AI timeout extend failed"); }
 
-            Main.Log($"[Orchestrator] Turn started for {unit.CharacterName} (via event)");
+            Log.Engine.Info($"[Orchestrator] Turn started for {unit.CharacterName} (via event)");
         }
 
         /// <summary>
@@ -1489,7 +1490,7 @@ namespace CompanionAI_v3.Core
                     TeamBlackboard.Instance.RecordUnitActed(unit);
                 }
 
-                Main.Log($"[Orchestrator] Turn ended for {unit.CharacterName}: {state}");
+                Log.Engine.Info($"[Orchestrator] Turn ended for {unit.CharacterName}: {state}");
 
                 // ★ v3.20.0: [CombatReport] 시점4 — 턴 종료 기록
                 CombatReportCollector.Instance.OnTurnEnd(
@@ -1525,7 +1526,7 @@ namespace CompanionAI_v3.Core
         /// </summary>
         public void OnCombatEnd()
         {
-            Main.Log("[Orchestrator] Combat ended - clearing all turn states");
+            Log.Engine.Info("[Orchestrator] Combat ended - clearing all turn states");
 
             // ★ Tactical Memory: 전투 결과 기록 — Clear() 이전에 수행해야 데이터가 살아있음
             try
@@ -1556,7 +1557,7 @@ namespace CompanionAI_v3.Core
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[TacticalMemory] Record failed");
+                Log.Engine.Error(ex, $"[TacticalMemory] Record failed");
             }
             _combatDominantWeights = null;
             _combatBestTurnScore = 0f;
@@ -1668,7 +1669,7 @@ namespace CompanionAI_v3.Core
                         charSettings.EnableCustomAI = true;
                         charSettings.Role = AIRole.DPS;
                         charSettings.RangePreference = RangePreference.Adaptive;
-                        Main.Log($"[Orchestrator] {unit.CharacterName}: Guest ally auto-enabled (DPS/Adaptive)");
+                        Log.Engine.Info($"[Orchestrator] {unit.CharacterName}: Guest ally auto-enabled (DPS/Adaptive)");
                     }
                     else
                     {
@@ -1747,11 +1748,11 @@ namespace CompanionAI_v3.Core
                 var feature = unit.GetMechanicFeature(MechanicsFeatureType.ForceAIControl);
                 feature.Retain();
                 _forceAIShips.Add(unit.UniqueId);
-                Main.Log($"[Orchestrator] {unit.CharacterName}: ForceAIControl applied — game native AI will control ship");
+                Log.Engine.Info($"[Orchestrator] {unit.CharacterName}: ForceAIControl applied — game native AI will control ship");
             }
             catch (Exception ex)
             {
-                Main.LogError($"[Orchestrator] Failed to apply ForceAIControl: {ex.Message}");
+                Log.Engine.Error($"[Orchestrator] Failed to apply ForceAIControl: {ex.Message}");
             }
         }
 
@@ -1768,11 +1769,11 @@ namespace CompanionAI_v3.Core
             {
                 var feature = unit.GetMechanicFeature(MechanicsFeatureType.ForceAIControl);
                 feature.Release();
-                Main.LogDebug($"[Orchestrator] {unit.CharacterName}: ForceAIControl released");
+                Log.Engine.Debug($"[Orchestrator] {unit.CharacterName}: ForceAIControl released");
             }
             catch (Exception ex)
             {
-                Main.LogError($"[Orchestrator] Failed to release ForceAIControl: {ex.Message}");
+                Log.Engine.Error($"[Orchestrator] Failed to release ForceAIControl: {ex.Message}");
             }
         }
 
@@ -1802,11 +1803,11 @@ namespace CompanionAI_v3.Core
             }
             catch (Exception ex)
             {
-                Main.LogError($"[Orchestrator] ClearAllShipForceAI error: {ex.Message}");
+                Log.Engine.Error($"[Orchestrator] ClearAllShipForceAI error: {ex.Message}");
             }
 
             _forceAIShips.Clear();
-            Main.LogDebug("[Orchestrator] All ship ForceAIControl cleared");
+            Log.Engine.Debug("[Orchestrator] All ship ForceAIControl cleared");
         }
 
         #endregion
@@ -1821,10 +1822,10 @@ namespace CompanionAI_v3.Core
                 try
                 {
                     AiBrainController.SecondsAiTimeout = _originalAiTimeout;
-                    Main.LogDebug($"[Orchestrator] AI timeout restored to {_originalAiTimeout}s");
+                    Log.Engine.Debug($"[Orchestrator] AI timeout restored to {_originalAiTimeout}s");
                     _originalAiTimeout = -1f;
                 }
-                catch (Exception ex) { Main.LogError(ex, $"[Orchestrator] AI timeout restore failed"); }
+                catch (Exception ex) { Log.Engine.Error(ex, $"[Orchestrator] AI timeout restore failed"); }
             }
         }
 
@@ -1850,7 +1851,7 @@ namespace CompanionAI_v3.Core
         public void SetPendingMoveDestination(string unitId, UnityEngine.Vector3 destination)
         {
             _pendingMoveDestinations[unitId] = destination;
-            Main.LogDebug($"[Orchestrator] Pending move set for {unitId}: {destination}");
+            Log.Engine.Debug($"[Orchestrator] Pending move set for {unitId}: {destination}");
         }
 
         /// <summary>
@@ -1861,7 +1862,7 @@ namespace CompanionAI_v3.Core
             if (_pendingMoveDestinations.TryGetValue(unitId, out var destination))
             {
                 _pendingMoveDestinations.Remove(unitId);
-                Main.LogDebug($"[Orchestrator] Pending move consumed for {unitId}: {destination}");
+                Log.Engine.Debug($"[Orchestrator] Pending move consumed for {unitId}: {destination}");
                 return destination;
             }
             return null;

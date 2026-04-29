@@ -21,6 +21,7 @@ using Kingmaker.Utility;                         // TargetWrapper
 using Kingmaker.View.Covers;                     // LosCalculations (Hit Chance CoverType)
 using UnityEngine;                               // Vector3
 using CompanionAI_v3.Settings;                   // SC, RangePreference
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.GameInterface
 {
@@ -63,7 +64,7 @@ namespace CompanionAI_v3.GameInterface
             // ★ v3.13.0: 안전한 기본값 — 1 (0은 "사망"으로 오판될 위험, 1은 "빈사")
             catch (Exception ex)
             {
-                Main.LogWarning($"[CombatAPI] GetActualHP failed for {unit?.CharacterName}: {ex.Message}");
+                Log.Engine.Warn($"[CombatAPI] GetActualHP failed for {unit?.CharacterName}: {ex.Message}");
                 return 1;
             }
         }
@@ -81,7 +82,7 @@ namespace CompanionAI_v3.GameInterface
             // ★ v3.13.0: 안전한 기본값 — 1 (0으로 나눔 방지, HP% 계산 안전)
             catch (Exception ex)
             {
-                Main.LogWarning($"[CombatAPI] GetActualMaxHP failed for {unit?.CharacterName}: {ex.Message}");
+                Log.Engine.Warn($"[CombatAPI] GetActualMaxHP failed for {unit?.CharacterName}: {ex.Message}");
                 return 1;
             }
         }
@@ -99,7 +100,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetDifficultyType failed for {unit?.CharacterName}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] GetDifficultyType failed for {unit?.CharacterName}");
                 return UnitDifficultyType.Common;
             }
         }
@@ -128,7 +129,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetDamagePrediction error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] GetDamagePrediction error");
                 return (0, 0, 0);
             }
         }
@@ -152,7 +153,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] CanKillInOneHit failed");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] CanKillInOneHit failed");
                 return false;
             }
         }
@@ -176,7 +177,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] CanKillInTwoHits failed");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] CanKillInTwoHits failed");
                 return false;
             }
         }
@@ -222,7 +223,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] CalculateKillProbability failed");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] CalculateKillProbability failed");
                 return 0f;
             }
         }
@@ -286,7 +287,7 @@ namespace CompanionAI_v3.GameInterface
                     {
                         score.Reason = reason;
                         // ★ v3.0.14: Hittable=false 원인 로깅
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] Not hittable: {enemy.CharacterName} - {reason} (dist={score.Distance:F1}m, ability={attackAbility.Name})");
+                        if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] Not hittable: {enemy.CharacterName} - {reason} (dist={score.Distance:F1}m, ability={attackAbility.Name})");
                     }
 
                     // ★ v3.0.1: 실제 데미지 예측
@@ -321,7 +322,7 @@ namespace CompanionAI_v3.GameInterface
             var hittable = scores.FirstOrDefault(s => s.IsHittable);
             if (hittable != null)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] Best target: {hittable.Target.CharacterName} (score={hittable.Score:F1})");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] Best target: {hittable.Target.CharacterName} (score={hittable.Score:F1})");
                 return hittable.Target;
             }
 
@@ -354,13 +355,13 @@ namespace CompanionAI_v3.GameInterface
             if (scoreData != null && scoreData.CanKillInOneHit && isHittable)
             {
                 score += 50f;
-                if (Main.IsDebugEnabled) Main.LogDebug($"[Scoring] {target.CharacterName}: +50 (1-hit kill possible, HP={scoreData.ActualHP}, MinDmg={scoreData.PredictedMinDamage})");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[Scoring] {target.CharacterName}: +50 (1-hit kill possible, HP={scoreData.ActualHP}, MinDmg={scoreData.PredictedMinDamage})");
             }
             // 2타 킬 가능 (+25)
             else if (scoreData != null && scoreData.CanKillInTwoHits && isHittable)
             {
                 score += 25f;
-                if (Main.IsDebugEnabled) Main.LogDebug($"[Scoring] {target.CharacterName}: +25 (2-hit kill possible)");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[Scoring] {target.CharacterName}: +25 (2-hit kill possible)");
             }
 
             // ★ v3.0.1: HP 점수 - 게임 AI와 동일한 방식 (1/HP)
@@ -453,7 +454,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsTargeting failed");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsTargeting failed");
                 return false;
             }
         }
@@ -624,14 +625,14 @@ namespace CompanionAI_v3.GameInterface
                 };
 
                 if (Main.IsDebugEnabled)
-                    Main.LogDebug($"[CombatAPI] HitChance: {attacker.CharacterName} -> {target.CharacterName}: " +
+                    Log.Engine.Debug($"[CombatAPI] HitChance: {attacker.CharacterName} -> {target.CharacterName}: " +
                         $"BS={rawHitChance}% dodge={dodgeChance}% parry={parryChance}% → effective={effectiveHitChance}%");
 
                 return result;
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetHitChance error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] GetHitChance error");
                 return null;
             }
         }
@@ -692,7 +693,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetHitChanceFromPosition error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] GetHitChanceFromPosition error");
                 return null;
             }
         }

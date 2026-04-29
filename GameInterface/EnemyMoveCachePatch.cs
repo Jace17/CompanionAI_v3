@@ -6,6 +6,7 @@ using Kingmaker.AI;
 using Kingmaker.AI.BehaviourTrees.Nodes;
 using Kingmaker.EntitySystem.Entities;
 using Pathfinding;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.GameInterface
 {
@@ -85,13 +86,13 @@ namespace CompanionAI_v3.GameInterface
                 {
                     EnemyMoveCache.Store(bue, enemy.AiConsideredMoveVariants);
                     if (Main.IsDebugEnabled)
-                        Main.LogDebug($"[EnemyMoveCache] Captured {enemy.AiConsideredMoveVariants.Count} nodes for {bue.CharacterName}");
+                        Log.Engine.Debug($"[EnemyMoveCache] Captured {enemy.AiConsideredMoveVariants.Count} nodes for {bue.CharacterName}");
                 }
             }
             catch (Exception ex)
             {
                 if (Main.IsDebugEnabled)
-                    Main.LogWarning($"[EnemyMoveCache] Postfix capture failed: {ex.Message}");
+                    Log.Engine.Warn($"[EnemyMoveCache] Postfix capture failed: {ex.Message}");
             }
         }
     }

@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
 using CompanionAI_v3.Data;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Planning.LLM
 {
@@ -46,19 +47,19 @@ namespace CompanionAI_v3.Planning.LLM
             if (TryLoadFromDisk())
             {
                 _initialized = true;
-                Main.Log($"[AbilityEffectCache] Loaded {_labels.Count} labels from disk");
+                Log.Planning.Info($"[AbilityEffectCache] Loaded {_labels.Count} labels from disk");
                 yield break;
             }
 
             // 2. AbilityDatabase에서 캐시 빌드
-            Main.LogDebug("[AbilityEffectCache] No cache file — building from AbilityDatabase");
+            Log.Planning.Debug("[AbilityEffectCache] No cache file — building from AbilityDatabase");
             BuildFromDatabase();
 
             // 3. 디스크 저장
             SaveToDisk();
 
             _initialized = true;
-            Main.Log($"[AbilityEffectCache] Built {_labels.Count} labels");
+            Log.Planning.Info($"[AbilityEffectCache] Built {_labels.Count} labels");
         }
 
         /// <summary>
@@ -102,7 +103,7 @@ namespace CompanionAI_v3.Planning.LLM
                 }
             }
 
-            Main.LogDebug($"[AbilityEffectCache] BuildFromDatabase: extracted={extracted}, skipped={skipped}");
+            Log.Planning.Debug($"[AbilityEffectCache] BuildFromDatabase: extracted={extracted}, skipped={skipped}");
         }
 
         private static bool TryLoadFromDisk()
@@ -117,7 +118,7 @@ namespace CompanionAI_v3.Planning.LLM
 
                 if (wrapper == null || wrapper.SchemaVersion != SCHEMA_VERSION)
                 {
-                    Main.LogDebug("[AbilityEffectCache] Cache schema mismatch — rebuilding");
+                    Log.Planning.Debug("[AbilityEffectCache] Cache schema mismatch — rebuilding");
                     return false;
                 }
 
@@ -129,11 +130,11 @@ namespace CompanionAI_v3.Planning.LLM
                     return true;
                 }
 
-                Main.LogDebug("[AbilityEffectCache] Cache has null labels — rebuilding");
+                Log.Planning.Debug("[AbilityEffectCache] Cache has null labels — rebuilding");
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[AbilityEffectCache] Load failed");
+                Log.Planning.Error(ex, $"[AbilityEffectCache] Load failed");
             }
 
             return false;
@@ -155,7 +156,7 @@ namespace CompanionAI_v3.Planning.LLM
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[AbilityEffectCache] Save failed");
+                Log.Planning.Error(ex, $"[AbilityEffectCache] Save failed");
             }
         }
 

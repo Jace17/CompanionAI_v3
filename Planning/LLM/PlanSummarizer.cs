@@ -4,6 +4,7 @@ using Kingmaker.EntitySystem.Entities;
 using CompanionAI_v3.Core;
 using CompanionAI_v3.Analysis;
 using CompanionAI_v3.GameInterface;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Planning.LLM
 {
@@ -103,7 +104,7 @@ namespace CompanionAI_v3.Planning.LLM
                         string seqLabel = strategy != null ? strategy.Sequence.ToString() : "?";
                         string casterName = situation?.Unit?.CharacterName ?? "?";
                         string targetLabel = GetTargetName(action) ?? "?";
-                        Main.LogWarning($"[PlanSummarizer] dup once-per-turn: {casterName} seq={seqLabel} ability={abilityName} target={targetLabel} — upstream Planner leak");
+                        Log.Planning.Warn($"[PlanSummarizer] dup once-per-turn: {casterName} seq={seqLabel} ability={abilityName} target={targetLabel} — upstream Planner leak");
                     }
                 }
 

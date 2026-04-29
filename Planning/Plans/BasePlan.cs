@@ -16,6 +16,7 @@ using CompanionAI_v3.Diagnostics;
 using CompanionAI_v3.GameInterface;
 using CompanionAI_v3.Settings;
 using CompanionAI_v3.Planning.Planners;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Planning.Plans
 {
@@ -173,7 +174,7 @@ namespace CompanionAI_v3.Planning.Plans
             var gapCloser = PlanGapCloser(situation, pushTarget, ref remainingAP, ref remainingMP);
             if (gapCloser != null)
             {
-                Main.Log($"[{RoleName}] Push recovery: {gapCloser.Ability?.Name} → {pushTarget.CharacterName} (melee push detected)");
+                Log.Planning.Info($"[{RoleName}] Push recovery: {gapCloser.Ability?.Name} → {pushTarget.CharacterName} (melee push detected)");
             }
             return gapCloser;
         }
@@ -237,7 +238,7 @@ namespace CompanionAI_v3.Planning.Plans
             remainingMP = tempMP;
             preMoveAction = preMove;
 
-            Main.Log($"[{RoleName}] ★ GapCloser as attack: {bestGapCloser.Name} -> " +
+            Log.Planning.Info($"[{RoleName}] ★ GapCloser as attack: {bestGapCloser.Name} -> " +
                 $"{bestTarget.CharacterName} (score={bestScore:F0}, dist={CombatCache.GetDistanceInTiles(situation.Unit, bestTarget):F1}" +
                 (preMove != null ? ", walk+jump combo" : "") + ")");
 
@@ -282,7 +283,7 @@ namespace CompanionAI_v3.Planning.Plans
             remainingAP -= cost;
             remainingMP += situation.MPBuffExpectedRecovery;
 
-            Main.Log($"[{RoleName}] MPBuff before move: {ability.Name} (cost={cost:F1} AP, +{situation.MPBuffExpectedRecovery:F0} MP, predicted MP={remainingMP:F1})");
+            Log.Planning.Info($"[{RoleName}] MPBuff before move: {ability.Name} (cost={cost:F1} AP, +{situation.MPBuffExpectedRecovery:F0} MP, predicted MP={remainingMP:F1})");
 
             return new PlannedAction
             {
@@ -328,7 +329,7 @@ namespace CompanionAI_v3.Planning.Plans
 
                 actions.Add(PlannedAction.Buff(buff, situation.Unit, $"Free attack buff: {buff.Name}", 0f));
                 _plannedBuffGuids.Add(buffGuid);  // ★ v3.104.0: dedup 등록
-                Main.Log($"[{RoleName}] Phase 4.05: Free buff {buff.Name}");
+                Log.Planning.Info($"[{RoleName}] Phase 4.05: Free buff {buff.Name}");
             }
         }
 
@@ -378,7 +379,7 @@ namespace CompanionAI_v3.Planning.Plans
                     {
                         actions.Add(PlannedAction.Attack(attack, enemy,
                             $"0-AP attack: {attack.Name}", 0f));
-                        Main.Log($"[{RoleName}] 0-AP attack: {attack.Name} -> {enemy.CharacterName}");
+                        Log.Planning.Info($"[{RoleName}] 0-AP attack: {attack.Name} -> {enemy.CharacterName}");
                         planned++;
                         break;
                     }
@@ -401,7 +402,7 @@ namespace CompanionAI_v3.Planning.Plans
             string reason = inDamage && inPsychicNull ? "damaging AoE + psychic null zone"
                           : inDamage ? "damaging AoE"
                           : "psychic null zone";
-            Main.Log($"[{RoleName}] ★ AoE Evacuation: {unit.CharacterName} is in {reason}, searching for safe tile");
+            Log.Planning.Info($"[{RoleName}] ★ AoE Evacuation: {unit.CharacterName} is in {reason}, searching for safe tile");
 
             try
             {
@@ -409,7 +410,7 @@ namespace CompanionAI_v3.Planning.Plans
                 var reachableTiles = MovementAPI.FindAllReachableTilesWithThreatsSync(unit);
                 if (reachableTiles == null || reachableTiles.Count == 0)
                 {
-                    Main.Log($"[{RoleName}] AoE Evacuation: No reachable tiles");
+                    Log.Planning.Info($"[{RoleName}] AoE Evacuation: No reachable tiles");
                     return null;
                 }
 
@@ -445,18 +446,18 @@ namespace CompanionAI_v3.Planning.Plans
 
                 if (bestNode == null)
                 {
-                    Main.Log($"[{RoleName}] AoE Evacuation: No safe tile found within movement range!");
+                    Log.Planning.Info($"[{RoleName}] AoE Evacuation: No safe tile found within movement range!");
                     return null;
                 }
 
                 var safePos = ((CustomGridNodeBase)bestNode).Vector3Position;
-                Main.Log($"[{RoleName}] ★ AoE Evacuation: Moving to ({safePos.x:F1},{safePos.z:F1}), distance={bestDist:F1}m");
+                Log.Planning.Info($"[{RoleName}] ★ AoE Evacuation: Moving to ({safePos.x:F1},{safePos.z:F1}), distance={bestDist:F1}m");
 
                 return PlannedAction.Move(safePos, $"Emergency evacuation ({reason})");
             }
             catch (Exception ex)
             {
-                Main.LogError($"[{RoleName}] AoE Evacuation error: {ex.Message}");
+                Log.Planning.Error($"[{RoleName}] AoE Evacuation error: {ex.Message}");
                 return null;
             }
         }
@@ -484,7 +485,7 @@ namespace CompanionAI_v3.Planning.Plans
                     return new TurnPlan(actions, TurnPriority.Critical,
                         $"{RoleName} ultimate (Transcend Potential)");
                 }
-                Main.Log($"[{RoleName}] Ultimate failed during Transcend Potential - ending turn");
+                Log.Planning.Info($"[{RoleName}] Ultimate failed during Transcend Potential - ending turn");
                 actions.Add(PlannedAction.EndTurn($"{RoleName} no ultimate available"));
                 return new TurnPlan(actions, TurnPriority.EndTurn,
                     $"{RoleName} ultimate failed (Transcend Potential)");
@@ -566,7 +567,7 @@ namespace CompanionAI_v3.Planning.Plans
                 if (switchActions.Count > 0)
                 {
                     ctx.Actions.AddRange(switchActions);
-                    Main.Log($"[{ctx.RoleName}] Phase 1.55: Switch-First — switching weapon for better effectiveness");
+                    Log.Planning.Info($"[{ctx.RoleName}] Phase 1.55: Switch-First — switching weapon for better effectiveness");
                     return new TurnPlan(ctx.Actions, TurnPriority.DirectAttack,
                         $"{ctx.RoleName} weapon switch-first");
                 }
@@ -625,7 +626,7 @@ namespace CompanionAI_v3.Planning.Plans
                         e => e.IsConscious && e.UniqueId == apprehendTargetId);
                     mastiffApprehendActive = apprehendTarget != null;
                     if (mastiffApprehendActive && Main.IsDebugEnabled)
-                        Main.LogDebug($"[{RoleName}] Phase 1.75: Mastiff Apprehend active — skipping mastiff commands (AP saved)");
+                        Log.Planning.Debug($"[{RoleName}] Phase 1.75: Mastiff Apprehend active — skipping mastiff commands (AP saved)");
                 }
             }
 
@@ -647,7 +648,7 @@ namespace CompanionAI_v3.Planning.Plans
             if (keystoneActions.Count > 0)
             {
                 actions.AddRange(keystoneActions);
-                Main.Log($"[{RoleName}] Phase 1.75: {keystoneActions.Count} keystone abilities planned");
+                Log.Planning.Info($"[{RoleName}] Phase 1.75: {keystoneActions.Count} keystone abilities planned");
                 usedWarpRelay = situation.FamiliarType == PetType.Raven;
 
                 // Support: 사용된 GUID 추적 (Phase 4 중복 방지용)
@@ -798,11 +799,11 @@ namespace CompanionAI_v3.Planning.Plans
 
             if (skipFallbackForMelee)
             {
-                Main.Log($"[{RoleName}] Fallback buffs: Skipping (melee MoveOnly — save for post-move attack)");
+                Log.Planning.Info($"[{RoleName}] Fallback buffs: Skipping (melee MoveOnly — save for post-move attack)");
             }
             else if (!didPlanAttack && remainingAP >= 1f && situation.AvailableBuffs.Count > 0)
             {
-                Main.Log($"[{RoleName}] Fallback buffs: No attack possible, using remaining buffs (AP={remainingAP:F1})");
+                Log.Planning.Info($"[{RoleName}] Fallback buffs: No attack possible, using remaining buffs (AP={remainingAP:F1})");
 
                 foreach (var buff in situation.AvailableBuffs)
                 {
@@ -815,13 +816,13 @@ namespace CompanionAI_v3.Planning.Plans
                         timing == AbilityTiming.RighteousFury ||
                         timing == AbilityTiming.TurnEnding)
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Fallback buffs: Skip {buff.Name} (timing={timing})");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Fallback buffs: Skip {buff.Name} (timing={timing})");
                         continue;
                     }
 
                     if (AbilityDatabase.IsSpringAttackAbility(buff))
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Fallback buffs: Skip {buff.Name} (SpringAttack)");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Fallback buffs: Skip {buff.Name} (SpringAttack)");
                         continue;
                     }
 
@@ -829,7 +830,7 @@ namespace CompanionAI_v3.Planning.Plans
                     string buffGuid = buff.Blueprint?.AssetGuid?.ToString() ?? buff.Name ?? "";
                     if (_plannedBuffGuids.Contains(buffGuid))
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Fallback buffs: Skip {buff.Name} (already planned this turn)");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Fallback buffs: Skip {buff.Name} (already planned this turn)");
                         continue;
                     }
 
@@ -859,7 +860,7 @@ namespace CompanionAI_v3.Planning.Plans
                                 remainingAP -= cost;
                                 actions.Add(PlannedAction.Buff(buff, ally, $"Fallback buff ally: {buff.Name}", cost));
                                 _plannedBuffGuids.Add(buffGuid);  // ★ v3.104.0: dedup 등록
-                                Main.Log($"[{RoleName}] Fallback buff (ally): {buff.Name} -> {ally.CharacterName}");
+                                Log.Planning.Info($"[{RoleName}] Fallback buff (ally): {buff.Name} -> {ally.CharacterName}");
                                 usedOnAlly = true;
                                 break;
                             }
@@ -875,7 +876,7 @@ namespace CompanionAI_v3.Planning.Plans
                             remainingAP -= cost;
                             actions.Add(PlannedAction.Buff(buff, situation.Unit, "Fallback buff - no attack available", cost));
                             _plannedBuffGuids.Add(buffGuid);  // ★ v3.104.0: dedup 등록
-                            Main.Log($"[{RoleName}] Fallback buff: {buff.Name}");
+                            Log.Planning.Info($"[{RoleName}] Fallback buff: {buff.Name}");
                         }
                     }
                 }
@@ -891,7 +892,7 @@ namespace CompanionAI_v3.Planning.Plans
                 if (debuffAction != null)
                 {
                     actions.Add(debuffAction);
-                    Main.Log($"[{RoleName}] Fallback debuff: {debuffAction.Ability?.Name}");
+                    Log.Planning.Info($"[{RoleName}] Fallback debuff: {debuffAction.Ability?.Name}");
                 }
             }
         }
@@ -1031,7 +1032,7 @@ namespace CompanionAI_v3.Planning.Plans
             var turnState = Core.TurnOrchestrator.Instance?.GetCurrentTurnState();
             if (turnState != null && turnState.WeaponSwitchCount >= rotationConfig.MaxSwitchesPerTurn)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] WeaponRotation: Max switches reached ({turnState.WeaponSwitchCount}/{rotationConfig.MaxSwitchesPerTurn})");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] WeaponRotation: Max switches reached ({turnState.WeaponSwitchCount}/{rotationConfig.MaxSwitchesPerTurn})");
                 return actions;
             }
 
@@ -1048,7 +1049,7 @@ namespace CompanionAI_v3.Planning.Plans
 
             actions.Add(switchAction);
 
-            Main.Log($"[{RoleName}] ★ Weapon rotation planned: Switch to Set {alternateSet} ({alternateName}) — " +
+            Log.Planning.Info($"[{RoleName}] ★ Weapon rotation planned: Switch to Set {alternateSet} ({alternateName}) — " +
                 $"attacks will be planned after re-analysis (AP={remainingAP:F1})");
 
             return actions;
@@ -1081,14 +1082,14 @@ namespace CompanionAI_v3.Planning.Plans
                 && altSet.HasRangedWeapon
                 && situation.NearestEnemyDistance > 3f)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] ShouldSwitchFirst: melee only, enemy at {situation.NearestEnemyDistance:F1} tiles, alt has ranged");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] ShouldSwitchFirst: melee only, enemy at {situation.NearestEnemyDistance:F1} tiles, alt has ranged");
                 return true;
             }
 
             // Case 2: 재장전 필요 + 대체 세트에 무기 있음
             if (situation.NeedsReload && altSet.HasWeapons)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] ShouldSwitchFirst: needs reload, alt has weapons");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] ShouldSwitchFirst: needs reload, alt has weapons");
                 return true;
             }
 
@@ -1106,13 +1107,13 @@ namespace CompanionAI_v3.Planning.Plans
                     float mp = CombatAPI.GetCurrentMP(situation.Unit);
                     if (situation.NearestEnemyDistance > meleeReach + mp)
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] ShouldSwitchFirst: Case 3 ranged→melee skip — " +
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] ShouldSwitchFirst: Case 3 ranged→melee skip — " +
                             $"enemy at {situation.NearestEnemyDistance:F1} > melee reach {meleeReach:F0} + MP {mp:F1}");
                         // Case 4로 fall through — altRange 체크에서 재판단
                     }
                     else
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] ShouldSwitchFirst: ranged→melee, enemy reachable " +
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] ShouldSwitchFirst: ranged→melee, enemy reachable " +
                             $"(dist={situation.NearestEnemyDistance:F1} <= reach {meleeReach:F0} + MP {mp:F1})");
                         return true;
                     }
@@ -1120,7 +1121,7 @@ namespace CompanionAI_v3.Planning.Plans
                 else
                 {
                     // 근접→원거리: Case 1이 안 잡은 나머지 (적 ≤ 3f 등)
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] ShouldSwitchFirst: melee→ranged type mismatch");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] ShouldSwitchFirst: melee→ranged type mismatch");
                     return true;
                 }
             }
@@ -1131,7 +1132,7 @@ namespace CompanionAI_v3.Planning.Plans
             float altRange = altSet.PrimaryWeaponRange;
             if (altRange > 0 && situation.NearestEnemyDistance <= altRange)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] ShouldSwitchFirst: same type but current unhittable, alt range {altRange:F0} >= enemy dist {situation.NearestEnemyDistance:F1}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] ShouldSwitchFirst: same type but current unhittable, alt range {altRange:F0} >= enemy dist {situation.NearestEnemyDistance:F1}");
                 return true;
             }
 
@@ -1183,7 +1184,7 @@ namespace CompanionAI_v3.Planning.Plans
 
                     if (enemiesInAltRange >= 3)
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] ShouldSwitchForEffectiveness: " +
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] ShouldSwitchForEffectiveness: " +
                             $"melee hittable={situation.HittableEnemies.Count}, alt ranged can hit {enemiesInAltRange} enemies");
                         return true;
                     }
@@ -1208,7 +1209,7 @@ namespace CompanionAI_v3.Planning.Plans
 
                 if (enemiesInMeleeRange >= 2)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] ShouldSwitchForEffectiveness: " +
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] ShouldSwitchForEffectiveness: " +
                         $"ranged hittable={situation.HittableEnemies.Count}, alt melee can hit {enemiesInMeleeRange} enemies in melee range");
                     return true;
                 }
@@ -1244,7 +1245,7 @@ namespace CompanionAI_v3.Planning.Plans
             {
                 if (enemyDist <= altSet.PrimaryWeaponRange)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] CanAlternateWeaponReach: ranged alt weapon range={altSet.PrimaryWeaponRange:F0} >= enemy dist={enemyDist:F1}");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] CanAlternateWeaponReach: ranged alt weapon range={altSet.PrimaryWeaponRange:F0} >= enemy dist={enemyDist:F1}");
                     return true;
                 }
             }
@@ -1252,7 +1253,7 @@ namespace CompanionAI_v3.Planning.Plans
             // 근접 대체 무기: 근접 사거리 내 확인
             if (altSet.HasMeleeWeapon && enemyDist <= 3f)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] CanAlternateWeaponReach: melee alt weapon, enemy at {enemyDist:F1} tiles (within melee)");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] CanAlternateWeaponReach: melee alt weapon, enemy at {enemyDist:F1} tiles (within melee)");
                 return true;
             }
 
@@ -1260,11 +1261,11 @@ namespace CompanionAI_v3.Planning.Plans
             float currentMP = CombatAPI.GetCurrentMP(situation.Unit);
             if (currentMP > 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] CanAlternateWeaponReach: MP={currentMP:F1} remaining, can move after switch");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] CanAlternateWeaponReach: MP={currentMP:F1} remaining, can move after switch");
                 return true;
             }
 
-            if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] CanAlternateWeaponReach: false — alt range={altSet.PrimaryWeaponRange:F0}, enemy={enemyDist:F1}, MP=0");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] CanAlternateWeaponReach: false — alt range={altSet.PrimaryWeaponRange:F0}, enemy={enemyDist:F1}, MP=0");
             return false;
         }
 
@@ -1327,7 +1328,7 @@ namespace CompanionAI_v3.Planning.Plans
                 string reason;
                 if (!CombatAPI.CanUseAbilityOnPoint(ability, candidatePosition.Position, out reason))
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] AOE Heal blocked: {ability.Name} - {reason}");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] AOE Heal blocked: {ability.Name} - {reason}");
                     continue;
                 }
 
@@ -1346,7 +1347,7 @@ namespace CompanionAI_v3.Planning.Plans
             if (bestAbility == null) return null;
 
             remainingAP -= bestCost;
-            Main.Log($"[{RoleName}] AOE Heal: {bestAbility.Name} at ({bestAoEPosition.Position.x:F1},{bestAoEPosition.Position.z:F1}) " +
+            Log.Planning.Info($"[{RoleName}] AOE Heal: {bestAbility.Name} at ({bestAoEPosition.Position.x:F1},{bestAoEPosition.Position.z:F1}) " +
                 $"- {bestAoEPosition.AlliesHit} allies (score={bestScore:F1})");
 
             return PlannedAction.PositionalHeal(
@@ -1396,12 +1397,12 @@ namespace CompanionAI_v3.Planning.Plans
                 string reason;
                 if (!CombatAPI.CanUseAbilityOnPoint(ability, bestPosition.Position, out reason))
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] AOE Buff blocked: {ability.Name} - {reason}");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] AOE Buff blocked: {ability.Name} - {reason}");
                     continue;
                 }
 
                 remainingAP -= cost;
-                Main.Log($"[{RoleName}] AOE Buff: {ability.Name} at ({bestPosition.Position.x:F1},{bestPosition.Position.z:F1}) " +
+                Log.Planning.Info($"[{RoleName}] AOE Buff: {ability.Name} at ({bestPosition.Position.x:F1},{bestPosition.Position.z:F1}) " +
                     $"- {bestPosition.AlliesHit} allies");
 
                 return PlannedAction.PositionalBuff(
@@ -1439,7 +1440,7 @@ namespace CompanionAI_v3.Planning.Plans
             string buffGuid = buff.Blueprint?.AssetGuid?.ToString() ?? buff.Name ?? "";
             if (_plannedBuffGuids.Contains(buffGuid))
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] PlanSpecificBuff skip {buff.Name}: already planned this turn");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] PlanSpecificBuff skip {buff.Name}: already planned this turn");
                 return null;
             }
 
@@ -1450,7 +1451,7 @@ namespace CompanionAI_v3.Planning.Plans
             string reason;
             if (!CombatAPI.CanUseAbilityOn(buff, target, out reason))
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] PlanSpecificBuff: {buff.Name} unavailable — {reason}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] PlanSpecificBuff: {buff.Name} unavailable — {reason}");
                 return null;
             }
 
@@ -1526,7 +1527,7 @@ namespace CompanionAI_v3.Planning.Plans
                 if (mostWounded != null)
                 {
                     prioritizedTargets.Add(mostWounded);
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] AllyBuff: Retreat tactic - buff wounded ally {mostWounded.CharacterName}");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] AllyBuff: Retreat tactic - buff wounded ally {mostWounded.CharacterName}");
                 }
             }
             else if (tactic == TacticalSignal.Attack)
@@ -1545,7 +1546,7 @@ namespace CompanionAI_v3.Planning.Plans
                 }
                 if (prioritizedTargets.Count > 0)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] AllyBuff: Attack tactic - buff DPS first");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] AllyBuff: Attack tactic - buff DPS first");
                 }
             }
 
@@ -1612,7 +1613,7 @@ namespace CompanionAI_v3.Planning.Plans
                 string buffGuid = buff.Blueprint?.AssetGuid?.ToString();
                 if (!string.IsNullOrEmpty(buffGuid) && usedKeystoneGuids != null && usedKeystoneGuids.Contains(buffGuid))
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Skip {buff.Name} - successfully used on familiar in Keystone phase");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Skip {buff.Name} - successfully used on familiar in Keystone phase");
                     continue;
                 }
 
@@ -1631,7 +1632,7 @@ namespace CompanionAI_v3.Planning.Plans
                             int availableCasts = buff.GetAvailableForCastCount();
                             if (availableCasts > 0 && plannedUses >= availableCasts)
                             {
-                                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Skip {buff.Name}: already planned {plannedUses}/{availableCasts} casts");
+                                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Skip {buff.Name}: already planned {plannedUses}/{availableCasts} casts");
                                 continue;
                             }
                         }
@@ -1664,7 +1665,7 @@ namespace CompanionAI_v3.Planning.Plans
                                 if (t != carryUnit) targetList.Add(t);
                             }
                             if (Main.IsDebugEnabled)
-                                Main.LogDebug($"[{RoleName}] BringItDown: carry unit {carryUnit.CharacterName} prioritized");
+                                Log.Planning.Debug($"[{RoleName}] BringItDown: carry unit {carryUnit.CharacterName} prioritized");
                         }
                     }
                 }
@@ -1687,14 +1688,14 @@ namespace CompanionAI_v3.Planning.Plans
                     {
                         int remaining = CombatAPI.GetBuffRemainingRounds(target, buff);
                         string durStr = remaining == -1 ? "영구" : $"{remaining}R";
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Skip {buff.Name} -> {target.CharacterName}: buff active ({durStr} remaining)");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Skip {buff.Name} -> {target.CharacterName}: buff active ({durStr} remaining)");
                         continue;
                     }
 
                     // ★ v3.7.87: 턴 전달 능력은 이미 행동한 유닛에게 쓰면 낭비
                     if (isTurnGrant && TeamBlackboard.Instance.HasActedThisRound(target))
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Skip {buff.Name} -> {target.CharacterName}: already acted this round");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Skip {buff.Name} -> {target.CharacterName}: already acted this round");
                         continue;
                     }
 
@@ -1702,7 +1703,7 @@ namespace CompanionAI_v3.Planning.Plans
                     // 같은 계획 단계에서 같은 대상에게 여러 번 쳐부숴라 계획 방지
                     if (isTurnGrant && plannedTurnGrantTargetIds != null && plannedTurnGrantTargetIds.Contains(targetId))
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Skip {buff.Name} -> {target.CharacterName}: turn grant already planned for this target");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Skip {buff.Name} -> {target.CharacterName}: turn grant already planned for this target");
                         continue;
                     }
 
@@ -1714,11 +1715,11 @@ namespace CompanionAI_v3.Planning.Plans
                         if (isTurnGrant && plannedTurnGrantTargetIds != null)
                         {
                             plannedTurnGrantTargetIds.Add(targetId);
-                            Main.Log($"[{RoleName}] Turn grant planned: {buff.Name} -> {target.CharacterName} (tracked for duplicate prevention)");
+                            Log.Planning.Info($"[{RoleName}] Turn grant planned: {buff.Name} -> {target.CharacterName} (tracked for duplicate prevention)");
                         }
 
                         remainingAP -= cost;
-                        Main.Log($"[{RoleName}] Buff ally: {buff.Name} -> {target.CharacterName}");
+                        Log.Planning.Info($"[{RoleName}] Buff ally: {buff.Name} -> {target.CharacterName}");
                         return PlannedAction.Buff(buff, target, $"Buff {target.CharacterName}", cost);
                     }
                 }
@@ -1761,7 +1762,7 @@ namespace CompanionAI_v3.Planning.Plans
 
             if (validationNode == null)
             {
-                Main.LogWarning($"[{RoleName}] Attack validation skipped: validation node not found");
+                Log.Planning.Warn($"[{RoleName}] Attack validation skipped: validation node not found");
                 return 0;
             }
 
@@ -1777,7 +1778,7 @@ namespace CompanionAI_v3.Planning.Plans
                 if (!CombatAPI.CanTargetFromPosition(action.Ability, validationNode, targetEntity, out reason))
                 {
                     invalidAttacks.Add(action);
-                    Main.LogWarning($"[{RoleName}] Attack validation FAILED: {action.Ability.Name} -> {targetEntity.CharacterName} " +
+                    Log.Planning.Warn($"[{RoleName}] Attack validation FAILED: {action.Ability.Name} -> {targetEntity.CharacterName} " +
                         $"({reason}, from {(hasMoveForValidation ? "move destination" : "current position")})");
                 }
             }
@@ -1789,7 +1790,7 @@ namespace CompanionAI_v3.Planning.Plans
             {
                 actions.Remove(invalid);
                 remainingAP += invalid.APCost;
-                Main.Log($"[{RoleName}] ★ Removed unreachable attack: {invalid.Ability?.Name} -> {invalid.Target?.Entity?.ToString() ?? "?"}");
+                Log.Planning.Info($"[{RoleName}] ★ Removed unreachable attack: {invalid.Ability?.Name} -> {invalid.Target?.Entity?.ToString() ?? "?"}");
             }
 
             // didPlanAttack 업데이트
@@ -1807,7 +1808,7 @@ namespace CompanionAI_v3.Planning.Plans
                     var buff = _tempActions[bi];
                     actions.Remove(buff);
                     remainingAP += buff.APCost;
-                    Main.Log($"[{RoleName}] ★ Removed orphaned pre-attack buff: {buff.Ability?.Name} (no attacks remaining)");
+                    Log.Planning.Info($"[{RoleName}] ★ Removed orphaned pre-attack buff: {buff.Ability?.Name} (no attacks remaining)");
                 }
             }
 
@@ -1861,7 +1862,7 @@ namespace CompanionAI_v3.Planning.Plans
             {
                 case TacticalStrategy.AttackFromCurrent:
                     // 이동 불필요 - 현재 위치에서 공격 진행
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] TacticalStrategy: AttackFromCurrent (hittable={eval.ExpectedHittableCount})");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] TacticalStrategy: AttackFromCurrent (hittable={eval.ExpectedHittableCount})");
                     break;
 
                 case TacticalStrategy.MoveToAttack:
@@ -1871,7 +1872,7 @@ namespace CompanionAI_v3.Planning.Plans
                     {
                         // HittableEnemies 재계산
                         RecalculateHittableFromDestination(situation, eval.MoveDestination.Value);
-                        Main.Log($"[{RoleName}] TacticalStrategy: MoveToAttack → ({eval.MoveDestination.Value.x:F1},{eval.MoveDestination.Value.z:F1}), hittable={eval.ExpectedHittableCount}");
+                        Log.Planning.Info($"[{RoleName}] TacticalStrategy: MoveToAttack → ({eval.MoveDestination.Value.x:F1},{eval.MoveDestination.Value.z:F1}), hittable={eval.ExpectedHittableCount}");
                         return PlannedAction.Move(eval.MoveDestination.Value,
                             $"Tactical pre-attack move (hittable: {eval.ExpectedHittableCount})");
                     }
@@ -1880,12 +1881,12 @@ namespace CompanionAI_v3.Planning.Plans
                 case TacticalStrategy.AttackThenRetreat:
                     // 공격 먼저, 후퇴는 나중에
                     shouldDeferRetreat = true;
-                    Main.Log($"[{RoleName}] TacticalStrategy: AttackThenRetreat (attack first, retreat after)");
+                    Log.Planning.Info($"[{RoleName}] TacticalStrategy: AttackThenRetreat (attack first, retreat after)");
                     break;
 
                 case TacticalStrategy.MoveOnly:
                     // 공격 불가 - Phase 8에서 이동 처리
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] TacticalStrategy: MoveOnly (no attack possible)");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] TacticalStrategy: MoveOnly (no attack possible)");
                     break;
             }
 
@@ -1907,7 +1908,7 @@ namespace CompanionAI_v3.Planning.Plans
             var destNode = destination.GetNearestNodeXZ() as CustomGridNodeBase;
             if (destNode == null)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] RecalculateHittable: destination node not found");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] RecalculateHittable: destination node not found");
                 return;
             }
 
@@ -1983,10 +1984,10 @@ namespace CompanionAI_v3.Planning.Plans
             {
                 var oldBest = situation.BestTarget;
                 situation.BestTarget = _sharedNewHittable.Count > 0 ? _sharedNewHittable[0] : null;
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] BestTarget changed after move: {oldBest.CharacterName} → {situation.BestTarget?.CharacterName ?? "null"}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] BestTarget changed after move: {oldBest.CharacterName} → {situation.BestTarget?.CharacterName ?? "null"}");
             }
 
-            Main.Log($"[{RoleName}] ★ RecalculateHittable from ({destination.x:F1},{destination.z:F1}): {oldCount} → {_sharedNewHittable.Count} hittable");
+            Log.Planning.Info($"[{RoleName}] ★ RecalculateHittable from ({destination.x:F1},{destination.z:F1}): {oldCount} → {_sharedNewHittable.Count} hittable");
 
             // 소실된 타겟 로깅 (디버그)
             if (_sharedNewHittable.Count < oldCount)
@@ -1996,7 +1997,7 @@ namespace CompanionAI_v3.Planning.Plans
                 {
                     if (!_sharedNewHittable.Contains(enemy))
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Lost target after move: {enemy.CharacterName}");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Lost target after move: {enemy.CharacterName}");
                         if (++logged >= 3) break;
                     }
                 }
@@ -2040,7 +2041,7 @@ namespace CompanionAI_v3.Planning.Plans
                 // 동일 버프를 "Final AP buff" 사유로 재추가. 실행 시점엔 이미 cooldown이라 두 번째는 실패.
                 if (_plannedBuffGuids.Contains(abilityId))
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Phase 9: Skip {buff.Name} (already planned this turn)");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Phase 9: Skip {buff.Name} (already planned this turn)");
                     continue;
                 }
 
@@ -2062,7 +2063,7 @@ namespace CompanionAI_v3.Planning.Plans
                 {
                     remainingAP -= cost;
                     _plannedBuffGuids.Add(abilityId);  // ★ v3.110.7: dedup 등록
-                    Main.Log($"[{RoleName}] Phase 9: Final buff - {buff.Name}");
+                    Log.Planning.Info($"[{RoleName}] Phase 9: Final buff - {buff.Name}");
                     return PlannedAction.Buff(buff, situation.Unit, "Final AP buff", cost);
                 }
             }
@@ -2087,7 +2088,7 @@ namespace CompanionAI_v3.Planning.Plans
                     // _plannedBuffGuids는 이제 "once-per-turn ability tracker"로 역할 확장 (buff + debuff + marker).
                     if (_plannedBuffGuids.Contains(abilityId))
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Phase 9: Skip debuff {debuff.Name} (already planned this turn)");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Phase 9: Skip debuff {debuff.Name} (already planned this turn)");
                         continue;
                     }
 
@@ -2098,13 +2099,13 @@ namespace CompanionAI_v3.Planning.Plans
                         // ★ v3.18.4: AoE 안전성 체크 (아군 피해 방지)
                         if (!CombatHelpers.IsAttackSafeForTarget(debuff, situation.Unit, situation.NearestEnemy, situation.Allies))
                         {
-                            Main.Log($"[{RoleName}] Phase 9: Final debuff SKIPPED (AoE unsafe): {debuff.Name} -> {situation.NearestEnemy.CharacterName}");
+                            Log.Planning.Info($"[{RoleName}] Phase 9: Final debuff SKIPPED (AoE unsafe): {debuff.Name} -> {situation.NearestEnemy.CharacterName}");
                             continue;
                         }
 
                         remainingAP -= cost;
                         _plannedBuffGuids.Add(abilityId);  // ★ v3.110.7: dedup 등록
-                        Main.Log($"[{RoleName}] Phase 9: Final debuff - {debuff.Name} -> {situation.NearestEnemy.CharacterName}");
+                        Log.Planning.Info($"[{RoleName}] Phase 9: Final debuff - {debuff.Name} -> {situation.NearestEnemy.CharacterName}");
                         return PlannedAction.Attack(debuff, situation.NearestEnemy, "Final AP debuff", cost);
                     }
                 }
@@ -2130,7 +2131,7 @@ namespace CompanionAI_v3.Planning.Plans
                     string usageKey = $"{abilityId}:{targetId}";
                     if (AbilityUsageTracker.WasUsedRecently(unitId, usageKey, 5000))
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Phase 9: Skipping {marker.Name} - already used on {situation.NearestEnemy.CharacterName}");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Phase 9: Skipping {marker.Name} - already used on {situation.NearestEnemy.CharacterName}");
                         continue;
                     }
 
@@ -2140,7 +2141,7 @@ namespace CompanionAI_v3.Planning.Plans
                     // ★ v3.110.7: 이 턴 이미 계획된 능력 스킵
                     if (_plannedBuffGuids.Contains(abilityId))
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Phase 9: Skip marker {marker.Name} (already planned this turn)");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Phase 9: Skip marker {marker.Name} (already planned this turn)");
                         continue;
                     }
 
@@ -2151,13 +2152,13 @@ namespace CompanionAI_v3.Planning.Plans
                         // ★ v3.18.4: AoE 안전성 체크 (아군 피해 방지)
                         if (!CombatHelpers.IsAttackSafeForTarget(marker, situation.Unit, situation.NearestEnemy, situation.Allies))
                         {
-                            Main.Log($"[{RoleName}] Phase 9: Final marker SKIPPED (AoE unsafe): {marker.Name} -> {situation.NearestEnemy.CharacterName}");
+                            Log.Planning.Info($"[{RoleName}] Phase 9: Final marker SKIPPED (AoE unsafe): {marker.Name} -> {situation.NearestEnemy.CharacterName}");
                             continue;
                         }
 
                         remainingAP -= cost;
                         _plannedBuffGuids.Add(abilityId);  // ★ v3.110.7: dedup 등록
-                        Main.Log($"[{RoleName}] Phase 9: Final marker - {marker.Name} -> {situation.NearestEnemy.CharacterName}");
+                        Log.Planning.Info($"[{RoleName}] Phase 9: Final marker - {marker.Name} -> {situation.NearestEnemy.CharacterName}");
                         return PlannedAction.Buff(marker, situation.NearestEnemy, "Final AP marker", cost);
                     }
                 }
@@ -2190,7 +2191,7 @@ namespace CompanionAI_v3.Planning.Plans
             var retreatAction = MovementPlanner.PlanRetreat(situation);
             if (retreatAction != null)
             {
-                Main.Log($"[{RoleName}] ★ Preemptive retreat before {clearMPAbility.Name} (ClearMPAfterUse)");
+                Log.Planning.Info($"[{RoleName}] ★ Preemptive retreat before {clearMPAbility.Name} (ClearMPAfterUse)");
                 remainingMP = 0f;  // 이동 후 MP 소진
             }
 
@@ -2271,7 +2272,7 @@ namespace CompanionAI_v3.Planning.Plans
             if (didPlanAttack || !situation.HasHittableEnemies) return;
 
             int mismatchCount = situation.HittableEnemies.Count;
-            Main.Log($"[{RoleName}] ★ Hittable mismatch: {mismatchCount} marked hittable but no attack possible - correcting");
+            Log.Planning.Info($"[{RoleName}] ★ Hittable mismatch: {mismatchCount} marked hittable but no attack possible - correcting");
 
             // 1. 거짓 Hittable 클리어
             situation.HittableEnemies.Clear();
@@ -2417,7 +2418,7 @@ namespace CompanionAI_v3.Planning.Plans
                 if (situation.HittableEnemies[i].UniqueId == focusTargetId)
                     return true;
             }
-            Main.Log($"[{roleTag}] Strategy: Previous FocusTarget {focusTargetId} no longer hittable — re-evaluating");
+            Log.Planning.Info($"[{roleTag}] Strategy: Previous FocusTarget {focusTargetId} no longer hittable — re-evaluating");
             return false;
         }
 
@@ -2448,7 +2449,7 @@ namespace CompanionAI_v3.Planning.Plans
             if (previousValid)
             {
                 budget.StrategyPostActionReserved = strategy.ReservedAPForPostAction;
-                Main.Log($"[{roleTag}] Strategy: Reusing previous ({strategy.Sequence}, dmg={strategy.ExpectedTotalDamage:F0})");
+                Log.Planning.Info($"[{roleTag}] Strategy: Reusing previous ({strategy.Sequence}, dmg={strategy.ExpectedTotalDamage:F0})");
                 return strategy;
             }
 
@@ -2467,7 +2468,7 @@ namespace CompanionAI_v3.Planning.Plans
                     turnState.SetContext(StrategicContextKeys.TacticalObjective, objective);
 
                     budget.StrategyPostActionReserved = strategy.ReservedAPForPostAction;
-                    Main.Log($"[{roleTag}] Strategy: {strategy.Sequence} (dmg={strategy.ExpectedTotalDamage:F0}, objective={objective})");
+                    Log.Planning.Info($"[{roleTag}] Strategy: {strategy.Sequence} (dmg={strategy.ExpectedTotalDamage:F0}, objective={objective})");
                 }
                 return strategy;
             }
@@ -2579,7 +2580,7 @@ namespace CompanionAI_v3.Planning.Plans
             var optimalPos = situation.OptimalFamiliarPosition;
             if (optimalPos == null)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Keystone Loop: No optimal position");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Keystone Loop: No optimal position");
                 return actions;
             }
 
@@ -2620,21 +2621,21 @@ namespace CompanionAI_v3.Planning.Plans
                             attack.Blueprint?.CanTargetEnemies == true)
                         {
                             keystoneDebuffs.Add(attack);
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Keystone Loop: Found {attack.Name} in AvailableAttacks for Warp Relay");
+                            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Keystone Loop: Found {attack.Name} in AvailableAttacks for Warp Relay");
                         }
                     }
                 }
 
                 if (keystoneDebuffs.Count > 0)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Keystone Loop: {keystoneDebuffs.Count} debuffs eligible for Warp Relay");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Keystone Loop: {keystoneDebuffs.Count} debuffs eligible for Warp Relay");
                 }
             }
 
             // 버프/디버프 모두 없으면 종료
             if (keystoneBuffs.Count == 0 && keystoneDebuffs.Count == 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Keystone Loop: No keystone-eligible abilities found");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Keystone Loop: No keystone-eligible abilities found");
                 return actions;
             }
 
@@ -2685,7 +2686,7 @@ namespace CompanionAI_v3.Planning.Plans
                     // ★ v3.8.57: 1명이라도 필요하면 Raven 경유 (직접 시전 대비 손해 없고 추가 확산 가능)
                     if (alliesNeedingBuff < 1)
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Keystone Loop: {buff.Name} skipped - no allies need it (all {alliesInRange.Count} already have it)");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Keystone Loop: {buff.Name} skipped - no allies need it (all {alliesInRange.Count} already have it)");
                         continue;
                     }
 
@@ -2699,7 +2700,7 @@ namespace CompanionAI_v3.Planning.Plans
                         // Point AOE는 위치로 시전 가능한지 확인
                         if (!CombatAPI.CanUseAbilityOnPoint(buff, familiarPos, out reason))
                         {
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Keystone Loop: {buff.Name} blocked (point target) - {reason}");
+                            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Keystone Loop: {buff.Name} blocked (point target) - {reason}");
                             continue;
                         }
                     }
@@ -2708,7 +2709,7 @@ namespace CompanionAI_v3.Planning.Plans
                         // 유닛 타겟은 사역마에게 시전 가능한지 확인
                         if (!CombatAPI.CanUseAbilityOn(buff, familiarTarget, out reason))
                         {
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Keystone Loop: {buff.Name} blocked - {reason}");
+                            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Keystone Loop: {buff.Name} blocked - {reason}");
                             continue;
                         }
                     }
@@ -2717,7 +2718,7 @@ namespace CompanionAI_v3.Planning.Plans
                     if (!string.IsNullOrEmpty(guid))
                         usedAbilityGuids.Add(guid);
 
-                    Main.Log($"[{RoleName}] ★ Familiar Keystone Buff: {buff.Name} on {typeName} " +
+                    Log.Planning.Info($"[{RoleName}] ★ Familiar Keystone Buff: {buff.Name} on {typeName} " +
                         $"({alliesNeedingBuff}/{alliesInRange.Count} allies need buff)" +
                         (isPointTarget ? " [Point AOE]" : ""));
 
@@ -2732,7 +2733,7 @@ namespace CompanionAI_v3.Planning.Plans
                             $"Keystone spread: {buff.Name} ({alliesNeedingBuff} allies need it)",
                             cost);
                         // IsFamiliarTarget = false (PositionalBuff는 기본값 false)
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Keystone Point AOE: {buff.Name} at ({familiarPos.x:F1}, {familiarPos.z:F1})");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Keystone Point AOE: {buff.Name} at ({familiarPos.x:F1}, {familiarPos.z:F1})");
                     }
                     else
                     {
@@ -2759,7 +2760,7 @@ namespace CompanionAI_v3.Planning.Plans
 
             if (situation.FamiliarType == PetType.Raven)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Keystone: Momentum check - heroicActPlanned={heroicActPlanned}, buffActive={buffActive}, hasMomentum={hasMomentum}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Keystone: Momentum check - heroicActPlanned={heroicActPlanned}, buffActive={buffActive}, hasMomentum={hasMomentum}");
             }
 
             // ★ v3.8.52: 턴 단위 페이즈 기반 디버프 제어
@@ -2768,7 +2769,7 @@ namespace CompanionAI_v3.Planning.Plans
             bool isRavenBuffPhase = optimalPos.IsBuffPhase;
             if (situation.FamiliarType == PetType.Raven && keystoneDebuffs.Count > 0)
             {
-                Main.Log($"[{RoleName}] Raven Phase: {(isRavenBuffPhase ? "BUFF (아군 버프 우선)" : "DEBUFF (적 디버프 전환)")}");
+                Log.Planning.Info($"[{RoleName}] Raven Phase: {(isRavenBuffPhase ? "BUFF (아군 버프 우선)" : "DEBUFF (적 디버프 전환)")}");
             }
 
             // ★ 비피해 디버프 처리 (Momentum 불필요) - 적 2명+ 필요
@@ -2798,14 +2799,14 @@ namespace CompanionAI_v3.Planning.Plans
                     ? Math.Max(actualEnemiesNearRaven, optimalPos.EnemiesInRange)
                     : actualEnemiesNearRaven;
 
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Keystone Debuff: Enemies near Raven current={actualEnemiesNearRaven}, " +
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Keystone Debuff: Enemies near Raven current={actualEnemiesNearRaven}, " +
                     $"optimal={optimalPos.EnemiesInRange}, willRelocate={willRelocateForDebuff}, effective={effectiveEnemyEstimate}");
                 // ★ v3.8.56: 적 1명이라도 있으면 디버프 허용 (사람처럼 일단 뭐라도 하기)
                 hasEnoughEnemiesForDebuff = effectiveEnemyEstimate >= 1;
             }
             else if (isRavenBuffPhase && keystoneDebuffs.Count > 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Keystone Debuff: Skipped (Raven in BUFF phase - prioritizing ally buff distribution)");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Keystone Debuff: Skipped (Raven in BUFF phase - prioritizing ally buff distribution)");
             }
 
             if (keystoneDebuffs.Count > 0 && hasEnoughEnemiesForDebuff)
@@ -2838,7 +2839,7 @@ namespace CompanionAI_v3.Planning.Plans
                                 ravenPosForDebuff, debuffAoE, _tempUnits);
                             if (debuffEnemyCount < 1)
                             {
-                                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Keystone Debuff: {debuff.Name} skipped - " +
+                                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Keystone Debuff: {debuff.Name} skipped - " +
                                     $"0 enemies in actual AoE ({debuffAoE:F1} tiles, effectRadius={situation.FamiliarEffectRadius:F1})");
                                 continue;
                             }
@@ -2849,7 +2850,7 @@ namespace CompanionAI_v3.Planning.Plans
                     string reason;
                     if (!CombatAPI.CanUseAbilityOn(debuff, familiarTarget, out reason))
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Keystone Debuff: {debuff.Name} can't target Raven - {reason}");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Keystone Debuff: {debuff.Name} can't target Raven - {reason}");
                         continue;
                     }
 
@@ -2857,7 +2858,7 @@ namespace CompanionAI_v3.Planning.Plans
                     if (!string.IsNullOrEmpty(guid))
                         usedAbilityGuids.Add(guid);
 
-                    Main.Log($"[{RoleName}] ★ Familiar Keystone Debuff: {debuff.Name} on {typeName} " +
+                    Log.Planning.Info($"[{RoleName}] ★ Familiar Keystone Debuff: {debuff.Name} on {typeName} " +
                         $"({debuffEnemyCount} enemies in range) - Warp Relay spread");
 
                     var debuffAction = PlannedAction.Attack(
@@ -2871,7 +2872,7 @@ namespace CompanionAI_v3.Planning.Plans
             }
             else if (keystoneDebuffs.Count > 0 && !isRavenBuffPhase)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Keystone Debuff: Not enough enemies near Raven (current={actualEnemiesNearRaven}, optimal={optimalPos.EnemiesInRange})");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Keystone Debuff: Not enough enemies near Raven (current={actualEnemiesNearRaven}, optimal={optimalPos.EnemiesInRange})");
             }
 
             // ★ v3.7.96: 피해 사이킥 공격 처리 (Momentum 필요!) ★ v3.8.56: 적 1명+ 허용
@@ -2916,7 +2917,7 @@ namespace CompanionAI_v3.Planning.Plans
                                 ravenPosForDebuff, attackAoE, _tempUnits);
                             if (attackEnemyCount < 1)
                             {
-                                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Warp Relay Attack: {attack.Name} skipped - " +
+                                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Warp Relay Attack: {attack.Name} skipped - " +
                                     $"0 enemies in actual AoE ({attackAoE:F1} tiles)");
                                 continue;
                             }
@@ -2927,7 +2928,7 @@ namespace CompanionAI_v3.Planning.Plans
                     string reason;
                     if (!CombatAPI.CanUseAbilityOn(attack, familiarTarget, out reason))
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Warp Relay Attack: {attack.Name} can't target Raven - {reason}");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Warp Relay Attack: {attack.Name} can't target Raven - {reason}");
                         continue;
                     }
 
@@ -2935,7 +2936,7 @@ namespace CompanionAI_v3.Planning.Plans
                     if (!string.IsNullOrEmpty(guid))
                         usedAbilityGuids.Add(guid);
 
-                    Main.Log($"[{RoleName}] ★ Warp Relay Psychic Attack: {attack.Name} on {typeName} " +
+                    Log.Planning.Info($"[{RoleName}] ★ Warp Relay Psychic Attack: {attack.Name} on {typeName} " +
                         $"({attackEnemyCount} enemies) - Momentum active, damage spreads!");
 
                     var attackAction = PlannedAction.Attack(
@@ -2950,22 +2951,22 @@ namespace CompanionAI_v3.Planning.Plans
             else if (hasMomentum && isRavenBuffPhase)
             {
                 // ★ v3.8.57: Warp Relay 불가 → Phase 5에서 직접 적 공격으로 폴백
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Warp Relay Attack: Momentum active but in BUFF phase - psychic attacks available as direct cast in Phase 5");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Warp Relay Attack: Momentum active but in BUFF phase - psychic attacks available as direct cast in Phase 5");
             }
             else if (hasMomentum && !hasEnoughEnemiesForDebuff)
             {
                 // ★ v3.8.57: Warp Relay 불가 → Phase 5에서 직접 적 공격으로 폴백
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Warp Relay Attack: Momentum active but no enemies near Raven - psychic attacks available as direct cast in Phase 5");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Warp Relay Attack: Momentum active but no enemies near Raven - psychic attacks available as direct cast in Phase 5");
             }
             else if (!hasMomentum && situation.FamiliarType == PetType.Raven)
             {
                 // ★ v3.8.57: Momentum 없어도 사이킹 공격은 Phase 5에서 직접 캐스팅 가능
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] No Momentum: psychic attacks available as direct cast in Phase 5 (no Warp Relay AOE spread)");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] No Momentum: psychic attacks available as direct cast in Phase 5 (no Warp Relay AOE spread)");
             }
 
             if (actions.Count > 0)
             {
-                Main.Log($"[{RoleName}] Keystone Loop: {actions.Count} abilities planned for familiar");
+                Log.Planning.Info($"[{RoleName}] Keystone Loop: {actions.Count} abilities planned for familiar");
             }
 
             return actions;
@@ -2984,7 +2985,7 @@ namespace CompanionAI_v3.Planning.Plans
             // ★ v3.7.02: Mastiff는 Relocate 능력이 없음
             if (situation.FamiliarType == PetType.Mastiff)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Familiar Relocate: Mastiff has no Relocate ability");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Familiar Relocate: Mastiff has no Relocate ability");
                 return null;
             }
 
@@ -2994,7 +2995,7 @@ namespace CompanionAI_v3.Planning.Plans
 
             if (relocate == null)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Familiar Relocate: No relocate ability found");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Familiar Relocate: No relocate ability found");
                 return null;
             }
 
@@ -3002,7 +3003,7 @@ namespace CompanionAI_v3.Planning.Plans
             float apCost = CombatAPI.GetAbilityAPCost(relocate);
             if (remainingAP < apCost)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Familiar Relocate: Not enough AP ({remainingAP:F1} < {apCost:F1})");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Familiar Relocate: Not enough AP ({remainingAP:F1} < {apCost:F1})");
                 return null;
             }
 
@@ -3010,7 +3011,7 @@ namespace CompanionAI_v3.Planning.Plans
             var optimalPos = situation.OptimalFamiliarPosition;
             if (optimalPos == null)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Familiar Relocate: No optimal position");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Familiar Relocate: No optimal position");
                 return null;
             }
 
@@ -3018,14 +3019,14 @@ namespace CompanionAI_v3.Planning.Plans
             string reason;
             if (!CombatAPI.CanUseAbilityOnPoint(relocate, optimalPos.Position, out reason))
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Familiar Relocate blocked: {reason}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Familiar Relocate blocked: {reason}");
                 return null;
             }
 
             remainingAP -= apCost;
 
             var typeName = FamiliarAPI.GetFamiliarTypeName(situation.FamiliarType);
-            Main.Log($"[{RoleName}] ★ Familiar Relocate: {typeName} to optimal position " +
+            Log.Planning.Info($"[{RoleName}] ★ Familiar Relocate: {typeName} to optimal position " +
                 $"({optimalPos.AlliesInRange} allies, {optimalPos.EnemiesInRange} enemies in range)");
 
             // ★ v3.8.30: PositionalBuff 경로 사용 (MultiTarget 경로 문제 해결)
@@ -3067,7 +3068,7 @@ namespace CompanionAI_v3.Planning.Plans
             var optimalPos = situation.OptimalFamiliarPosition;
             if (optimalPos == null || optimalPos.AlliesInRange < 2)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Familiar Keystone: Not enough allies in range ({optimalPos?.AlliesInRange ?? 0})");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Familiar Keystone: Not enough allies in range ({optimalPos?.AlliesInRange ?? 0})");
                 return null;
             }
 
@@ -3086,7 +3087,7 @@ namespace CompanionAI_v3.Planning.Plans
             {
                 if (!CombatAPI.CanUseAbilityOnPoint(buffAbility, familiarPos, out reason))
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Familiar Keystone blocked (point): {buffAbility.Name} -> {reason}");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Familiar Keystone blocked (point): {buffAbility.Name} -> {reason}");
                     return null;
                 }
             }
@@ -3095,7 +3096,7 @@ namespace CompanionAI_v3.Planning.Plans
                 var familiarTarget = new TargetWrapper(situation.Familiar);
                 if (!CombatAPI.CanUseAbilityOn(buffAbility, familiarTarget, out reason))
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Familiar Keystone blocked: {buffAbility.Name} -> {reason}");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Familiar Keystone blocked: {buffAbility.Name} -> {reason}");
                     return null;
                 }
             }
@@ -3103,7 +3104,7 @@ namespace CompanionAI_v3.Planning.Plans
             remainingAP -= apCost;
 
             var typeName = FamiliarAPI.GetFamiliarTypeName(situation.FamiliarType);
-            Main.Log($"[{RoleName}] ★ Familiar Keystone: {buffAbility.Name} on {typeName} " +
+            Log.Planning.Info($"[{RoleName}] ★ Familiar Keystone: {buffAbility.Name} on {typeName} " +
                 $"for AoE spread ({optimalPos.AlliesInRange} allies)" +
                 (isPointTarget ? " [Point AOE]" : ""));
 
@@ -3155,12 +3156,12 @@ namespace CompanionAI_v3.Planning.Plans
                     e => e.IsConscious && e.UniqueId == existingTargetId);
                 if (existingTarget != null)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Mastiff Apprehend: Already active on {existingTarget.CharacterName}, skipping");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Mastiff Apprehend: Already active on {existingTarget.CharacterName}, skipping");
                     return null;  // 대상 생존 → 재발행 불필요
                 }
                 // 대상 사망/무효 → clear 후 새 대상 선택
                 TeamBlackboard.Instance.ClearMastiffApprehendTarget(masterId);
-                Main.Log($"[{RoleName}] Mastiff Apprehend: Previous target eliminated, selecting new target");
+                Log.Planning.Info($"[{RoleName}] Mastiff Apprehend: Previous target eliminated, selecting new target");
             }
 
             // ★ v3.22.6: BestTarget 연동 + 도달 가능성 체크
@@ -3174,7 +3175,7 @@ namespace CompanionAI_v3.Planning.Plans
                 if (CombatAPI.CanUseAbilityOn(apprehend, new TargetWrapper(situation.BestTarget), out reason))
                 {
                     targetEnemy = situation.BestTarget;
-                    Main.Log($"[{RoleName}] Mastiff Apprehend: BestTarget {targetEnemy.CharacterName} (coordinated)");
+                    Log.Planning.Info($"[{RoleName}] Mastiff Apprehend: BestTarget {targetEnemy.CharacterName} (coordinated)");
                 }
             }
 
@@ -3193,7 +3194,7 @@ namespace CompanionAI_v3.Planning.Plans
                     if (dist < bestDist) { bestDist = dist; targetEnemy = enemy; }
                 }
                 if (targetEnemy != null)
-                    Main.Log($"[{RoleName}] Mastiff Apprehend: Reachable hittable {targetEnemy.CharacterName} (dist={CombatAPI.MetersToTiles(bestDist):F1}tiles)");
+                    Log.Planning.Info($"[{RoleName}] Mastiff Apprehend: Reachable hittable {targetEnemy.CharacterName} (dist={CombatAPI.MetersToTiles(bestDist):F1}tiles)");
             }
 
             // 3순위: NearestEnemy 폴백 (도달 불확실하지만 최선)
@@ -3203,13 +3204,13 @@ namespace CompanionAI_v3.Planning.Plans
                 if (CombatAPI.CanUseAbilityOn(apprehend, new TargetWrapper(situation.NearestEnemy), out reason))
                 {
                     targetEnemy = situation.NearestEnemy;
-                    Main.Log($"[{RoleName}] Mastiff Apprehend: NearestEnemy fallback {targetEnemy.CharacterName}");
+                    Log.Planning.Info($"[{RoleName}] Mastiff Apprehend: NearestEnemy fallback {targetEnemy.CharacterName}");
                 }
             }
 
             if (targetEnemy == null)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Mastiff Apprehend: No valid reachable target found");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Mastiff Apprehend: No valid reachable target found");
                 return null;
             }
 
@@ -3217,7 +3218,7 @@ namespace CompanionAI_v3.Planning.Plans
             TeamBlackboard.Instance.SetMastiffApprehendTarget(masterId, targetEnemy.UniqueId);
             remainingAP -= apCost;
 
-            Main.Log($"[{RoleName}] ★ Mastiff Apprehend: {targetEnemy.CharacterName} (locked until eliminated)");
+            Log.Planning.Info($"[{RoleName}] ★ Mastiff Apprehend: {targetEnemy.CharacterName} (locked until eliminated)");
             return PlannedAction.Attack(apprehend, targetEnemy,
                 $"Mastiff Apprehend on {targetEnemy.CharacterName}", apCost);
         }
@@ -3282,7 +3283,7 @@ namespace CompanionAI_v3.Planning.Plans
 
             if (targetEnemy == null)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Eagle Obstruct: No suitable target found");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Eagle Obstruct: No suitable target found");
                 return null;
             }
 
@@ -3291,13 +3292,13 @@ namespace CompanionAI_v3.Planning.Plans
             string reason;
             if (!CombatAPI.CanUseAbilityOn(obstruct, targetWrapper, out reason))
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Eagle Obstruct blocked: {reason}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Eagle Obstruct blocked: {reason}");
                 return null;
             }
 
             remainingAP -= apCost;
 
-            Main.Log($"[{RoleName}] ★ Eagle Obstruct Vision: {targetEnemy.CharacterName}");
+            Log.Planning.Info($"[{RoleName}] ★ Eagle Obstruct Vision: {targetEnemy.CharacterName}");
 
             return PlannedAction.Attack(
                 obstruct,
@@ -3332,7 +3333,7 @@ namespace CompanionAI_v3.Planning.Plans
                     e => e.IsConscious && e.UniqueId == apprehendTargetId);
                 if (apprehendTarget != null)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Mastiff Protect: Skipped — Apprehend active on {apprehendTarget.CharacterName}");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Mastiff Protect: Skipped — Apprehend active on {apprehendTarget.CharacterName}");
                     return null;  // Apprehend 활성 → Protect 불필요
                 }
             }
@@ -3355,7 +3356,7 @@ namespace CompanionAI_v3.Planning.Plans
 
             if (allyToProtect == null)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Mastiff Protect: No threatened ally needs protection");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Mastiff Protect: No threatened ally needs protection");
                 return null;
             }
 
@@ -3363,13 +3364,13 @@ namespace CompanionAI_v3.Planning.Plans
             string reason;
             if (!CombatAPI.CanUseAbilityOn(protect, targetWrapper, out reason))
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Mastiff Protect blocked: {reason}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Mastiff Protect blocked: {reason}");
                 return null;
             }
 
             float allyHP = CombatCache.GetHPPercent(allyToProtect);
             remainingAP -= apCost;
-            Main.Log($"[{RoleName}] ★ Mastiff Protect: {allyToProtect.CharacterName} (HP={allyHP:F0}%)");
+            Log.Planning.Info($"[{RoleName}] ★ Mastiff Protect: {allyToProtect.CharacterName} (HP={allyHP:F0}%)");
 
             return PlannedAction.Buff(protect, allyToProtect,
                 $"Mastiff Protect {allyToProtect.CharacterName}", apCost);
@@ -3400,13 +3401,13 @@ namespace CompanionAI_v3.Planning.Plans
         protected PlannedAction PlanFamiliarAerialRush(Situation situation, ref float remainingAP)
         {
             // ★ v3.7.43: 디버그 로그 추가
-            if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Aerial Rush: Entry - FamiliarType={situation.FamiliarType}, " +
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Aerial Rush: Entry - FamiliarType={situation.FamiliarType}, " +
                 $"FamiliarAbilities={situation.FamiliarAbilities?.Count ?? 0}, AP={remainingAP:F1}");
 
             // Cyber-Eagle만 해당
             if (situation.FamiliarType != PetType.Eagle)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Aerial Rush: Skip - Not Eagle (type={situation.FamiliarType})");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Aerial Rush: Skip - Not Eagle (type={situation.FamiliarType})");
                 return null;
             }
 
@@ -3443,14 +3444,14 @@ namespace CompanionAI_v3.Planning.Plans
             if (aerialRush == null)
             {
                 // ★ v3.7.43: 모든 능력 GUID 로그
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Aerial Rush: No MultiTarget ability found. Available abilities:");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Aerial Rush: No MultiTarget ability found. Available abilities:");
                 if (situation.FamiliarAbilities != null)
                 {
                     foreach (var ab in situation.FamiliarAbilities)
                     {
                         bool isMulti = FamiliarAbilities.IsMultiTargetFamiliarAbility(ab);
                         bool isAerial = FamiliarAbilities.IsAerialRushAbility(ab);
-                        if (Main.IsDebugEnabled) Main.LogDebug($"  - {ab.Name} [{ab.Blueprint?.AssetGuid}] MultiTarget={isMulti}, AerialRush={isAerial}");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"  - {ab.Name} [{ab.Blueprint?.AssetGuid}] MultiTarget={isMulti}, AerialRush={isAerial}");
                     }
                 }
                 return null;
@@ -3458,7 +3459,7 @@ namespace CompanionAI_v3.Planning.Plans
 
             // AP 비용 확인
             float apCost = CombatAPI.GetAbilityAPCost(aerialRush);
-            if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Aerial Rush: Found ability={aerialRush.Name}, APCost={apCost:F1}, RemainingAP={remainingAP:F1}");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Aerial Rush: Found ability={aerialRush.Name}, APCost={apCost:F1}, RemainingAP={remainingAP:F1}");
 
             // ★ v3.7.46: 디버그 - TargetRestrictions 덤프
             try
@@ -3466,34 +3467,34 @@ namespace CompanionAI_v3.Planning.Plans
                 var restrictions = aerialRush.Blueprint?.TargetRestrictions;
                 if (restrictions != null && restrictions.Length > 0)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Aerial Rush: TargetRestrictions ({restrictions.Length} total):");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Aerial Rush: TargetRestrictions ({restrictions.Length} total):");
                     foreach (var restriction in restrictions)
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"  - {restriction.GetType().Name}");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"  - {restriction.GetType().Name}");
                     }
                 }
                 else
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Aerial Rush: No TargetRestrictions");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Aerial Rush: No TargetRestrictions");
                 }
 
                 // ★ v3.99.0: AbilityTargetsAround 디버그 블록 제거 — 순수 로그용이었고 해당 타입이 [Obsolete]
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[{RoleName}] Aerial Rush: Error dumping restrictions");
+                if (Main.IsDebugEnabled) Log.Planning.Error(ex, $"[{RoleName}] Aerial Rush: Error dumping restrictions");
             }
 
             if (remainingAP < apCost)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Aerial Rush: Insufficient AP ({remainingAP:F1} < {apCost:F1})");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Aerial Rush: Insufficient AP ({remainingAP:F1} < {apCost:F1})");
                 return null;
             }
 
             var masterNode = situation.Unit.Position.GetNearestNodeXZ() as CustomGridNodeBase;
             if (masterNode == null)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Aerial Rush: Master node is null");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Aerial Rush: Master node is null");
                 return null;
             }
 
@@ -3524,7 +3525,7 @@ namespace CompanionAI_v3.Planning.Plans
                             comp is WarhammerOverrideAbilityCasterPositionContextual)
                         {
                             hasOverrideCasterByPet = true;
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Aerial Rush: Found {comp.GetType().Name} - distance calc uses Pet position");
+                            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Aerial Rush: Found {comp.GetType().Name} - distance calc uses Pet position");
                             break;
                         }
                     }
@@ -3554,7 +3555,7 @@ namespace CompanionAI_v3.Planning.Plans
             // → 두 값이 다르면 TargetRestrictionNotPassed 발생
             int point2RangeTiles = CombatAPI.GetMultiTargetPoint2RangeInTiles(aerialRush);
 
-            if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Aerial Rush: Point1={point1RangeTiles} tiles (maxEnemy={maxEnemyDist:F0}), " +
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Aerial Rush: Point1={point1RangeTiles} tiles (maxEnemy={maxEnemyDist:F0}), " +
                 $"Point2={point2RangeTiles} tiles (from Support ability RangeCells), EagleMP={familiarMP:F0}, OverrideCaster={hasOverrideCasterByPet}");
 
             // ★ v3.7.48: Eagle 위치 기반 경로 탐색
@@ -3564,7 +3565,7 @@ namespace CompanionAI_v3.Planning.Plans
             if (familiar != null)
             {
                 eagleNode = situation.FamiliarPosition.GetNearestNodeXZ() as CustomGridNodeBase;
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Aerial Rush: Using Eagle position ({situation.FamiliarPosition.x:F1},{situation.FamiliarPosition.z:F1})");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Aerial Rush: Using Eagle position ({situation.FamiliarPosition.x:F1},{situation.FamiliarPosition.z:F1})");
             }
 
             CustomGridNodeBase bestPoint1Node, bestPoint2Node;
@@ -3583,7 +3584,7 @@ namespace CompanionAI_v3.Planning.Plans
             CustomGridNodeBase masterMoveNode = null;
             if (!foundPath)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Aerial Rush: No path from current position, checking Master movement...");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Aerial Rush: No path from current position, checking Master movement...");
 
                 float masterMP = CombatAPI.GetCurrentMP(situation.Unit);
                 int masterMPTiles = (int)masterMP;
@@ -3606,14 +3607,14 @@ namespace CompanionAI_v3.Planning.Plans
                     if (foundPath && masterMoveNode != null)
                     {
                         Vector3 movePos = (Vector3)masterMoveNode.Vector3Position;
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Aerial Rush: Found path after Master moves to ({movePos.x:F1},{movePos.z:F1})");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Aerial Rush: Found path after Master moves to ({movePos.x:F1},{movePos.z:F1})");
                     }
                 }
             }
 
             if (!foundPath || bestPoint1Node == null || bestPoint2Node == null)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Aerial Rush: No valid path found (even with movement)");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Aerial Rush: No valid path found (even with movement)");
                 return null;
             }
 
@@ -3659,11 +3660,11 @@ namespace CompanionAI_v3.Planning.Plans
                 if (!situation.NeedsAoEEvacuation &&
                     CombatAPI.IsPositionInHazardZone(masterMovePos, situation.Unit))
                 {
-                    Main.Log($"[{RoleName}] Aerial Rush move position in hazard zone — cancelled");
+                    Log.Planning.Info($"[{RoleName}] Aerial Rush move position in hazard zone — cancelled");
                     return null;
                 }
 
-                Main.Log($"[{RoleName}] ★ Eagle Aerial Rush requires movement: " +
+                Log.Planning.Info($"[{RoleName}] ★ Eagle Aerial Rush requires movement: " +
                     $"Master moves to ({masterMovePos.x:F1},{masterMovePos.z:F1}) first, " +
                     $"then will use Point1({point1.x:F1},{point1.z:F1}) -> Point2({point2.x:F1},{point2.z:F1}) " +
                     $"through {targetName} ({estimatedPathTargets} enemies in path)");
@@ -3681,7 +3682,7 @@ namespace CompanionAI_v3.Planning.Plans
                 new TargetWrapper(point2)
             };
 
-            Main.Log($"[{RoleName}] ★ Eagle Aerial Rush: Point1({point1.x:F1},{point1.z:F1}) -> Point2({point2.x:F1},{point2.z:F1}) through {targetName} ({estimatedPathTargets} enemies in path)");
+            Log.Planning.Info($"[{RoleName}] ★ Eagle Aerial Rush: Point1({point1.x:F1},{point1.z:F1}) -> Point2({point2.x:F1},{point2.z:F1}) through {targetName} ({estimatedPathTargets} enemies in path)");
 
             return PlannedAction.MultiTargetAttack(
                 aerialRush,
@@ -3774,7 +3775,7 @@ namespace CompanionAI_v3.Planning.Plans
             remainingAP -= apCost;
             bool isRanged = CombatAPI.HasRangedWeapon(targetEnemy);
 
-            Main.Log($"[{RoleName}] ★ Eagle Blinding Dive: {targetEnemy.CharacterName} ({(isRanged ? "Ranged" : "Melee")}, HP={CombatCache.GetHPPercent(targetEnemy):F0}%)");
+            Log.Planning.Info($"[{RoleName}] ★ Eagle Blinding Dive: {targetEnemy.CharacterName} ({(isRanged ? "Ranged" : "Melee")}, HP={CombatCache.GetHPPercent(targetEnemy):F0}%)");
 
             return PlannedAction.Attack(
                 blindingDive,
@@ -3840,7 +3841,7 @@ namespace CompanionAI_v3.Planning.Plans
                         {
                             targetEnemy = e;
                             bestClusterScore = score;
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Jump Claws cluster target: {nearbyCount} nearby");
+                            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Jump Claws cluster target: {nearbyCount} nearby");
                         }
                     }
                 }
@@ -3891,7 +3892,7 @@ namespace CompanionAI_v3.Planning.Plans
 
             remainingAP -= apCost;
 
-            Main.Log($"[{RoleName}] ★ Mastiff Jump Claws: {targetEnemy.CharacterName} (HP={CombatCache.GetHPPercent(targetEnemy):F0}%)");
+            Log.Planning.Info($"[{RoleName}] ★ Mastiff Jump Claws: {targetEnemy.CharacterName} (HP={CombatCache.GetHPPercent(targetEnemy):F0}%)");
 
             return PlannedAction.Attack(
                 jumpClaws,
@@ -3979,7 +3980,7 @@ namespace CompanionAI_v3.Planning.Plans
             remainingAP -= apCost;
             string familiarName = situation.FamiliarType == PetType.Eagle ? "Eagle" : "Mastiff";
 
-            Main.Log($"[{RoleName}] ★ {familiarName} Claws: {targetEnemy.CharacterName} (HP={CombatCache.GetHPPercent(targetEnemy):F0}%)");
+            Log.Planning.Info($"[{RoleName}] ★ {familiarName} Claws: {targetEnemy.CharacterName} (HP={CombatCache.GetHPPercent(targetEnemy):F0}%)");
 
             return PlannedAction.Attack(
                 claws,
@@ -4029,13 +4030,13 @@ namespace CompanionAI_v3.Planning.Plans
             string reason;
             if (!CombatAPI.CanUseAbilityOn(screen, targetWrapper, out reason))
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Eagle Screen blocked: {reason}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Eagle Screen blocked: {reason}");
                 return null;
             }
 
             remainingAP -= apCost;
 
-            Main.Log($"[{RoleName}] ★ Eagle Screen: {allyToScreen.CharacterName} (HP={allyHP:F0}%)");
+            Log.Planning.Info($"[{RoleName}] ★ Eagle Screen: {allyToScreen.CharacterName} (HP={allyHP:F0}%)");
 
             return PlannedAction.Buff(
                 screen,
@@ -4101,12 +4102,12 @@ namespace CompanionAI_v3.Planning.Plans
             string reason;
             if (!CombatAPI.CanUseAbilityOn(signal, selfTarget, out reason))
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Priority Signal blocked: {reason}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Priority Signal blocked: {reason}");
                 return null;
             }
 
             remainingAP -= apCost;
-            Main.Log($"[{RoleName}] ★ Servo-Skull Priority Signal");
+            Log.Planning.Info($"[{RoleName}] ★ Servo-Skull Priority Signal");
 
             return PlannedAction.Buff(signal, situation.Unit,
                 "Priority Signal (Servo-Skull defense)", apCost);
@@ -4141,7 +4142,7 @@ namespace CompanionAI_v3.Planning.Plans
             // 2명 이상 부상 아군이 범위 내 있어야 의미
             if (woundedInRange < 2)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Vitality Signal: Only {woundedInRange} wounded in range (need 2+)");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Vitality Signal: Only {woundedInRange} wounded in range (need 2+)");
                 return null;
             }
 
@@ -4149,12 +4150,12 @@ namespace CompanionAI_v3.Planning.Plans
             string reason;
             if (!CombatAPI.CanUseAbilityOn(signal, selfTarget, out reason))
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Vitality Signal blocked: {reason}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Vitality Signal blocked: {reason}");
                 return null;
             }
 
             remainingAP -= apCost;
-            Main.Log($"[{RoleName}] ★ Servo-Skull Vitality Signal ({woundedInRange} wounded in range)");
+            Log.Planning.Info($"[{RoleName}] ★ Servo-Skull Vitality Signal ({woundedInRange} wounded in range)");
 
             return PlannedAction.Buff(signal, situation.Unit,
                 $"Vitality Signal (AoE heal, {woundedInRange} wounded)", apCost);
@@ -4182,7 +4183,7 @@ namespace CompanionAI_v3.Planning.Plans
             var raven = situation.Familiar;
             if (raven == null)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Hex: No raven available");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Hex: No raven available");
                 return null;
             }
 
@@ -4210,7 +4211,7 @@ namespace CompanionAI_v3.Planning.Plans
 
             if (target == null)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Hex: No enemies within Raven range ({maxHexRange:F1}m)");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Hex: No enemies within Raven range ({maxHexRange:F1}m)");
                 return null;
             }
 
@@ -4218,12 +4219,12 @@ namespace CompanionAI_v3.Planning.Plans
             string reason;
             if (!CombatAPI.CanUseAbilityOn(hex, targetWrapper, out reason))
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Hex blocked: {reason}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Hex blocked: {reason}");
                 return null;
             }
 
             remainingAP -= apCost;
-            Main.Log($"[{RoleName}] ★ Raven Hex: {target.CharacterName} (within Raven range)");
+            Log.Planning.Info($"[{RoleName}] ★ Raven Hex: {target.CharacterName} (within Raven range)");
 
             return PlannedAction.Attack(hex, target,
                 $"Hex on {target.CharacterName}", apCost);
@@ -4280,7 +4281,7 @@ namespace CompanionAI_v3.Planning.Plans
             if (discharge.IsRestricted) return null;
 
             remainingAP -= apCost;
-            Main.Log($"[{RoleName}] ★ Purification Discharge: {enemiesNearRaven} enemies near Raven");
+            Log.Planning.Info($"[{RoleName}] ★ Purification Discharge: {enemiesNearRaven} enemies near Raven");
 
             return PlannedAction.Buff(discharge, situation.Familiar,
                 $"Purification Discharge ({enemiesNearRaven} enemies)", apCost);
@@ -4312,12 +4313,12 @@ namespace CompanionAI_v3.Planning.Plans
             string reason;
             if (!CombatAPI.CanUseAbilityOn(cycle, selfTarget, out reason))
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Cycle blocked: {reason}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Cycle blocked: {reason}");
                 return null;
             }
 
             remainingAP -= apCost;
-            Main.Log($"[{RoleName}] ★ Raven Complete the Cycle");
+            Log.Planning.Info($"[{RoleName}] ★ Raven Complete the Cycle");
 
             return PlannedAction.Buff(cycle, situation.Unit,
                 "Complete the Cycle (re-cast relay)", apCost);
@@ -4347,12 +4348,12 @@ namespace CompanionAI_v3.Planning.Plans
             string reason;
             if (!CombatAPI.CanUseAbilityOn(fast, selfTarget, out reason))
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Fast blocked: {reason}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Fast blocked: {reason}");
                 return null;
             }
 
             remainingAP -= apCost;
-            Main.Log($"[{RoleName}] ★ Mastiff Fast (mobility buff)");
+            Log.Planning.Info($"[{RoleName}] ★ Mastiff Fast (mobility buff)");
 
             return PlannedAction.Buff(fast, situation.Unit,
                 "Mastiff Fast (mobility)", apCost);
@@ -4379,12 +4380,12 @@ namespace CompanionAI_v3.Planning.Plans
             string reason;
             if (!CombatAPI.CanUseAbilityOn(roam, selfTarget, out reason))
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{RoleName}] Roam blocked: {reason}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{RoleName}] Roam blocked: {reason}");
                 return null;
             }
 
             remainingAP -= apCost;
-            Main.Log($"[{RoleName}] ★ Mastiff Roam (auto-attack mode)");
+            Log.Planning.Info($"[{RoleName}] ★ Mastiff Roam (auto-attack mode)");
 
             return PlannedAction.Buff(roam, situation.Unit,
                 "Mastiff Roam (autonomous)", apCost);

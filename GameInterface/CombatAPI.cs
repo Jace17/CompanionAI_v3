@@ -6,6 +6,7 @@ using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.Utility;
 using Pathfinding;
 using UnityEngine;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.GameInterface
 {
@@ -45,7 +46,7 @@ namespace CompanionAI_v3.GameInterface
             // ★ v3.13.0: 로깅 추가 (기본값 MaxValue는 이미 보수적 — 도달 불가)
             catch (Exception ex)
             {
-                Main.LogWarning($"[CombatAPI] GetDistanceInTiles(unit,unit) failed: {ex.Message}");
+                Log.Engine.Warn($"[CombatAPI] GetDistanceInTiles(unit,unit) failed: {ex.Message}");
                 return float.MaxValue;
             }
         }
@@ -67,7 +68,7 @@ namespace CompanionAI_v3.GameInterface
             // ★ v3.13.0: 로깅 추가
             catch (Exception ex)
             {
-                Main.LogWarning($"[CombatAPI] GetDistanceInTiles(pos,unit) failed: {ex.Message}");
+                Log.Engine.Warn($"[CombatAPI] GetDistanceInTiles(pos,unit) failed: {ex.Message}");
                 return float.MaxValue;
             }
         }
@@ -114,7 +115,7 @@ namespace CompanionAI_v3.GameInterface
                 var multiTarget = rootAbility.Blueprint?.GetComponent<Kingmaker.UnitLogic.Abilities.Components.Base.IAbilityMultiTarget>();
                 if (multiTarget == null)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetMultiTargetPoint1Range: No IAbilityMultiTarget component");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetMultiTargetPoint1Range: No IAbilityMultiTarget component");
                     return rootAbility.RangeCells;  // MultiTarget이 아니면 기본 범위 반환
                 }
 
@@ -124,13 +125,13 @@ namespace CompanionAI_v3.GameInterface
 
                 if (!multiTarget.TryGetNextTargetAbilityAndCaster(rootAbility, 0, out point1Blueprint, out point1Caster))
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetMultiTargetPoint1Range: TryGetNextTarget failed for index 0");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetMultiTargetPoint1Range: TryGetNextTarget failed for index 0");
                     return 30;  // 폴백
                 }
 
                 if (point1Blueprint == null)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetMultiTargetPoint1Range: Point1 blueprint is null");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetMultiTargetPoint1Range: Point1 blueprint is null");
                     return 30;  // 폴백
                 }
 
@@ -138,12 +139,12 @@ namespace CompanionAI_v3.GameInterface
                 var point1Ability = new AbilityData(point1Blueprint, point1Caster ?? rootAbility.Caster);
                 int point1Range = point1Ability.RangeCells;
 
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetMultiTargetPoint1Range: Point1 ability={point1Blueprint.name}, Range={point1Range} tiles");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetMultiTargetPoint1Range: Point1 ability={point1Blueprint.name}, Range={point1Range} tiles");
                 return point1Range;
             }
             catch (Exception ex)
             {
-                Main.LogWarning($"[CombatAPI] GetMultiTargetPoint1Range error: {ex.Message}");
+                Log.Engine.Warn($"[CombatAPI] GetMultiTargetPoint1Range error: {ex.Message}");
                 return 30;  // 폴백
             }
         }
@@ -168,7 +169,7 @@ namespace CompanionAI_v3.GameInterface
                 var multiTarget = rootAbility.Blueprint?.GetComponent<Kingmaker.UnitLogic.Abilities.Components.Base.IAbilityMultiTarget>();
                 if (multiTarget == null)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetMultiTargetPoint2Range: No IAbilityMultiTarget component");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetMultiTargetPoint2Range: No IAbilityMultiTarget component");
                     return 15;  // MultiTarget이 아니면 폴백
                 }
 
@@ -178,13 +179,13 @@ namespace CompanionAI_v3.GameInterface
 
                 if (!multiTarget.TryGetNextTargetAbilityAndCaster(rootAbility, 1, out point2Blueprint, out point2Caster))
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetMultiTargetPoint2Range: TryGetNextTarget failed for index 1");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetMultiTargetPoint2Range: TryGetNextTarget failed for index 1");
                     return 15;  // 폴백
                 }
 
                 if (point2Blueprint == null)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetMultiTargetPoint2Range: Point2 blueprint is null");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetMultiTargetPoint2Range: Point2 blueprint is null");
                     return 15;  // 폴백
                 }
 
@@ -193,13 +194,13 @@ namespace CompanionAI_v3.GameInterface
                 var point2Ability = new AbilityData(point2Blueprint, point2Caster ?? rootAbility.Caster);
                 int point2Range = point2Ability.RangeCells;
 
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetMultiTargetPoint2Range: Point2 ability={point2Blueprint.name}, " +
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetMultiTargetPoint2Range: Point2 ability={point2Blueprint.name}, " +
                     $"Caster={(point2Caster as BaseUnitEntity)?.CharacterName ?? "unknown"}, Range={point2Range} tiles");
                 return point2Range;
             }
             catch (Exception ex)
             {
-                Main.LogWarning($"[CombatAPI] GetMultiTargetPoint2Range error: {ex.Message}");
+                Log.Engine.Warn($"[CombatAPI] GetMultiTargetPoint2Range error: {ex.Message}");
                 return 15;  // 폴백
             }
         }

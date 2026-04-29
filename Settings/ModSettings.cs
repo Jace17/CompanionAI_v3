@@ -4,6 +4,7 @@ using System.IO;
 using CompanionAI_v3.MachineSpirit;
 using Newtonsoft.Json;
 using UnityModManagerNet;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Settings
 {
@@ -2387,7 +2388,7 @@ namespace CompanionAI_v3.Settings
                 var gameId = GetCurrentGameId();
                 if (string.IsNullOrEmpty(gameId))
                 {
-                    Main.LogDebug("[PerSaveSettings] GameId not available yet");
+                    Log.Persistence.Debug("[PerSaveSettings] GameId not available yet");
                     return;
                 }
 
@@ -2396,7 +2397,7 @@ namespace CompanionAI_v3.Settings
 
                 if (string.IsNullOrEmpty(filePath))
                 {
-                    Main.LogDebug("[PerSaveSettings] Mod path not set");
+                    Log.Persistence.Debug("[PerSaveSettings] Mod path not set");
                     _cached = new PerSaveSettings();
                     return;
                 }
@@ -2405,17 +2406,17 @@ namespace CompanionAI_v3.Settings
                 {
                     var json = File.ReadAllText(filePath);
                     _cached = JsonConvert.DeserializeObject<PerSaveSettings>(json);
-                    Main.Log($"[PerSaveSettings] Loaded {_cached?.CharacterSettings?.Count ?? 0} settings from {Path.GetFileName(filePath)}");
+                    Log.Persistence.Info($"[PerSaveSettings] Loaded {_cached?.CharacterSettings?.Count ?? 0} settings from {Path.GetFileName(filePath)}");
                 }
                 else
                 {
-                    Main.Log($"[PerSaveSettings] No settings file for GameId={gameId}, creating new");
+                    Log.Persistence.Info($"[PerSaveSettings] No settings file for GameId={gameId}, creating new");
                     _cached = new PerSaveSettings();
                 }
             }
             catch (Exception ex)
             {
-                Main.LogError($"[PerSaveSettings] Load error: {ex.Message}");
+                Log.Persistence.Error($"[PerSaveSettings] Load error: {ex.Message}");
                 _cached = new PerSaveSettings();
             }
         }
@@ -2428,14 +2429,14 @@ namespace CompanionAI_v3.Settings
                 var gameId = GetCurrentGameId();
                 if (string.IsNullOrEmpty(gameId))
                 {
-                    Main.LogDebug("[PerSaveSettings] Cannot save - GameId not available");
+                    Log.Persistence.Debug("[PerSaveSettings] Cannot save - GameId not available");
                     return;
                 }
 
                 var filePath = GetSettingsFilePath(gameId);
                 if (string.IsNullOrEmpty(filePath))
                 {
-                    Main.LogDebug("[PerSaveSettings] Cannot save - mod path not set");
+                    Log.Persistence.Debug("[PerSaveSettings] Cannot save - mod path not set");
                     return;
                 }
 
@@ -2443,11 +2444,11 @@ namespace CompanionAI_v3.Settings
 
                 var json = JsonConvert.SerializeObject(_cached, Formatting.Indented);
                 File.WriteAllText(filePath, json);
-                Main.LogDebug($"[PerSaveSettings] Saved {_cached.CharacterSettings.Count} settings to {Path.GetFileName(filePath)}");
+                Log.Persistence.Debug($"[PerSaveSettings] Saved {_cached.CharacterSettings.Count} settings to {Path.GetFileName(filePath)}");
             }
             catch (Exception ex)
             {
-                Main.LogError($"[PerSaveSettings] Save error: {ex.Message}");
+                Log.Persistence.Error($"[PerSaveSettings] Save error: {ex.Message}");
             }
         }
     }
@@ -2623,25 +2624,25 @@ namespace CompanionAI_v3.Settings
                     if (settings != null)
                     {
                         Instance = settings;
-                        Main.Log("Settings loaded successfully");
+                        Log.Persistence.Info("Settings loaded successfully");
                     }
                     else
                     {
-                        Main.Log("Using default settings");
+                        Log.Persistence.Info("Using default settings");
                         Instance = new ModSettings();
                     }
                 }
                 else
                 {
                     // ★ v3.5.21: 설정 파일이 없으면 기본값으로 자동 생성
-                    Main.Log("Settings file not found, creating default settings.json");
+                    Log.Persistence.Info("Settings file not found, creating default settings.json");
                     Instance = new ModSettings();
                     Save();  // 기본 설정 파일 생성
                 }
             }
             catch (Exception ex)
             {
-                Main.LogError($"Failed to load settings: {ex.Message}");
+                Log.Persistence.Error($"Failed to load settings: {ex.Message}");
                 Instance = new ModSettings();
             }
 
@@ -2665,11 +2666,11 @@ namespace CompanionAI_v3.Settings
                 string path = GetSettingsPath();
                 string json = JsonConvert.SerializeObject(Instance, Formatting.Indented);
                 File.WriteAllText(path, json);
-                Main.LogDebug("Settings saved");
+                Log.Persistence.Debug("Settings saved");
             }
             catch (Exception ex)
             {
-                Main.LogError($"Failed to save settings: {ex.Message}");
+                Log.Persistence.Error($"Failed to save settings: {ex.Message}");
             }
         }
 

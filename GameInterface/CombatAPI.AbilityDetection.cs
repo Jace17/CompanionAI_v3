@@ -13,6 +13,7 @@ using Kingmaker.UnitLogic.Mechanics.Actions;                      // ContextActi
 using Kingmaker.UnitLogic.Mechanics.Components;                   // AddFactContextActions
 using UnityEngine;                                                // Vector3
 using CompanionAI_v3.Data;                                        // AbilityDatabase, AbilityClassificationData
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.GameInterface
 {
@@ -72,7 +73,7 @@ namespace CompanionAI_v3.GameInterface
                     int patternRadius = patternSettings.Pattern?.Radius ?? 0;
                     if (patternRadius > 0)
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetAbilityRange: {bp.name} is Pattern AOE, Radius={patternRadius}");
+                        if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetAbilityRange: {bp.name} is Pattern AOE, Radius={patternRadius}");
                         return patternRadius;
                     }
                 }
@@ -81,7 +82,7 @@ namespace CompanionAI_v3.GameInterface
                 int aoERadius = bp.AoERadius;
                 if (aoERadius > 0)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetAbilityRange: {bp.name} is Circle AOE, Radius={aoERadius}");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetAbilityRange: {bp.name} is Circle AOE, Radius={aoERadius}");
                     return aoERadius;
                 }
 
@@ -105,12 +106,12 @@ namespace CompanionAI_v3.GameInterface
                 // 3. ★ v3.8.63: 무기 타입인데 무기 없음 — 근접 사거리 폴백
                 // 기존 15f(원거리)는 비무장 능력에 대해 잘못된 값이었음
                 // bp.GetRange() == -1 + Weapon == null = 비무장/근접 능력
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetAbilityRange: {bp.name} has weapon-type range but no weapon — fallback to melee range");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetAbilityRange: {bp.name} has weapon-type range but no weapon — fallback to melee range");
                 return GridCellSize * 2;  // 약 2.7m (근접 2셀)
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetAbilityRange error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] GetAbilityRange error");
                 return GridCellSize * 2;  // ★ v3.8.63: 에러 시에도 근접 폴백 (15f보다 안전)
             }
         }
@@ -142,7 +143,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsUnlimitedRange failed for {ability?.Name}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsUnlimitedRange failed for {ability?.Name}");
                 return false;
             }
         }
@@ -163,7 +164,7 @@ namespace CompanionAI_v3.GameInterface
                 var fromNode = fromPosition.GetNearestNodeXZ() as Kingmaker.Pathfinding.CustomGridNodeBase;
                 if (fromNode == null)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] CanReachFromPos: Node lookup failed, allowing");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] CanReachFromPos: Node lookup failed, allowing");
                     return true;
                 }
 
@@ -173,16 +174,16 @@ namespace CompanionAI_v3.GameInterface
                 if (Main.IsDebugEnabled)
                 {
                     if (!canTarget)
-                        Main.LogDebug($"[CombatAPI] CanReachFromPos: {ability.Name} -> {target.CharacterName}, BLOCKED: {reason}");
+                        Log.Engine.Debug($"[CombatAPI] CanReachFromPos: {ability.Name} -> {target.CharacterName}, BLOCKED: {reason}");
                     else
-                        Main.LogDebug($"[CombatAPI] CanReachFromPos: {ability.Name} -> {target.CharacterName}, OK");
+                        Log.Engine.Debug($"[CombatAPI] CanReachFromPos: {ability.Name} -> {target.CharacterName}, OK");
                 }
 
                 return canTarget;
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] CanReachTargetFromPosition error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] CanReachTargetFromPosition error");
                 return true;  // 에러 시 허용 (안전하게)
             }
         }
@@ -278,7 +279,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetAbilityTypeInfo error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] GetAbilityTypeInfo error");
                 return new AbilityTypeInfo();
             }
         }
@@ -313,7 +314,7 @@ namespace CompanionAI_v3.GameInterface
         public static void ClearAbilityTypeCache()
         {
             AbilityTypeCache.Clear();
-            Main.LogDebug("[CombatAPI] AbilityType cache cleared");
+            Log.Engine.Debug("[CombatAPI] AbilityType cache cleared");
         }
 
         #endregion
@@ -423,7 +424,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetClassificationData error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] GetClassificationData error");
                 return new AbilityClassificationData();
             }
         }
@@ -434,7 +435,7 @@ namespace CompanionAI_v3.GameInterface
         public static void ClearClassificationCache()
         {
             ClassificationCache.Clear();
-            Main.LogDebug("[CombatAPI] Classification cache cleared");
+            Log.Engine.Debug("[CombatAPI] Classification cache cleared");
         }
 
         /// <summary>
@@ -444,7 +445,7 @@ namespace CompanionAI_v3.GameInterface
         {
             ClearAbilityTypeCache();
             ClearClassificationCache();
-            Main.LogDebug("[CombatAPI] All ability caches cleared");
+            Log.Engine.Debug("[CombatAPI] All ability caches cleared");
         }
 
         #endregion
@@ -487,14 +488,14 @@ namespace CompanionAI_v3.GameInterface
                     if (HasDamagingComponents(areaEffect) && areaEffect.Contains(unit))
                     {
                         if (Main.IsDebugEnabled)
-                            Main.LogDebug($"[CombatAPI] ★ Damaging AoE detected via fallback: {areaEffect.Blueprint?.name ?? "unknown"} (caster={(caster != null ? "enemy" : "null/environmental")})");
+                            Log.Engine.Debug($"[CombatAPI] ★ Damaging AoE detected via fallback: {areaEffect.Blueprint?.name ?? "unknown"} (caster={(caster != null ? "enemy" : "null/environmental")})");
                         return true;
                     }
                 }
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsUnitInDamagingAoE error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsUnitInDamagingAoE error");
             }
 
             return false;
@@ -533,7 +534,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsPositionInDamagingAoE error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsPositionInDamagingAoE error");
             }
 
             return false;
@@ -679,7 +680,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsUnitInPsychicNullZone error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsUnitInPsychicNullZone error");
                 return false;
             }
         }
@@ -701,7 +702,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsPositionInPsychicNullZone error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsPositionInPsychicNullZone error");
             }
             return false;
         }
@@ -724,7 +725,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] HasPsychicAbilities failed for {unit?.CharacterName}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] HasPsychicAbilities failed for {unit?.CharacterName}");
             }
             return false;
         }

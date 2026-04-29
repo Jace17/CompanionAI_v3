@@ -8,6 +8,7 @@ using Kingmaker.View;
 using Kingmaker.View.Covers;
 using Pathfinding;
 using UnityEngine;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.GameInterface
 {
@@ -41,7 +42,7 @@ namespace CompanionAI_v3.GameInterface
 
             if (originNode == null)
             {
-                Main.LogDebug("[PointTargetingHelper] originNode is null");
+                Log.Engine.Debug("[PointTargetingHelper] originNode is null");
                 return result;
             }
 
@@ -49,7 +50,7 @@ namespace CompanionAI_v3.GameInterface
             var controller = Game.Instance?.CustomGridNodeController;
             if (controller == null)
             {
-                Main.LogDebug("[PointTargetingHelper] CustomGridNodeController is null");
+                Log.Engine.Debug("[PointTargetingHelper] CustomGridNodeController is null");
                 return result;
             }
 
@@ -57,7 +58,7 @@ namespace CompanionAI_v3.GameInterface
             var graph = CustomGridNode.GetGridGraph(originNode.GraphIndex);
             if (graph == null)
             {
-                Main.LogDebug("[PointTargetingHelper] Graph is null");
+                Log.Engine.Debug("[PointTargetingHelper] Graph is null");
                 return result;
             }
 
@@ -126,7 +127,7 @@ namespace CompanionAI_v3.GameInterface
                 }
             }
 
-            Main.LogDebug($"[PointTargetingHelper] Scanned {scannedCells} cells, found {validCells} valid (heightFiltered={heightFiltered})");
+            Log.Engine.Debug($"[PointTargetingHelper] Scanned {scannedCells} cells, found {validCells} valid (heightFiltered={heightFiltered})");
             return result;
         }
 
@@ -151,7 +152,7 @@ namespace CompanionAI_v3.GameInterface
             if (enemies == null || enemies.Count == 0)
             {
                 // ★ v3.7.39: 적이 없으면 null 반환 (능력 낭비 방지)
-                Main.LogDebug("[PointTargetingHelper] No enemies provided - skipping Aerial Rush");
+                Log.Engine.Debug("[PointTargetingHelper] No enemies provided - skipping Aerial Rush");
                 return null;
             }
 
@@ -162,7 +163,7 @@ namespace CompanionAI_v3.GameInterface
             Vector3 originPos = (Vector3)originNode.Vector3Position;
 
             // ★ v3.7.39: 적 위치 디버그 로그
-            Main.LogDebug($"[PointTargetingHelper] Eagle at ({originPos.x:F1}, {originPos.z:F1}), checking {enemies.Count} enemies:");
+            Log.Engine.Debug($"[PointTargetingHelper] Eagle at ({originPos.x:F1}, {originPos.z:F1}), checking {enemies.Count} enemies:");
             foreach (var e in enemies)
             {
                 if (e != null && e.IsConscious)
@@ -170,7 +171,7 @@ namespace CompanionAI_v3.GameInterface
                     float dist = UnityEngine.Vector2.Distance(
                         new UnityEngine.Vector2(originPos.x, originPos.z),
                         new UnityEngine.Vector2(e.Position.x, e.Position.z));
-                    Main.LogDebug($"  - {e.CharacterName} at ({e.Position.x:F1}, {e.Position.z:F1}), 거리={dist:F1}m");
+                    Log.Engine.Debug($"  - {e.CharacterName} at ({e.Position.x:F1}, {e.Position.z:F1}), 거리={dist:F1}m");
                 }
             }
 
@@ -193,14 +194,14 @@ namespace CompanionAI_v3.GameInterface
             // ★ v3.7.39: 경로에 적이 없으면 null 반환 (능력 낭비 방지)
             if (requireEnemy && maxEnemies <= 0)
             {
-                Main.LogDebug($"[PointTargetingHelper] No enemies in any path - skipping Aerial Rush");
+                Log.Engine.Debug($"[PointTargetingHelper] No enemies in any path - skipping Aerial Rush");
                 return null;
             }
 
             if (best != null)
             {
                 Vector3 bestPos = (Vector3)best.Vector3Position;
-                Main.LogDebug($"[PointTargetingHelper] Best cell at ({bestPos.x:F1}, {bestPos.z:F1}) " +
+                Log.Engine.Debug($"[PointTargetingHelper] Best cell at ({bestPos.x:F1}, {bestPos.z:F1}) " +
                     $"with {maxEnemies} enemies in path, distance {maxDistance:F1}m");
             }
 
@@ -295,7 +296,7 @@ namespace CompanionAI_v3.GameInterface
 
             if (p1Node == null || p2Node == null)
             {
-                Main.LogDebug("[PointTargetingHelper] GetEnemiesInChargePath: P1 or P2 node is null");
+                Log.Engine.Debug("[PointTargetingHelper] GetEnemiesInChargePath: P1 or P2 node is null");
                 return hitEnemies;
             }
 
@@ -304,11 +305,11 @@ namespace CompanionAI_v3.GameInterface
 
             if (pathNodes.Count == 0)
             {
-                Main.LogDebug("[PointTargetingHelper] GetEnemiesInChargePath: No path nodes found");
+                Log.Engine.Debug("[PointTargetingHelper] GetEnemiesInChargePath: No path nodes found");
                 return hitEnemies;
             }
 
-            Main.LogDebug($"[PointTargetingHelper] Path from ({p1Node.XCoordinateInGrid},{p1Node.ZCoordinateInGrid}) " +
+            Log.Engine.Debug($"[PointTargetingHelper] Path from ({p1Node.XCoordinateInGrid},{p1Node.ZCoordinateInGrid}) " +
                 $"to ({p2Node.XCoordinateInGrid},{p2Node.ZCoordinateInGrid}): {pathNodes.Count} nodes");
 
             // ★ 경로 노드 좌표 세트 (빠른 검색용)
@@ -341,7 +342,7 @@ namespace CompanionAI_v3.GameInterface
                 if (isHit)
                 {
                     hitEnemies.Add(enemy);
-                    Main.LogDebug($"[PointTargetingHelper]   ✓ HIT: {enemy.CharacterName} at ({enemy.Position.x:F1},{enemy.Position.z:F1})");
+                    Log.Engine.Debug($"[PointTargetingHelper]   ✓ HIT: {enemy.CharacterName} at ({enemy.Position.x:F1},{enemy.Position.z:F1})");
                 }
             }
 
@@ -366,7 +367,7 @@ namespace CompanionAI_v3.GameInterface
             if (agent == null)
             {
                 // Agent가 없으면 기존 Bresenham 방식 폴백
-                Main.LogDebug("[PointTargetingHelper] GetEnemiesInChargePath: No agent, fallback to Bresenham");
+                Log.Engine.Debug("[PointTargetingHelper] GetEnemiesInChargePath: No agent, fallback to Bresenham");
                 return GetEnemiesInChargePath(p1Pos, p2Pos, allEnemies, casterSize);
             }
 
@@ -378,7 +379,7 @@ namespace CompanionAI_v3.GameInterface
 
                 if (chargePath?.path == null || chargePath.path.Count == 0)
                 {
-                    Main.LogDebug("[PointTargetingHelper] GetEnemiesInChargePath: Charge path failed, fallback to Bresenham");
+                    Log.Engine.Debug("[PointTargetingHelper] GetEnemiesInChargePath: Charge path failed, fallback to Bresenham");
                     return GetEnemiesInChargePath(p1Pos, p2Pos, allEnemies, casterSize);
                 }
 
@@ -408,7 +409,7 @@ namespace CompanionAI_v3.GameInterface
 
                 var p1Node = p1Pos.GetNearestNodeXZ() as CustomGridNodeBase;
                 var p2Node = p2Pos.GetNearestNodeXZ() as CustomGridNodeBase;
-                Main.LogDebug($"[PointTargetingHelper] ActualChargePath from " +
+                Log.Engine.Debug($"[PointTargetingHelper] ActualChargePath from " +
                     $"({p1Node?.XCoordinateInGrid},{p1Node?.ZCoordinateInGrid}) to " +
                     $"({p2Node?.XCoordinateInGrid},{p2Node?.ZCoordinateInGrid}): " +
                     $"{chargePath.path.Count} nodes (actual pathfinding)");
@@ -434,13 +435,13 @@ namespace CompanionAI_v3.GameInterface
                     if (isHit)
                     {
                         hitEnemies.Add(enemy);
-                        Main.LogDebug($"[PointTargetingHelper]   ✓ HIT (actual path): {enemy.CharacterName}");
+                        Log.Engine.Debug($"[PointTargetingHelper]   ✓ HIT (actual path): {enemy.CharacterName}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[PointTargetingHelper] GetEnemiesInChargePath ERROR, fallback to Bresenham");
+                Log.Engine.Error(ex, $"[PointTargetingHelper] GetEnemiesInChargePath ERROR, fallback to Bresenham");
                 return GetEnemiesInChargePath(p1Pos, p2Pos, allEnemies, casterSize);
             }
 
@@ -509,7 +510,7 @@ namespace CompanionAI_v3.GameInterface
                         if (!prevNode.ContainsConnection(node))
                         {
                             // 장애물 발견! 경로 차단됨
-                            Main.LogDebug($"[PointTargetingHelper] GetNodesAlongPath: Connection BLOCKED at ({prevNode.XCoordinateInGrid},{prevNode.ZCoordinateInGrid}) -> ({node.XCoordinateInGrid},{node.ZCoordinateInGrid})");
+                            Log.Engine.Debug($"[PointTargetingHelper] GetNodesAlongPath: Connection BLOCKED at ({prevNode.XCoordinateInGrid},{prevNode.ZCoordinateInGrid}) -> ({node.XCoordinateInGrid},{node.ZCoordinateInGrid})");
                             break;  // 여기서 경로 종료
                         }
                     }
@@ -657,7 +658,7 @@ namespace CompanionAI_v3.GameInterface
                 {
                     if (!prevNode.ContainsConnection(node))
                     {
-                        Main.LogDebug($"[PointTargetingHelper] IsPathClear: BLOCKED at ({prevNode.XCoordinateInGrid},{prevNode.ZCoordinateInGrid}) -> ({node.XCoordinateInGrid},{node.ZCoordinateInGrid})");
+                        Log.Engine.Debug($"[PointTargetingHelper] IsPathClear: BLOCKED at ({prevNode.XCoordinateInGrid},{prevNode.ZCoordinateInGrid}) -> ({node.XCoordinateInGrid},{node.ZCoordinateInGrid})");
                         return false;  // 장애물!
                     }
                 }
@@ -804,7 +805,7 @@ namespace CompanionAI_v3.GameInterface
 
             if (masterNode == null || enemies == null || enemies.Count == 0)
             {
-                Main.LogDebug("[PointTargetingHelper] FindBestPath: Invalid input");
+                Log.Engine.Debug("[PointTargetingHelper] FindBestPath: Invalid input");
                 return false;
             }
 
@@ -825,7 +826,7 @@ namespace CompanionAI_v3.GameInterface
             float TILE_SIZE = CombatAPI.GridCellSize;
             const float MAX_HEIGHT_DIFF = 2.5f;
 
-            Main.LogDebug($"[PointTargetingHelper] FindBestPath: Master at ({masterPos.x:F1},{masterPos.z:F1}), " +
+            Log.Engine.Debug($"[PointTargetingHelper] FindBestPath: Master at ({masterPos.x:F1},{masterPos.z:F1}), " +
                 $"Eagle at ({eaglePos.x:F1},{eaglePos.z:F1}), " +
                 $"P1Range={point1RangeTiles}, P2Range={point2RangeTiles} tiles, Enemies={enemies.Count}");
 
@@ -936,7 +937,7 @@ namespace CompanionAI_v3.GameInterface
                         // ★ v3.7.61: Point1 → Point2 노드 연결 체크 (장애물/엄폐물 확인)
                         if (!IsPathClear(point1Node, point2Node))
                         {
-                            Main.LogDebug($"[PointTargetingHelper] P1→P2 path BLOCKED by obstacle: ({point1Node.XCoordinateInGrid},{point1Node.ZCoordinateInGrid}) -> ({point2Node.XCoordinateInGrid},{point2Node.ZCoordinateInGrid})");
+                            Log.Engine.Debug($"[PointTargetingHelper] P1→P2 path BLOCKED by obstacle: ({point1Node.XCoordinateInGrid},{point1Node.ZCoordinateInGrid}) -> ({point2Node.XCoordinateInGrid},{point2Node.ZCoordinateInGrid})");
                             continue;
                         }
 
@@ -959,7 +960,7 @@ namespace CompanionAI_v3.GameInterface
                 }
             }
 
-            Main.LogDebug($"[PointTargetingHelper] FindBestPath: Checked {candidatesChecked} candidates, Valid={candidates.Count}");
+            Log.Engine.Debug($"[PointTargetingHelper] FindBestPath: Checked {candidatesChecked} candidates, Valid={candidates.Count}");
 
             // 적 수 > 경로 길이 순 정렬
             candidates.Sort((a, b) =>
@@ -970,7 +971,7 @@ namespace CompanionAI_v3.GameInterface
 
             // ★ Eagle → Point1 Charge 경로 검증
             var eagleAgent = eagle?.MaybeMovementAgent;
-            Main.LogDebug($"[PointTargetingHelper] Charge validation: eagleAgent={(eagleAgent != null ? "Valid" : "NULL")}, candidates={candidates.Count}");
+            Log.Engine.Debug($"[PointTargetingHelper] Charge validation: eagleAgent={(eagleAgent != null ? "Valid" : "NULL")}, candidates={candidates.Count}");
 
             foreach (var candidate in candidates)
             {
@@ -989,7 +990,7 @@ namespace CompanionAI_v3.GameInterface
 
                         if (!hasValidPath)
                         {
-                            Main.LogDebug($"[PointTargetingHelper] Eagle→P1 Charge FAILED: " +
+                            Log.Engine.Debug($"[PointTargetingHelper] Eagle→P1 Charge FAILED: " +
                                 $"Eagle({eaglePos.x:F1},{eaglePos.z:F1}) -> P1({p1.x:F1},{p1.z:F1}) toward {candidate.enemyName}");
                             continue;
                         }
@@ -1002,7 +1003,7 @@ namespace CompanionAI_v3.GameInterface
 
                         if (!hasLandingPath)
                         {
-                            Main.LogDebug($"[PointTargetingHelper] P1→P2 Landing FAILED: " +
+                            Log.Engine.Debug($"[PointTargetingHelper] P1→P2 Landing FAILED: " +
                                 $"P1({p1.x:F1},{p1.z:F1}) -> P2({p2.x:F1},{p2.z:F1})");
                             continue;
                         }
@@ -1013,18 +1014,18 @@ namespace CompanionAI_v3.GameInterface
 
                         if (actualEnemyCount <= 0)
                         {
-                            Main.LogDebug($"[PointTargetingHelper] P1→P2 ActualPath has NO ENEMIES: " +
+                            Log.Engine.Debug($"[PointTargetingHelper] P1→P2 ActualPath has NO ENEMIES: " +
                                 $"P1({p1.x:F1},{p1.z:F1}) -> P2({p2.x:F1},{p2.z:F1}) (Bresenham={candidate.enemies})");
                             continue;
                         }
 
-                        Main.LogDebug($"[PointTargetingHelper] Path VALID: " +
+                        Log.Engine.Debug($"[PointTargetingHelper] Path VALID: " +
                             $"Eagle({eaglePos.x:F1},{eaglePos.z:F1}) -> P1({p1.x:F1},{p1.z:F1}) -> P2({p2.x:F1},{p2.z:F1}), " +
                             $"ActualEnemies={actualEnemyCount} (Bresenham={candidate.enemies})");
                     }
                     catch (Exception ex)
                     {
-                        Main.LogError(ex, $"[PointTargetingHelper] Charge path ERROR");
+                        Log.Engine.Error(ex, $"[PointTargetingHelper] Charge path ERROR");
                         continue;
                     }
                 }
@@ -1038,14 +1039,14 @@ namespace CompanionAI_v3.GameInterface
                     : GetEnemiesInChargePath(p1, p2, enemies);
                 var hitNames = string.Join(", ", hitEnemies.ConvertAll(e => e.CharacterName));
 
-                Main.LogDebug($"[PointTargetingHelper] FindBestPath: SUCCESS - " +
+                Log.Engine.Debug($"[PointTargetingHelper] FindBestPath: SUCCESS - " +
                     $"P1({p1.x:F1},{p1.y:F2},{p1.z:F1}) -> P2({p2.x:F1},{p2.y:F2},{p2.z:F1}), " +
                     $"Enemies={candidate.enemies}, Target={candidate.enemyName}");
-                Main.LogDebug($"[PointTargetingHelper] ★ 타격 대상 목록: [{hitNames}]");
+                Log.Engine.Debug($"[PointTargetingHelper] ★ 타격 대상 목록: [{hitNames}]");
                 return true;
             }
 
-            Main.LogDebug("[PointTargetingHelper] FindBestPath: No valid path found");
+            Log.Engine.Debug("[PointTargetingHelper] FindBestPath: No valid path found");
             return false;
         }
 
@@ -1103,7 +1104,7 @@ namespace CompanionAI_v3.GameInterface
 
             int masterPosCandidates = 0;
 
-            Main.LogDebug($"[PointTargetingHelper] FindBestMasterPos: Master MP={masterMPTiles} tiles, " +
+            Log.Engine.Debug($"[PointTargetingHelper] FindBestMasterPos: Master MP={masterMPTiles} tiles, " +
                 $"P1 range={point1RangeTiles}, P2 range={point2RangeTiles}");
 
             // Master 이동 가능한 모든 위치 탐색
@@ -1166,7 +1167,7 @@ namespace CompanionAI_v3.GameInterface
                 }
             }
 
-            Main.LogDebug($"[PointTargetingHelper] FindBestMasterPos: Checked {masterPosCandidates} positions, " +
+            Log.Engine.Debug($"[PointTargetingHelper] FindBestMasterPos: Checked {masterPosCandidates} positions, " +
                 $"BestEnemies={bestEnemyCount}, BestMasterDist={bestMasterDistance}");
 
             if (bestMasterPos != null && bestPoint1 != null && bestPoint2 != null && bestEnemyCount > 0)
@@ -1174,7 +1175,7 @@ namespace CompanionAI_v3.GameInterface
                 Vector3 mPos = (Vector3)bestMasterPos.Vector3Position;
                 Vector3 p1 = (Vector3)bestPoint1.Vector3Position;
                 Vector3 p2 = (Vector3)bestPoint2.Vector3Position;
-                Main.LogDebug($"[PointTargetingHelper] FindBestMasterPos: SUCCESS - " +
+                Log.Engine.Debug($"[PointTargetingHelper] FindBestMasterPos: SUCCESS - " +
                     $"Master moves to ({mPos.x:F1},{mPos.z:F1}) dist={bestMasterDistance} tiles, " +
                     $"then Point1({p1.x:F1},{p1.z:F1}) -> Point2({p2.x:F1},{p2.z:F1}), Enemies={bestEnemyCount}");
                 return true;

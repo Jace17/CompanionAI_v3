@@ -7,6 +7,7 @@ using CompanionAI_v3.Analysis;
 using CompanionAI_v3.Data;
 using CompanionAI_v3.GameInterface;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Planning
 {
@@ -107,7 +108,7 @@ namespace CompanionAI_v3.Planning
             }
             catch (Exception ex)
             {
-                Main.Log($"[Strategy] Error in Evaluate: {ex.Message}");
+                Log.Planning.Info($"[Strategy] Error in Evaluate: {ex.Message}");
                 return null;
             }
         }
@@ -148,7 +149,7 @@ namespace CompanionAI_v3.Planning
 
             if (aoeWinsOverall && Main.IsDebugEnabled)
             {
-                Main.LogDebug($"[Strategy] Profile: AoE({aoeProfile.Description}) wins \u2014 " +
+                Log.Planning.Debug($"[Strategy] Profile: AoE({aoeProfile.Description}) wins \u2014 " +
                     $"{aoeProfile.DmgPerUsePrimary:F0}\u00d7{aoeProfile.TargetsHit}t/{aoeProfile.Cost:F1}AP = {aoeDPA:F1} DPA > " +
                     $"Single {singleProfile.DmgPerUsePrimary:F0}/{singleProfile.Cost:F1}AP = {singleDPA:F1} DPA");
             }
@@ -461,7 +462,7 @@ namespace CompanionAI_v3.Planning
                 }
             }
 
-            Main.Log($"[Strategy] {unit.CharacterName} ({role}): Selected {best.Type} \u2014 {best.Description}" +
+            Log.Planning.Info($"[Strategy] {unit.CharacterName} ({role}): Selected {best.Type} \u2014 {best.Description}" +
                 $" (score={best.Score:F0}{(isPrimaryDPS ? "" : $", weighted={bestScore:F0}")}, candidates={_candidates.Count})");
 
             if (Main.IsDebugEnabled)
@@ -470,7 +471,7 @@ namespace CompanionAI_v3.Planning
                 {
                     var c = _candidates[i];
                     float ws = GetWeightedScore(c, isPrimaryDPS);
-                    Main.LogDebug($"[Strategy]   #{i} {c.Type}: dmg={c.TotalDamage:F0} + kill={c.KillBonus:F1} + util={c.UtilityBonus:F1} = {c.Score:F0}{(isPrimaryDPS ? "" : $" (w={ws:F0})")} \u2014 {c.Description}");
+                    Log.Planning.Debug($"[Strategy]   #{i} {c.Type}: dmg={c.TotalDamage:F0} + kill={c.KillBonus:F1} + util={c.UtilityBonus:F1} = {c.Score:F0}{(isPrimaryDPS ? "" : $" (w={ws:F0})")} \u2014 {c.Description}");
                 }
             }
 
@@ -566,7 +567,7 @@ namespace CompanionAI_v3.Planning
                 if (allyHits > maxAlliesHit)
                 {
                     if (Main.IsDebugEnabled)
-                        Main.LogDebug($"[Strategy] AoE({aoe.Name}) skipped: {allyHits} allies hit > max {maxAlliesHit}");
+                        Log.Planning.Debug($"[Strategy] AoE({aoe.Name}) skipped: {allyHits} allies hit > max {maxAlliesHit}");
                     continue;
                 }
 
@@ -778,14 +779,14 @@ namespace CompanionAI_v3.Planning
 
                 if (Main.IsDebugEnabled)
                 {
-                    Main.LogDebug($"[Strategy] EvaluateTopN: Returning {results.Count}/{candidateCount} strategies for {situation.Unit?.CharacterName}");
+                    Log.Planning.Debug($"[Strategy] EvaluateTopN: Returning {results.Count}/{candidateCount} strategies for {situation.Unit?.CharacterName}");
                     for (int i = 0; i < results.Count; i++)
-                        Main.LogDebug($"[Strategy]   TopN #{i}: {results[i].Sequence} — {results[i].Reason}");
+                        Log.Planning.Debug($"[Strategy]   TopN #{i}: {results[i].Sequence} — {results[i].Reason}");
                 }
             }
             catch (Exception ex)
             {
-                Main.Log($"[Strategy] Error in EvaluateTopN: {ex.Message}");
+                Log.Planning.Info($"[Strategy] Error in EvaluateTopN: {ex.Message}");
             }
 
             return results;

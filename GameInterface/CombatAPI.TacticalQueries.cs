@@ -12,6 +12,7 @@ using Kingmaker.UnitLogic.Parts;               // ★ v3.5.22: UnitPartSpringAtt
 using UnityEngine;
 using CompanionAI_v3.Data;      // BlueprintCache
 using CompanionAI_v3.Settings;  // RangePreference
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.GameInterface
 {
@@ -33,7 +34,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsInThreateningArea error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsInThreateningArea error");
                 return false;
             }
         }
@@ -51,7 +52,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetThreateningEnemies error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] GetThreateningEnemies error");
                 return new List<BaseUnitEntity>();
             }
         }
@@ -87,7 +88,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] WillCauseAOO error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] WillCauseAOO error");
                 return false;
             }
         }
@@ -153,7 +154,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] CheckAOOStatus error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] CheckAOOStatus error");
                 return result;
             }
         }
@@ -277,7 +278,7 @@ namespace CompanionAI_v3.GameInterface
             // ★ v3.13.0: 안전한 기본값 — 0 (모멘텀 불확실 시 Heroic Act 사용 안 함)
             catch (Exception ex)
             {
-                Main.LogWarning($"[CombatAPI] GetCurrentMomentum failed: {ex.Message}");
+                Log.Engine.Warn($"[CombatAPI] GetCurrentMomentum failed: {ex.Message}");
                 return 0;
             }
         }
@@ -359,7 +360,7 @@ namespace CompanionAI_v3.GameInterface
                             int staticValue = movePoints.Value;
                             if (staticValue > 0)
                             {
-                                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] {ability.Name}: MP recovery = {staticValue}");
+                                if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] {ability.Name}: MP recovery = {staticValue}");
                                 return staticValue;
                             }
 
@@ -372,7 +373,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetAbilityMPRecovery error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] GetAbilityMPRecovery error");
             }
 
             return 0f;
@@ -406,7 +407,7 @@ namespace CompanionAI_v3.GameInterface
                             int staticValue = actionPoints.Value;
                             if (staticValue > 0)
                             {
-                                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] {ability.Name}: AP recovery = {staticValue}");
+                                if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] {ability.Name}: AP recovery = {staticValue}");
                                 return staticValue;
                             }
 
@@ -417,7 +418,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetAbilityAPRecovery error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] GetAbilityAPRecovery error");
             }
 
             return 0f;
@@ -454,7 +455,7 @@ namespace CompanionAI_v3.GameInterface
                 // ★ 갭클로저 2회 미만 → 사용 안 함
                 if (entryCount < 2)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] {unit.CharacterName}: SpringAttack skip (entries={entryCount}, need 2+)");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] {unit.CharacterName}: SpringAttack skip (entries={entryCount}, need 2+)");
                     return false;
                 }
 
@@ -464,16 +465,16 @@ namespace CompanionAI_v3.GameInterface
 
                 if (livingEnemies == 0)
                 {
-                    Main.Log($"[CombatAPI] {unit.CharacterName}: SpringAttack skip - all enemies dead");
+                    Log.Engine.Info($"[CombatAPI] {unit.CharacterName}: SpringAttack skip - all enemies dead");
                     return false;
                 }
 
-                Main.Log($"[CombatAPI] {unit.CharacterName}: SpringAttack {entryCount} entries + {livingEnemies} living enemies - use!");
+                Log.Engine.Info($"[CombatAPI] {unit.CharacterName}: SpringAttack {entryCount} entries + {livingEnemies} living enemies - use!");
                 return true;
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] CanUseSpringAttackAbility error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] CanUseSpringAttackAbility error");
                 return false;
             }
         }
@@ -491,7 +492,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] HasSpringAttackPart failed for {unit?.CharacterName}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] HasSpringAttackPart failed for {unit?.CharacterName}");
                 return false;
             }
         }
@@ -519,7 +520,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetExistingStrategistZones error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] GetExistingStrategistZones error");
             }
 
             return zones;
@@ -538,7 +539,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsStrategistZoneAbility failed for {ability?.Name}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsStrategistZoneAbility failed for {ability?.Name}");
                 return false;
             }
         }
@@ -563,7 +564,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsPositionTooCloseToExistingZones error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsPositionTooCloseToExistingZones error");
                 return false;
             }
         }
@@ -610,18 +611,18 @@ namespace CompanionAI_v3.GameInterface
                     Vector3 testPos = preferredPosition + offsetDir * offset;
                     if (!IsPositionTooCloseToExistingZones(testPos, 6f))
                     {
-                        Main.Log($"[CombatAPI] Found non-overlapping position at offset {offset:F1}m");
+                        Log.Engine.Info($"[CombatAPI] Found non-overlapping position at offset {offset:F1}m");
                         return testPos;
                     }
                 }
 
                 // 찾지 못하면 null
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] Could not find non-overlapping position for {ability.Name}");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] Could not find non-overlapping position for {ability.Name}");
                 return null;
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] FindNonOverlappingZonePosition error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] FindNonOverlappingZonePosition error");
                 return null;
             }
         }

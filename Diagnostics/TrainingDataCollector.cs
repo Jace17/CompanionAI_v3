@@ -8,6 +8,7 @@ using Newtonsoft.Json.Linq;
 using CompanionAI_v3.Core;
 using CompanionAI_v3.GameInterface;
 using CompanionAI_v3.Planning.LLM;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Diagnostics
 {
@@ -89,7 +90,7 @@ namespace CompanionAI_v3.Diagnostics
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[TrainingData] RecordTurn failed");
+                Log.Diagnostics.Error(ex, $"[TrainingData] RecordTurn failed");
             }
         }
 
@@ -111,12 +112,12 @@ namespace CompanionAI_v3.Diagnostics
                 string path = Path.Combine(dir, $"combat_{DateTime.Now:yyyyMMdd}.jsonl");
                 File.AppendAllLines(path, _buffer);
 
-                Main.Log($"[TrainingData] Saved {_buffer.Count} entries to {path}");
+                Log.Diagnostics.Info($"[TrainingData] Saved {_buffer.Count} entries to {path}");
                 _buffer.Clear();
             }
             catch (Exception ex)
             {
-                Main.LogWarning($"[TrainingData] FlushToFile failed: {ex.Message}");
+                Log.Diagnostics.Warn($"[TrainingData] FlushToFile failed: {ex.Message}");
             }
         }
 

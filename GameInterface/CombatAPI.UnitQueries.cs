@@ -14,6 +14,7 @@ using Kingmaker.UnitLogic.Squads;             // PartSquadExtension.GetSquadOpti
 using Kingmaker.View.Covers;                  // LosCalculations.CoverType
 using Pathfinding;                             // GraphNode (EnemyMoveCache)
 using Kingmaker.Pathfinding;                   // CustomGridNodeBase (Vector3Position)
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.GameInterface
 {
@@ -38,7 +39,7 @@ namespace CompanionAI_v3.GameInterface
             // ★ v3.13.0: 안전한 기본값 — 0f (부상으로 판단 → 방어적 행동 유도)
             catch (Exception ex)
             {
-                Main.LogWarning($"[CombatAPI] GetHPPercent failed for {unit?.CharacterName}: {ex.Message}");
+                Log.Engine.Warn($"[CombatAPI] GetHPPercent failed for {unit?.CharacterName}: {ex.Message}");
                 return 0f;
             }
         }
@@ -60,7 +61,7 @@ namespace CompanionAI_v3.GameInterface
             // ★ v3.13.0: 안전한 기본값 — 0f (AP 없음 → EndTurn)
             catch (Exception ex)
             {
-                Main.LogWarning($"[CombatAPI] GetCurrentAP failed for {unit?.CharacterName}: {ex.Message}");
+                Log.Engine.Warn($"[CombatAPI] GetCurrentAP failed for {unit?.CharacterName}: {ex.Message}");
                 return 0f;
             }
         }
@@ -80,7 +81,7 @@ namespace CompanionAI_v3.GameInterface
             // ★ v3.13.0: 로깅 추가 (기본값 0f는 이미 안전)
             catch (Exception ex)
             {
-                Main.LogWarning($"[CombatAPI] GetCurrentMP failed for {unit?.CharacterName}: {ex.Message}");
+                Log.Engine.Warn($"[CombatAPI] GetCurrentMP failed for {unit?.CharacterName}: {ex.Message}");
                 return 0f;
             }
         }
@@ -127,7 +128,7 @@ namespace CompanionAI_v3.GameInterface
             catch (Exception ex)
             {
                 if (Main.IsDebugEnabled)
-                    Main.LogWarning($"[CombatAPI] GetEnemyThreatRange learned failed for {enemy?.CharacterName}: {ex.Message}");
+                    Log.Engine.Warn($"[CombatAPI] GetEnemyThreatRange learned failed for {enemy?.CharacterName}: {ex.Message}");
             }
 
             int weaponRange = 0;
@@ -140,7 +141,7 @@ namespace CompanionAI_v3.GameInterface
             catch (Exception ex)
             {
                 if (Main.IsDebugEnabled)
-                    Main.LogWarning($"[CombatAPI] GetEnemyThreatRange weapon failed for {enemy?.CharacterName}: {ex.Message}");
+                    Log.Engine.Warn($"[CombatAPI] GetEnemyThreatRange weapon failed for {enemy?.CharacterName}: {ex.Message}");
             }
 
             int result = System.Math.Max(learnedRange, weaponRange);
@@ -202,7 +203,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[CombatAPI] GetEnemyTurnThreatScore stat read failed for {enemy?.CharacterName}");
+                Log.Engine.Error(ex, $"[CombatAPI] GetEnemyTurnThreatScore stat read failed for {enemy?.CharacterName}");
             }
 
             int reachTiles = (int)(maxMP / UnityEngine.Mathf.Max(1f, costPerCell));
@@ -244,7 +245,7 @@ namespace CompanionAI_v3.GameInterface
                             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
                     if (_priorityTargetsField == null)
                     {
-                        Main.LogWarning("[CombatAPI] IsPriorityTargetFor: m_PriorityTargets field not found via reflection. Priority target detection disabled.");
+                        Log.Engine.Warn("[CombatAPI] IsPriorityTargetFor: m_PriorityTargets field not found via reflection. Priority target detection disabled.");
                     }
                 }
 
@@ -263,7 +264,7 @@ namespace CompanionAI_v3.GameInterface
             catch (System.Exception ex)
             {
                 if (Main.IsDebugEnabled)
-                    Main.LogWarning($"[CombatAPI] IsPriorityTargetFor reflection failed: {ex.Message}");
+                    Log.Engine.Warn($"[CombatAPI] IsPriorityTargetFor reflection failed: {ex.Message}");
             }
 
             return false;
@@ -275,7 +276,7 @@ namespace CompanionAI_v3.GameInterface
             try { return unit.State.CanMove; }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] CanMove failed for {unit?.CharacterName}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] CanMove failed for {unit?.CharacterName}");
                 return false;
             }
         }
@@ -286,7 +287,7 @@ namespace CompanionAI_v3.GameInterface
             try { return unit.State.CanActInTurnBased; }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] CanAct failed for {unit?.CharacterName}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] CanAct failed for {unit?.CharacterName}");
                 return false;
             }
         }
@@ -345,7 +346,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsExtraTurn failed for {unit?.CharacterName}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsExtraTurn failed for {unit?.CharacterName}");
                 return false;
             }
         }
@@ -363,7 +364,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsCommandQueueEmpty failed for {unit?.CharacterName}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsCommandQueueEmpty failed for {unit?.CharacterName}");
                 return true;
             }
         }
@@ -381,7 +382,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsReadyForNextAction failed for {unit?.CharacterName}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsReadyForNextAction failed for {unit?.CharacterName}");
                 return false;
             }
         }
@@ -396,7 +397,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetDistance failed");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] GetDistance failed");
                 return float.MaxValue;
             }
         }
@@ -442,12 +443,12 @@ namespace CompanionAI_v3.GameInterface
                     }
                 }
 
-                if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] GetEnemies: {enemies.Count} enemies (filtered {skippedNonCombat} non-combat units)");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetEnemies: {enemies.Count} enemies (filtered {skippedNonCombat} non-combat units)");
             }
             catch (Exception ex)
             {
                 // ★ v3.4.01: P1-2 예외 상세 로깅
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetEnemies error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] GetEnemies error");
             }
 
             return enemies;
@@ -480,7 +481,7 @@ namespace CompanionAI_v3.GameInterface
             catch (Exception ex)
             {
                 // ★ v3.4.01: P1-2 예외 상세 로깅
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] GetAllies error");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] GetAllies error");
             }
 
             return allies;
@@ -704,7 +705,7 @@ namespace CompanionAI_v3.GameInterface
                     else if (pathName.Contains("navigator")) result = UnitArchetype.Navigator;
 
                     if (Main.IsDebugEnabled && result != UnitArchetype.Unknown)
-                        Main.LogDebug($"[CombatAPI] DetectArchetype({unit.CharacterName}): {result} (path={bestPath.name}, rank={maxRank})");
+                        Log.Engine.Debug($"[CombatAPI] DetectArchetype({unit.CharacterName}): {result} (path={bestPath.name}, rank={maxRank})");
                 }
 
                 _archetypeCache[unitId] = result;

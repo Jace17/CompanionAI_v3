@@ -5,6 +5,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using CompanionAI_v3.Diagnostics.Models;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Diagnostics
 {
@@ -44,7 +45,7 @@ namespace CompanionAI_v3.Diagnostics
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[CombatReport] Live export failed");
+                Log.Diagnostics.Error(ex, $"[CombatReport] Live export failed");
             }
         }
 
@@ -72,12 +73,12 @@ namespace CompanionAI_v3.Diagnostics
                 int keepCount = ModSettings.Instance?.MaxCombatReports ?? 10;
                 CleanOldReports(dir, keepCount);
 
-                Main.Log($"[CombatReport] Exported: {id} " +
+                Log.Diagnostics.Info($"[CombatReport] Exported: {id} " +
                     $"({report.Turns.Count} turns, {report.FlaggedIssues.Count} issues flagged)");
             }
             catch (Exception ex)
             {
-                Main.LogError($"[CombatReport] Export failed: {ex.Message}");
+                Log.Diagnostics.Error($"[CombatReport] Export failed: {ex.Message}");
             }
         }
 

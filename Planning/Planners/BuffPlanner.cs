@@ -14,6 +14,7 @@ using CompanionAI_v3.Data;
 using CompanionAI_v3.GameInterface;
 using CompanionAI_v3.Settings;
 using Kingmaker.Blueprints.Classes.Experience;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Planning.Planners
 {
@@ -57,11 +58,11 @@ namespace CompanionAI_v3.Planning.Planners
 
             if (ultimates.Count == 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanUltimate: No ultimate abilities available");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanUltimate: No ultimate abilities available");
                 return null;
             }
 
-            Main.Log($"[{roleName}] PlanUltimate: Found {ultimates.Count} ultimates: {string.Join(", ", ultimates.Select(a => a.Name))}");
+            Log.Planning.Info($"[{roleName}] PlanUltimate: Found {ultimates.Count} ultimates: {string.Join(", ", ultimates.Select(a => a.Name))}");
 
             // ★ v3.8.48: anonymous type → ValueTuple (GC 압박 감소)
             // 점수 기반 정렬 (ScoreBuff 사용 → FreeUltimateBuff 보너스 포함)
@@ -75,7 +76,7 @@ namespace CompanionAI_v3.Planning.Planners
 
             if (scored.Count == 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanUltimate: All ultimates scored <= 0");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanUltimate: All ultimates scored <= 0");
                 return null;
             }
 
@@ -87,7 +88,7 @@ namespace CompanionAI_v3.Planning.Planners
                 // 0 코스트가 아닌 경우 AP 체크
                 if (cost > 0 && cost > remainingAP)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanUltimate: {ability.Name} skipped (cost={cost:F1} > AP={remainingAP:F1})");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanUltimate: {ability.Name} skipped (cost={cost:F1} > AP={remainingAP:F1})");
                     continue;
                 }
 
@@ -143,7 +144,7 @@ namespace CompanionAI_v3.Planning.Planners
 
                 if (target == null)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanUltimate: {ability.Name} skipped - no valid target for {targetType}");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanUltimate: {ability.Name} skipped - no valid target for {targetType}");
                     continue;
                 }
 
@@ -151,7 +152,7 @@ namespace CompanionAI_v3.Planning.Planners
                 if (CombatAPI.CanUseAbilityOn(ability, target, out reason))
                 {
                     remainingAP -= cost;
-                    Main.Log($"[{roleName}] ★ ULTIMATE: {ability.Name} -> {targetDesc} " +
+                    Log.Planning.Info($"[{roleName}] ★ ULTIMATE: {ability.Name} -> {targetDesc} " +
                         $"(type={targetType}, score={scored[idx].Score:F0}, heroic={ability.Blueprint?.IsHeroicAct})");
 
                     // 타겟 유형에 따른 PlannedAction 생성
@@ -174,11 +175,11 @@ namespace CompanionAI_v3.Planning.Planners
                 }
                 else
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanUltimate: {ability.Name} -> {targetDesc} failed: {reason}");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanUltimate: {ability.Name} -> {targetDesc} failed: {reason}");
                 }
             }
 
-            if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanUltimate: All candidates failed");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanUltimate: All candidates failed");
             return null;
         }
 
@@ -224,7 +225,7 @@ namespace CompanionAI_v3.Planning.Planners
             }
 
             if (bestAlly != null)
-                if (Main.IsDebugEnabled) Main.LogDebug($"[BuffPlanner] Best ally for ultimate: {bestAlly.CharacterName} (score={bestScore:F0})");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[BuffPlanner] Best ally for ultimate: {bestAlly.CharacterName} (score={bestScore:F0})");
 
             return bestAlly;
         }
@@ -282,7 +283,7 @@ namespace CompanionAI_v3.Planning.Planners
             string buffGuid = GetBuffGuid(buff);
             if (plannedBuffGuids != null && plannedBuffGuids.Contains(buffGuid))
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] Skip buff {buff.Name}: already planned this turn");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] Skip buff {buff.Name}: already planned this turn");
                 return null;
             }
 
@@ -291,7 +292,7 @@ namespace CompanionAI_v3.Planning.Planners
             bool isEssential = IsEssentialBuff(buff, situation);
             if (!CanAffordBuffWithReservation(cost, remainingAP, reservedAP, isEssential))
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] Skip buff {buff.Name}: cost={cost:F1}, remaining={remainingAP:F1}, reserved={reservedAP:F1}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] Skip buff {buff.Name}: cost={cost:F1}, remaining={remainingAP:F1}, reserved={reservedAP:F1}");
                 return null;
             }
 
@@ -301,7 +302,7 @@ namespace CompanionAI_v3.Planning.Planners
             {
                 remainingAP -= cost;
                 plannedBuffGuids?.Add(buffGuid);  // ★ v3.104.0: dedup 등록
-                Main.Log($"[{roleName}] Buff: {buff.Name} (cost={cost:F1})");
+                Log.Planning.Info($"[{roleName}] Buff: {buff.Name} (cost={cost:F1})");
                 return PlannedAction.Buff(buff, situation.Unit, $"Proactive buff: {buff.Name}", cost);
             }
 
@@ -348,7 +349,7 @@ namespace CompanionAI_v3.Planning.Planners
                 string factReason;
                 if (!CombatAPI.MeetsCasterFactRequirements(ability, out factReason))
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] DefensiveStance skipped - {factReason}");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] DefensiveStance skipped - {factReason}");
                     continue;
                 }
 
@@ -357,7 +358,7 @@ namespace CompanionAI_v3.Planning.Planners
                 {
                     remainingAP -= cost;
                     plannedBuffGuids?.Add(buffGuid);  // ★ v3.104.0: dedup 등록
-                    Main.Log($"[{roleName}] Defensive stance: {ability.Name}");
+                    Log.Planning.Info($"[{roleName}] Defensive stance: {ability.Name}");
                     return PlannedAction.Buff(ability, situation.Unit, "Defensive stance priority", cost);
                 }
             }
@@ -427,7 +428,7 @@ namespace CompanionAI_v3.Planning.Planners
             if (!CombatAPI.CanUseAbilityOn(chosen, target, out reason)) return null;
 
             string stanceName = AbilityDatabase.IsCautiousApproach(chosen) ? "Cautious" : "Confident";
-            Main.Log($"[{roleName}] Phase 1.8: {stanceName} Approach (HP={situation.HPPercent:F0}%, preferOffensive={preferOffensive})");
+            Log.Planning.Info($"[{roleName}] Phase 1.8: {stanceName} Approach (HP={situation.HPPercent:F0}%, preferOffensive={preferOffensive})");
             return PlannedAction.Buff(chosen, situation.Unit, $"{stanceName} Approach stance", 0f);
         }
 
@@ -441,14 +442,14 @@ namespace CompanionAI_v3.Planning.Planners
             // ★ v3.1.10: 사용 가능한 공격이 없으면 공격 전 버프 사용 금지
             if (situation.AvailableAttacks == null || situation.AvailableAttacks.Count == 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanAttackBuff skipped: No available attacks");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanAttackBuff skipped: No available attacks");
                 return null;
             }
 
             // ★ v3.8.68: 실제 공격 가능한 적이 없으면 공격 버프 사용 금지
             if (!situation.HasHittableEnemies)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanAttackBuff skipped: No hittable enemies (attacks available but no valid targets)");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanAttackBuff skipped: No hittable enemies (attacks available but no valid targets)");
                 return null;
             }
 
@@ -490,7 +491,7 @@ namespace CompanionAI_v3.Planning.Planners
                     continue;
 
                 float score = ScoreAttackBuff(buff, situation, remainingAP);
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] AttackBuff candidate: {buff.Name} score={score:F0} cost={cost:F1}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] AttackBuff candidate: {buff.Name} score={score:F0} cost={cost:F1}");
 
                 if (score > bestScore)
                 {
@@ -505,7 +506,7 @@ namespace CompanionAI_v3.Planning.Planners
                 float cost = CombatAPI.GetAbilityAPCost(bestBuff);
                 remainingAP -= cost;
                 plannedBuffGuids?.Add(bestBuffGuid);  // ★ v3.104.0: dedup 등록
-                Main.Log($"[{roleName}] Attack buff: {bestBuff.Name} (score={bestScore:F0})");
+                Log.Planning.Info($"[{roleName}] Attack buff: {bestBuff.Name} (score={bestScore:F0})");
                 return PlannedAction.Buff(bestBuff, situation.Unit, $"Attack buff (score={bestScore:F0})", cost);
             }
 
@@ -678,7 +679,7 @@ namespace CompanionAI_v3.Planning.Planners
                     if (allyToProtect != null)
                     {
                         target = new TargetWrapper(allyToProtect);
-                        Main.Log($"[{roleName}] AllyTaunt: {taunt.Name} -> protecting {allyToProtect.CharacterName}");
+                        Log.Planning.Info($"[{roleName}] AllyTaunt: {taunt.Name} -> protecting {allyToProtect.CharacterName}");
                     }
                     else
                     {
@@ -698,7 +699,7 @@ namespace CompanionAI_v3.Planning.Planners
                 if (CombatAPI.CanUseAbilityOn(taunt, target, out reason))
                 {
                     remainingAP -= cost;
-                    Main.Log($"[{roleName}] Taunt: {taunt.Name}");
+                    Log.Planning.Info($"[{roleName}] Taunt: {taunt.Name}");
                     return PlannedAction.Buff(taunt, situation.Unit, "Taunt - enemies nearby", cost);
                 }
             }
@@ -771,7 +772,7 @@ namespace CompanionAI_v3.Planning.Planners
                 if (!isEmergency && !isCleanup)
                 {
                     if (Main.IsDebugEnabled)
-                        Main.LogDebug($"[{roleName}] HeroicAct suppressed (priority={priorityId})");
+                        Log.Planning.Debug($"[{roleName}] HeroicAct suppressed (priority={priorityId})");
                     return null;
                 }
             }
@@ -802,7 +803,7 @@ namespace CompanionAI_v3.Planning.Planners
                     AbilityUsageTracker.MarkUsed(unitId, heroic);
                     remainingAP -= cost;
                     plannedBuffGuids?.Add(heroicGuid);  // ★ v3.104.0: dedup 등록
-                    Main.Log($"[{roleName}] Heroic Act: {heroic.Name}");
+                    Log.Planning.Info($"[{roleName}] Heroic Act: {heroic.Name}");
                     return PlannedAction.Buff(heroic, situation.Unit, "Heroic Act - high momentum", cost);
                 }
             }
@@ -840,7 +841,7 @@ namespace CompanionAI_v3.Planning.Planners
                     if (resistance > Settings.SC.CCResistanceHighThreshold)
                     {
                         if (Main.IsDebugEnabled)
-                            Main.LogDebug($"[{roleName}] CC {debuff.Name} suppressed vs {target.CharacterName} (resistance={resistance:F0}%)");
+                            Log.Planning.Debug($"[{roleName}] CC {debuff.Name} suppressed vs {target.CharacterName} (resistance={resistance:F0}%)");
                         continue;
                     }
                 }
@@ -853,7 +854,7 @@ namespace CompanionAI_v3.Planning.Planners
                     if (armor < Settings.SC.ExposeWeaknessMinArmor)
                     {
                         if (Main.IsDebugEnabled)
-                            Main.LogDebug($"[{roleName}] ExposeWeakness skipped: {target.CharacterName} armor={armor} < {Settings.SC.ExposeWeaknessMinArmor}");
+                            Log.Planning.Debug($"[{roleName}] ExposeWeakness skipped: {target.CharacterName} armor={armor} < {Settings.SC.ExposeWeaknessMinArmor}");
                         continue;
                     }
                 }
@@ -864,13 +865,13 @@ namespace CompanionAI_v3.Planning.Planners
                     // ★ v3.18.4: AoE 안전성 체크 (아군 피해 방지)
                     if (!CombatHelpers.IsAttackSafeForTarget(debuff, situation.Unit, target, situation.Allies))
                     {
-                        Main.Log($"[{roleName}] Debuff SKIPPED (AoE unsafe): {debuff.Name} -> {target.CharacterName}");
+                        Log.Planning.Info($"[{roleName}] Debuff SKIPPED (AoE unsafe): {debuff.Name} -> {target.CharacterName}");
                         continue;
                     }
 
                     remainingAP -= cost;
                     plannedGuids?.Add(debuffGuid);  // ★ v3.110.7: dedup 등록
-                    Main.Log($"[{roleName}] Debuff: {debuff.Name} -> {target.CharacterName}");
+                    Log.Planning.Info($"[{roleName}] Debuff: {debuff.Name} -> {target.CharacterName}");
                     return PlannedAction.Debuff(debuff, target, $"Debuff {target.CharacterName}", cost);
                 }
             }
@@ -905,7 +906,7 @@ namespace CompanionAI_v3.Planning.Planners
 
                 if (distToTarget > reachRange)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] Marker skipped: {target.CharacterName} unreachable " +
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] Marker skipped: {target.CharacterName} unreachable " +
                         $"(dist={distToTarget:F1} > reach={reachRange:F1} = weapon {weaponRange:F1} + move {moveRange:F1})");
                     return null;
                 }
@@ -924,7 +925,7 @@ namespace CompanionAI_v3.Planning.Planners
                 if (CombatAPI.CanUseAbilityOn(marker, targetWrapper, out reason))
                 {
                     remainingAP -= cost;
-                    Main.Log($"[{roleName}] Marker: {marker.Name} -> {target.CharacterName}");
+                    Log.Planning.Info($"[{roleName}] Marker: {marker.Name} -> {target.CharacterName}");
                     return PlannedAction.Debuff(marker, target, $"Mark {target.CharacterName}", cost);
                 }
             }
@@ -1052,7 +1053,7 @@ namespace CompanionAI_v3.Planning.Planners
                     aoERadius,
                     CalculateAveragePosition(allies));
 
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] {buff.Name} ({zoneType}): radius={aoERadius:F1}m, targetGroup={targetGroup.Count} units");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] {buff.Name} ({zoneType}): radius={aoERadius:F1}m, targetGroup={targetGroup.Count} units");
 
                 // 겹침 체크 및 대체 위치 찾기
                 Vector3 targetPosition = preferredPosition;
@@ -1064,11 +1065,11 @@ namespace CompanionAI_v3.Planning.Planners
                         if (nonOverlappingPos.HasValue)
                         {
                             targetPosition = nonOverlappingPos.Value;
-                            Main.Log($"[{roleName}] PositionalBuff: {buff.Name} adjusted position to avoid overlap");
+                            Log.Planning.Info($"[{roleName}] PositionalBuff: {buff.Name} adjusted position to avoid overlap");
                         }
                         else
                         {
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PositionalBuff: {buff.Name} skipped - no non-overlapping position found");
+                            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PositionalBuff: {buff.Name} skipped - no non-overlapping position found");
                             usedBuffGuids?.Add(buffGuid);
                             continue;
                         }
@@ -1081,7 +1082,7 @@ namespace CompanionAI_v3.Planning.Planners
                 {
                     remainingAP -= cost;
                     usedBuffGuids?.Add(buffGuid);
-                    Main.Log($"[{roleName}] PositionalBuff: {buff.Name} ({zoneType}, r={aoERadius:F1}m) at ({targetPosition.x:F1}, {targetPosition.z:F1})");
+                    Log.Planning.Info($"[{roleName}] PositionalBuff: {buff.Name} ({zoneType}, r={aoERadius:F1}m) at ({targetPosition.x:F1}, {targetPosition.z:F1})");
                     return PlannedAction.PositionalBuff(buff, targetPosition, $"{zoneType} zone", cost);
                 }
             }
@@ -1122,7 +1123,7 @@ namespace CompanionAI_v3.Planning.Planners
             string tankNames = string.Join(", ", tankOrMelee.Select(a => a.CharacterName));
             string supportNames = string.Join(", ", supports.Select(a => a.CharacterName));
             string rangedNames = string.Join(", ", rangedDPS.Select(a => a.CharacterName));
-            if (Main.IsDebugEnabled) Main.LogDebug($"[BuffPlanner] Role groups: Tank/Melee=[{tankNames}], Support=[{supportNames}], Ranged=[{rangedNames}]");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[BuffPlanner] Role groups: Tank/Melee=[{tankNames}], Support=[{supportNames}], Ranged=[{rangedNames}]");
 
             return (tankOrMelee, supports, rangedDPS);
         }
@@ -1185,7 +1186,7 @@ namespace CompanionAI_v3.Planning.Planners
 
             if (best.count > 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[BuffPlanner] Best coverage: {best.count} units at ({best.pos.x:F1}, {best.pos.z:F1}), score={best.score:F0}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[BuffPlanner] Best coverage: {best.count} units at ({best.pos.x:F1}, {best.pos.z:F1}), score={best.score:F0}");
                 return best.pos;
             }
 
@@ -1249,7 +1250,7 @@ namespace CompanionAI_v3.Planning.Planners
                 {
                     remainingAP -= cost;
                     string stratagemType = GetStratagemType(stratagem);
-                    Main.Log($"[{roleName}] Stratagem: {stratagem.Name} ({stratagemType}) -> {bestZone.ZoneType} (allies={bestZone.AllyCount}, enemies={bestZone.EnemyCount})");
+                    Log.Planning.Info($"[{roleName}] Stratagem: {stratagem.Name} ({stratagemType}) -> {bestZone.ZoneType} (allies={bestZone.AllyCount}, enemies={bestZone.EnemyCount})");
                     return PlannedAction.PositionalBuff(stratagem, bestZone.Position,
                         $"Stratagem: {stratagemType} on {bestZone.ZoneType}", cost);
                 }
@@ -1370,12 +1371,12 @@ namespace CompanionAI_v3.Planning.Planners
                         LowHPAllyCount = lowHPAllyCount
                     });
 
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[BuffPlanner] Zone {zoneType} (radius={zoneRadiusTiles:F1} tiles): allies={allyCount}, enemies={enemyCount}, lowHP={lowHPAllyCount}");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[BuffPlanner] Zone {zoneType} (radius={zoneRadiusTiles:F1} tiles): allies={allyCount}, enemies={enemyCount}, lowHP={lowHPAllyCount}");
                 }
             }
             catch (Exception e)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[BuffPlanner] Error getting zone info: {e.Message}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[BuffPlanner] Error getting zone info: {e.Message}");
             }
 
             return zones;
@@ -1416,7 +1417,7 @@ namespace CompanionAI_v3.Planning.Planners
                     if (CombatAPI.CanUseAbilityOn(runAndGun, selfTarget, out reason))
                     {
                         remainingAP -= ragCost;
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] Phase 6: Planning {runAndGun.Name} (attackPlanned={attackPlanned})");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] Phase 6: Planning {runAndGun.Name} (attackPlanned={attackPlanned})");
                         return PlannedAction.Buff(runAndGun, situation.Unit, "Run and Gun", ragCost);
                     }
                 }
@@ -1512,7 +1513,7 @@ namespace CompanionAI_v3.Planning.Planners
                 }
 
                 remainingAP -= cost;
-                Main.Log($"[{roleName}] Phase 6: PostAction {bestAbility.Name} (score={bestScore:F0})");
+                Log.Planning.Info($"[{roleName}] Phase 6: PostAction {bestAbility.Name} (score={bestScore:F0})");
                 return PlannedAction.Buff(bestAbility, finalTarget.Entity as BaseUnitEntity ?? situation.Unit,
                     $"PostAction: {bestAbility.Name}", cost);
             }
@@ -1533,15 +1534,15 @@ namespace CompanionAI_v3.Planning.Planners
                 .ToList();
 
             // ★ v3.0.88: 디버그 로깅
-            if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanTurnEnding: TurnEndingAbilities={turnEndingAbilities.Count}, AP={remainingAP:F1}");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanTurnEnding: TurnEndingAbilities={turnEndingAbilities.Count}, AP={remainingAP:F1}");
 
             if (turnEndingAbilities.Count == 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanTurnEnding: No TurnEnding abilities in AvailableBuffs");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanTurnEnding: No TurnEnding abilities in AvailableBuffs");
                 return null;
             }
 
-            if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanTurnEnding: Found: {string.Join(", ", turnEndingAbilities.Select(a => a.Name))}");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanTurnEnding: Found: {string.Join(", ", turnEndingAbilities.Select(a => a.Name))}");
 
             // ★ v3.5.15: 그룹 쿨다운으로 인해 사용 불가능한 능력 필터링
             turnEndingAbilities = turnEndingAbilities
@@ -1550,7 +1551,7 @@ namespace CompanionAI_v3.Planning.Planners
 
             if (turnEndingAbilities.Count == 0)
             {
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanTurnEnding: All TurnEnding abilities on cooldown (including group cooldowns)");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanTurnEnding: All TurnEnding abilities on cooldown (including group cooldowns)");
                 return null;
             }
 
@@ -1559,7 +1560,7 @@ namespace CompanionAI_v3.Planning.Planners
                 float cost = CombatAPI.GetAbilityAPCost(ability);
                 if (cost > remainingAP)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanTurnEnding: {ability.Name} skipped - AP cost {cost:F1} > remaining {remainingAP:F1}");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanTurnEnding: {ability.Name} skipped - AP cost {cost:F1} > remaining {remainingAP:F1}");
                     continue;
                 }
 
@@ -1569,10 +1570,10 @@ namespace CompanionAI_v3.Planning.Planners
                 {
                     if (!CombatAPI.CanUseSpringAttackAbility(situation.Unit))
                     {
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanTurnEnding: {ability.Name} skipped - no gap closer used and at start position");
+                        if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanTurnEnding: {ability.Name} skipped - no gap closer used and at start position");
                         continue;
                     }
-                    Main.Log($"[{roleName}] SpringAttack condition met - can use {ability.Name}");
+                    Log.Planning.Info($"[{roleName}] SpringAttack condition met - can use {ability.Name}");
                 }
 
                 // ★ v3.0.89: PointTarget vs SelfTarget 분기
@@ -1611,17 +1612,17 @@ namespace CompanionAI_v3.Planning.Planners
                     {
                         targetPoint = situation.Unit.Position + Vector3.forward * offsetDistance;
                     }
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanTurnEnding: {ability.Name} using offset point ({targetPoint.x:F1},{targetPoint.z:F1}){(isOverwatchStyle ? " [Overwatch cone]" : "")}");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanTurnEnding: {ability.Name} using offset point ({targetPoint.x:F1},{targetPoint.z:F1}){(isOverwatchStyle ? " [Overwatch cone]" : "")}");
                 }
 
                 TargetWrapper target = isPointTarget ? new TargetWrapper(targetPoint) : new TargetWrapper(situation.Unit);
-                if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanTurnEnding: {ability.Name} isPointTarget={isPointTarget}, canTargetSelf={canTargetSelf}");
+                if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanTurnEnding: {ability.Name} isPointTarget={isPointTarget}, canTargetSelf={canTargetSelf}");
 
                 string reason;
                 if (CombatAPI.CanUseAbilityOn(ability, target, out reason))
                 {
                     remainingAP -= cost;
-                    Main.Log($"[{roleName}] Turn ending: {ability.Name}");
+                    Log.Planning.Info($"[{roleName}] Turn ending: {ability.Name}");
 
                     // ★ v3.0.89: PointTarget이면 PositionalAction 반환
                     // ★ v3.1.28: targetPoint 사용 (오프셋 적용된 위치)
@@ -1633,11 +1634,11 @@ namespace CompanionAI_v3.Planning.Planners
                 }
                 else
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanTurnEnding: {ability.Name} CanUseAbilityOn=false, reason={reason}");
+                    if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanTurnEnding: {ability.Name} CanUseAbilityOn=false, reason={reason}");
                 }
             }
 
-            if (Main.IsDebugEnabled) Main.LogDebug($"[{roleName}] PlanTurnEnding: All abilities failed");
+            if (Main.IsDebugEnabled) Log.Planning.Debug($"[{roleName}] PlanTurnEnding: All abilities failed");
             return null;
         }
 

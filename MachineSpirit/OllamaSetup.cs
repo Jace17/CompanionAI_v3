@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.Networking;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.MachineSpirit
 {
@@ -337,11 +338,11 @@ namespace CompanionAI_v3.MachineSpirit
                         }
                     }
 
-                    Main.LogDebug($"[MachineSpirit] Found {_installedModels.Count} installed Ollama models");
+                    Log.MachineSpirit.Debug($"[MachineSpirit] Found {_installedModels.Count} installed Ollama models");
                 }
                 catch (System.Exception ex)
                 {
-                    Main.LogError(ex, $"[MachineSpirit] Failed to parse Ollama models");
+                    Log.MachineSpirit.Error(ex, $"[MachineSpirit] Failed to parse Ollama models");
                 }
             }
 
@@ -373,7 +374,7 @@ namespace CompanionAI_v3.MachineSpirit
 
             if (request.result == UnityWebRequest.Result.Success)
             {
-                Main.LogDebug($"[MachineSpirit] Model '{modelName}' deleted successfully");
+                Log.MachineSpirit.Debug($"[MachineSpirit] Model '{modelName}' deleted successfully");
                 // Refresh model list
                 request.Dispose();
                 _isDeletingModel = false;
@@ -381,7 +382,7 @@ namespace CompanionAI_v3.MachineSpirit
             }
             else
             {
-                Main.LogDebug($"[MachineSpirit] Model delete failed: {request.error}");
+                Log.MachineSpirit.Debug($"[MachineSpirit] Model delete failed: {request.error}");
                 request.Dispose();
                 _isDeletingModel = false;
             }
@@ -411,7 +412,7 @@ namespace CompanionAI_v3.MachineSpirit
 
             if (request.result != UnityWebRequest.Result.Success)
             {
-                Main.LogDebug($"[MachineSpirit] Cannot check template for '{modelName}': {request.error}");
+                Log.MachineSpirit.Debug($"[MachineSpirit] Cannot check template for '{modelName}': {request.error}");
                 request.Dispose();
                 yield break;
             }
@@ -432,11 +433,11 @@ namespace CompanionAI_v3.MachineSpirit
 
             if (hasTemplate)
             {
-                Main.LogDebug($"[MachineSpirit] Model '{modelName}' has template — no fix needed");
+                Log.MachineSpirit.Debug($"[MachineSpirit] Model '{modelName}' has template — no fix needed");
                 yield break;
             }
 
-            Main.LogDebug($"[MachineSpirit] Model '{modelName}' has NO template — applying auto-fix");
+            Log.MachineSpirit.Debug($"[MachineSpirit] Model '{modelName}' has NO template — applying auto-fix");
 
             // Step 2: Detect model family and choose appropriate template
             var family = LLMClient.DetectFamily(modelName);
@@ -447,7 +448,7 @@ namespace CompanionAI_v3.MachineSpirit
             {
                 case LLMClient.ModelFamily.Gemma:
                     // Gemma has built-in template in Ollama — do NOT override
-                    Main.LogDebug($"[MachineSpirit] Gemma model detected — skipping template fix (has built-in template)");
+                    Log.MachineSpirit.Debug($"[MachineSpirit] Gemma model detected — skipping template fix (has built-in template)");
                     yield break;
                 case LLMClient.ModelFamily.Mistral:
                     // Mistral Instruct v2/v3 format
@@ -508,13 +509,13 @@ namespace CompanionAI_v3.MachineSpirit
 
             if (createRequest.result == UnityWebRequest.Result.Success)
             {
-                Main.LogDebug($"[MachineSpirit] Created template-fixed model '{localName}' from '{modelName}'");
+                Log.MachineSpirit.Debug($"[MachineSpirit] Created template-fixed model '{localName}' from '{modelName}'");
                 // Update the config to use the fixed local model
                 _templateFixedModel = localName;
             }
             else
             {
-                Main.LogDebug($"[MachineSpirit] Template fix failed: {createRequest.error}");
+                Log.MachineSpirit.Debug($"[MachineSpirit] Template fix failed: {createRequest.error}");
             }
 
             createRequest.Dispose();

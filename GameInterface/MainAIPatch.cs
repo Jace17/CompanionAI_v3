@@ -12,6 +12,7 @@ using Kingmaker.Pathfinding;
 using Pathfinding;
 using CompanionAI_v3.Core;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.GameInterface
 {
@@ -63,7 +64,7 @@ namespace CompanionAI_v3.GameInterface
             var context = blackboard?.DecisionContext;
             if (context == null)
             {
-                Main.LogDebug("[MainAIPatch] Context is null");
+                Log.Engine.Debug("[MainAIPatch] Context is null");
                 return true;
             }
 
@@ -97,7 +98,7 @@ namespace CompanionAI_v3.GameInterface
                         context.Ability = result.Ability;
                         context.AbilityTarget = result.Target;
                         __result = Status.Success;
-                        Main.Log($"[MainAIPatch] {unit.CharacterName}: Cast {result.Ability?.Name} -> {result.Target?.Entity}");
+                        Log.Engine.Info($"[MainAIPatch] {unit.CharacterName}: Cast {result.Ability?.Name} -> {result.Target?.Entity}");
                         return false;
 
                     case ResultType.MoveTo:
@@ -107,7 +108,7 @@ namespace CompanionAI_v3.GameInterface
                         if (result.Destination.HasValue)
                         {
                             TurnOrchestrator.Instance.SetPendingMoveDestination(unit.UniqueId, result.Destination.Value);
-                            Main.Log($"[MainAIPatch] {unit.CharacterName}: Move to {result.Destination.Value}");
+                            Log.Engine.Info($"[MainAIPatch] {unit.CharacterName}: Move to {result.Destination.Value}");
                         }
                         // 능력 없음 → 이동 결정 로직으로 넘어감
                         context.Ability = null;
@@ -123,7 +124,7 @@ namespace CompanionAI_v3.GameInterface
                         context.Ability = null;
                         context.AbilityTarget = null;
                         __result = Status.Success;
-                        Main.Log($"[MainAIPatch] {unit.CharacterName}: End turn - {result.Reason}");
+                        Log.Engine.Info($"[MainAIPatch] {unit.CharacterName}: End turn - {result.Reason}");
                         return false;
 
                     case ResultType.Continue:
@@ -137,13 +138,13 @@ namespace CompanionAI_v3.GameInterface
 
                     case ResultType.Failure:
                     default:
-                        Main.LogWarning($"[MainAIPatch] {unit.CharacterName}: Delegating to game AI - {result.Reason}");
+                        Log.Engine.Warn($"[MainAIPatch] {unit.CharacterName}: Delegating to game AI - {result.Reason}");
                         return true;
                 }
             }
             catch (Exception ex)
             {
-                Main.LogError($"[MainAIPatch] {unit.CharacterName}: Critical error - {ex.Message}");
+                Log.Engine.Error($"[MainAIPatch] {unit.CharacterName}: Critical error - {ex.Message}");
                 return true;
             }
         }
@@ -194,7 +195,7 @@ namespace CompanionAI_v3.GameInterface
                     // ★ v3.0.53: MP 디버깅 - 왜 게임과 다른 값인지 확인
                     float actualMP = unit.CombatState?.ActionPointsBlue ?? -1f;
                     int moveVariantCount = context.UnitMoveVariants.cells?.Count ?? 0;
-                    Main.Log($"[FindBetterPlace] {unit.CharacterName}: Pending dest={pendingDest.Value}, ActualMP={actualMP:F1}, MoveVariants={moveVariantCount}");
+                    Log.Engine.Info($"[FindBetterPlace] {unit.CharacterName}: Pending dest={pendingDest.Value}, ActualMP={actualMP:F1}, MoveVariants={moveVariantCount}");
 
                     __result = FindBetterPlaceByDestination(context, unit, pendingDest.Value);
                     return false;
@@ -210,14 +211,14 @@ namespace CompanionAI_v3.GameInterface
                 // ★ v3.0.65: 원거리 선호 캐릭터는 무기 종류와 관계없이 커스텀 로직 사용
                 // (카시아처럼 근접무기를 들고 있어도 돌진하면 안 됨)
                 bool hasRangedWeapon = HasRangedWeapon(unit);
-                Main.Log($"[FindBetterPlace] {unit.CharacterName}: Using custom ranged positioning (hasRanged={hasRangedWeapon})");
+                Log.Engine.Info($"[FindBetterPlace] {unit.CharacterName}: Using custom ranged positioning (hasRanged={hasRangedWeapon})");
 
                 __result = FindBetterPlaceForRanged(context, unit, settings);
                 return false;
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[FindBetterPlace] Error");
+                Log.Engine.Error(ex, $"[FindBetterPlace] Error");
                 return true;
             }
         }
@@ -233,7 +234,7 @@ namespace CompanionAI_v3.GameInterface
             var targetNode = destination.GetNearestNodeXZ() as CustomGridNodeBase;
             if (targetNode == null)
             {
-                Main.LogWarning($"[FindBetterPlace] {unit.CharacterName}: Cannot find node for destination");
+                Log.Engine.Warn($"[FindBetterPlace] {unit.CharacterName}: Cannot find node for destination");
                 context.IsMoveCommand = false;
                 return Status.Failure;
             }
@@ -242,7 +243,7 @@ namespace CompanionAI_v3.GameInterface
             var cells = context.UnitMoveVariants.cells;
             if (cells == null || cells.Count == 0)
             {
-                Main.LogWarning($"[FindBetterPlace] {unit.CharacterName}: No move variants available");
+                Log.Engine.Warn($"[FindBetterPlace] {unit.CharacterName}: No move variants available");
                 context.IsMoveCommand = false;
                 return Status.Failure;
             }
@@ -256,7 +257,7 @@ namespace CompanionAI_v3.GameInterface
             {
                 bestCell = exactCell;
                 foundCell = true;
-                Main.Log($"[FindBetterPlace] {unit.CharacterName}: Found exact destination node");
+                Log.Engine.Info($"[FindBetterPlace] {unit.CharacterName}: Found exact destination node");
             }
             else
             {
@@ -277,13 +278,13 @@ namespace CompanionAI_v3.GameInterface
 
                 if (foundCell)
                 {
-                    Main.Log($"[FindBetterPlace] {unit.CharacterName}: Using closest reachable node (dist={bestDistance:F1})");
+                    Log.Engine.Info($"[FindBetterPlace] {unit.CharacterName}: Using closest reachable node (dist={bestDistance:F1})");
                 }
             }
 
             if (!foundCell)
             {
-                Main.LogWarning($"[FindBetterPlace] {unit.CharacterName}: No reachable cell found");
+                Log.Engine.Warn($"[FindBetterPlace] {unit.CharacterName}: No reachable cell found");
                 context.IsMoveCommand = false;
                 return Status.Failure;
             }
@@ -292,7 +293,7 @@ namespace CompanionAI_v3.GameInterface
             float availableAP = unit.CombatState?.ActionPointsBlue ?? 0f;
             if (bestCell.Length > availableAP)
             {
-                Main.Log($"[FindBetterPlace] {unit.CharacterName}: Trimming path (need {bestCell.Length:F1}, have {availableAP:F1})");
+                Log.Engine.Info($"[FindBetterPlace] {unit.CharacterName}: Trimming path (need {bestCell.Length:F1}, have {availableAP:F1})");
 
                 var trimmedCell = bestCell;
                 while (trimmedCell.Length > availableAP && trimmedCell.ParentNode != null)
@@ -310,7 +311,7 @@ namespace CompanionAI_v3.GameInterface
             var currentNode = unit.Position.GetNearestNodeXZ();
             if (bestCell.Node == currentNode)
             {
-                Main.Log($"[FindBetterPlace] {unit.CharacterName}: Already at destination");
+                Log.Engine.Info($"[FindBetterPlace] {unit.CharacterName}: Already at destination");
                 context.IsMoveCommand = false;
                 return Status.Failure;  // 이동 불필요
             }
@@ -321,7 +322,7 @@ namespace CompanionAI_v3.GameInterface
                 BestCell = bestCell
             };
 
-            Main.Log($"[FindBetterPlace] {unit.CharacterName}: Moving to planned destination");
+            Log.Engine.Info($"[FindBetterPlace] {unit.CharacterName}: Moving to planned destination");
             context.IsMoveCommand = false;
             return Status.Success;
         }
@@ -333,7 +334,7 @@ namespace CompanionAI_v3.GameInterface
             var enemies = CombatAPI.GetEnemies(unit);
             if (enemies == null || enemies.Count == 0)
             {
-                Main.LogDebug($"[FindBetterPlace] {unit.CharacterName}: No enemies");
+                Log.Engine.Debug($"[FindBetterPlace] {unit.CharacterName}: No enemies");
                 context.IsMoveCommand = false;
                 return Status.Failure;
             }
@@ -361,14 +362,14 @@ namespace CompanionAI_v3.GameInterface
             // ★ v3.110.11: 사용자 설정 대신 WeaponRangeProfile 자동 계산값 사용.
             float minSafeDistance = CombatAPI.GetWeaponRangeProfile(unit).ClampedMinSafeDistance;
 
-            Main.Log($"[FindBetterPlace] {unit.CharacterName}: Finding position (range={weaponRange}, safe={minSafeDistance})");
+            Log.Engine.Info($"[FindBetterPlace] {unit.CharacterName}: Finding position (range={weaponRange}, safe={minSafeDistance})");
 
             // MovementAPI로 최적 위치 찾기
             var bestPosition = MovementAPI.FindRangedAttackPositionSync(unit, enemies, weaponRange, minSafeDistance);
 
             if (bestPosition == null || bestPosition.Node == null)
             {
-                Main.Log($"[FindBetterPlace] {unit.CharacterName}: No position found - staying");
+                Log.Engine.Info($"[FindBetterPlace] {unit.CharacterName}: No position found - staying");
 
                 // 현재 위치 유지
                 var currentNode = unit.Position.GetNearestNodeXZ() as CustomGridNodeBase;
@@ -397,7 +398,7 @@ namespace CompanionAI_v3.GameInterface
                 // AP 부족하면 경로 축소
                 if (bestCell.Length > availableAP)
                 {
-                    Main.Log($"[FindBetterPlace] {unit.CharacterName}: Trimming path (need {bestCell.Length:F1}, have {availableAP:F1})");
+                    Log.Engine.Info($"[FindBetterPlace] {unit.CharacterName}: Trimming path (need {bestCell.Length:F1}, have {availableAP:F1})");
 
                     var trimmedCell = bestCell;
                     while (trimmedCell.Length > availableAP && trimmedCell.ParentNode != null)
@@ -420,18 +421,18 @@ namespace CompanionAI_v3.GameInterface
                 var currentNode = unit.Position.GetNearestNodeXZ();
                 if (bestCell.Node == currentNode)
                 {
-                    Main.Log($"[FindBetterPlace] {unit.CharacterName}: Already at optimal position");
+                    Log.Engine.Info($"[FindBetterPlace] {unit.CharacterName}: Already at optimal position");
                 }
                 else
                 {
-                    Main.Log($"[FindBetterPlace] {unit.CharacterName}: Moving to ({bestPosition.Position.x:F1},{bestPosition.Position.z:F1})");
+                    Log.Engine.Info($"[FindBetterPlace] {unit.CharacterName}: Moving to ({bestPosition.Position.x:F1},{bestPosition.Position.z:F1})");
                 }
 
                 context.IsMoveCommand = false;
                 return Status.Success;
             }
 
-            Main.Log($"[FindBetterPlace] {unit.CharacterName}: Node not in UnitMoveVariants");
+            Log.Engine.Info($"[FindBetterPlace] {unit.CharacterName}: Node not in UnitMoveVariants");
             context.IsMoveCommand = false;
             return Status.Failure;
         }
@@ -466,7 +467,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (System.Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[MainAIPatch] ranged weapon detect silent");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[MainAIPatch] ranged weapon detect silent");
             }
 
             return false;
@@ -563,7 +564,7 @@ namespace CompanionAI_v3.GameInterface
             if (settings.RangePreference == RangePreference.PreferRanged)
             {
                 __result = false;
-                Main.LogDebug($"[MainAIPatch] {unit.CharacterName}: IsUsualMeleeUnit = false (PreferRanged)");
+                Log.Engine.Debug($"[MainAIPatch] {unit.CharacterName}: IsUsualMeleeUnit = false (PreferRanged)");
             }
         }
 
@@ -597,11 +598,11 @@ namespace CompanionAI_v3.GameInterface
             try
             {
                 Settings.PerSaveSettings.Save();
-                Main.LogDebug("[SaveLoadPatch] Settings saved before game save");
+                Log.Engine.Debug("[SaveLoadPatch] Settings saved before game save");
             }
             catch (Exception ex)
             {
-                Main.LogError($"[SaveLoadPatch] SaveRoutine error: {ex.Message}");
+                Log.Engine.Error($"[SaveLoadPatch] SaveRoutine error: {ex.Message}");
             }
         }
 
@@ -621,11 +622,11 @@ namespace CompanionAI_v3.GameInterface
                 MachineSpirit.GameEventCollector.ClearDialogueBuffer();
                 MachineSpirit.GameEventCollector.ClearEvents();
 
-                Main.Log("[SaveLoadPatch] Cache cleared after load - settings will reload on next access");
+                Log.Engine.Info("[SaveLoadPatch] Cache cleared after load - settings will reload on next access");
             }
             catch (Exception ex)
             {
-                Main.LogError($"[SaveLoadPatch] LoadRoutine error: {ex.Message}");
+                Log.Engine.Error($"[SaveLoadPatch] LoadRoutine error: {ex.Message}");
             }
         }
     }

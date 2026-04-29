@@ -2,6 +2,7 @@ using System;
 using Kingmaker;
 using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.GameInterface
 {
@@ -37,7 +38,7 @@ namespace CompanionAI_v3.GameInterface
             // ★ v3.13.0: 안전한 기본값 — VEIL_DANGER_THRESHOLD (위험 가정 → 사이킥 차단)
             catch (Exception ex)
             {
-                Main.LogWarning($"[CombatAPI] GetVeilThickness failed: {ex.Message}");
+                Log.Engine.Warn($"[CombatAPI] GetVeilThickness failed: {ex.Message}");
                 return VEIL_DANGER_THRESHOLD;
             }
         }
@@ -54,7 +55,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsPsychicAbility failed for {ability?.Name}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsPsychicAbility failed for {ability?.Name}");
                 return false;
             }
         }
@@ -73,7 +74,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsMajorPsychicAbility failed for {ability?.Name}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsMajorPsychicAbility failed for {ability?.Name}");
                 return false;
             }
         }
@@ -93,7 +94,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsMinorPsychicAbility failed for {ability?.Name}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsMinorPsychicAbility failed for {ability?.Name}");
                 return false;
             }
         }
@@ -111,7 +112,7 @@ namespace CompanionAI_v3.GameInterface
             // ★ v3.13.0: 안전한 기본값 — 3 (Major psychic 수준 → 사용 억제)
             catch (Exception ex)
             {
-                Main.LogWarning($"[CombatAPI] GetVeilIncrease failed for {ability?.Name}: {ex.Message}");
+                Log.Engine.Warn($"[CombatAPI] GetVeilIncrease failed for {ability?.Name}: {ex.Message}");
                 return 3;
             }
         }
@@ -192,15 +193,15 @@ namespace CompanionAI_v3.GameInterface
             switch (safety)
             {
                 case PsychicSafetyLevel.Blocked:
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[Veil] BLOCKED: {ability.Name} (Veil={veil}, +{veilAdd})");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[Veil] BLOCKED: {ability.Name} (Veil={veil}, +{veilAdd})");
                     return false;
 
                 case PsychicSafetyLevel.Dangerous:
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[Veil] DANGEROUS but allowed: {ability.Name} (Veil={veil}→{veil + veilAdd})");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[Veil] DANGEROUS but allowed: {ability.Name} (Veil={veil}→{veil + veilAdd})");
                     return true;  // 위험하지만 허용 (Minor는 사용 가능하도록)
 
                 case PsychicSafetyLevel.Caution:
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[Veil] Caution: {ability.Name} (Veil={veil})");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[Veil] Caution: {ability.Name} (Veil={veil})");
                     return true;
 
                 default:

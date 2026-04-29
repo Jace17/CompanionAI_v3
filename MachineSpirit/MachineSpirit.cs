@@ -7,6 +7,7 @@ using System.IO;
 using CompanionAI_v3.Settings;
 using Newtonsoft.Json;
 using UnityEngine;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.MachineSpirit
 {
@@ -109,7 +110,7 @@ namespace CompanionAI_v3.MachineSpirit
 
                 if (!string.IsNullOrEmpty(OllamaSetup.TemplateFixedModel))
                 {
-                    Main.LogDebug($"[MachineSpirit] Switching to template-fixed model: {OllamaSetup.TemplateFixedModel}");
+                    Log.MachineSpirit.Debug($"[MachineSpirit] Switching to template-fixed model: {OllamaSetup.TemplateFixedModel}");
                     Config.Model = OllamaSetup.TemplateFixedModel;
                     OllamaSetup.TemplateFixedModel = null;
                 }
@@ -125,7 +126,7 @@ namespace CompanionAI_v3.MachineSpirit
             // ★ v3.112.4 (C2): 이중 호출 방지 (UMM 토글 + Application.quitting 양쪽 fire).
             if (_hasShutdown)
             {
-                Main.LogDebug("[MachineSpirit] Shutdown already executed — skipping");
+                Log.MachineSpirit.Debug("[MachineSpirit] Shutdown already executed — skipping");
                 return;
             }
             _hasShutdown = true;
@@ -148,7 +149,7 @@ namespace CompanionAI_v3.MachineSpirit
             }
             catch (System.Exception ex)
             {
-                Main.LogError(ex, $"[MachineSpirit] Ollama unload request failed");
+                Log.MachineSpirit.Error(ex, $"[MachineSpirit] Ollama unload request failed");
             }
         }
 
@@ -182,11 +183,11 @@ namespace CompanionAI_v3.MachineSpirit
                 };
                 string json = JsonConvert.SerializeObject(data, Formatting.Indented);
                 File.WriteAllText(GetChatHistoryPath(), json);
-                Main.LogDebug($"[MachineSpirit] Chat saved: {_chatHistory.Count} messages");
+                Log.MachineSpirit.Debug($"[MachineSpirit] Chat saved: {_chatHistory.Count} messages");
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[MachineSpirit] Save failed");
+                Log.MachineSpirit.Error(ex, $"[MachineSpirit] Save failed");
             }
         }
 
@@ -210,12 +211,12 @@ namespace CompanionAI_v3.MachineSpirit
                     GameEventCollector.ClearDialogueBuffer();
                     GameEventCollector.ClearEvents();
 
-                    Main.LogDebug($"[MachineSpirit] Chat loaded: {_chatHistory.Count} messages");
+                    Log.MachineSpirit.Debug($"[MachineSpirit] Chat loaded: {_chatHistory.Count} messages");
                 }
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[MachineSpirit] Load failed");
+                Log.MachineSpirit.Error(ex, $"[MachineSpirit] Load failed");
             }
         }
 
@@ -231,7 +232,7 @@ namespace CompanionAI_v3.MachineSpirit
             _summarizedUpToIndex = 0;
             try { File.Delete(GetChatHistoryPath()); }
             catch { /* ignore */ }
-            Main.LogDebug("[MachineSpirit] Chat history cleared (personality change)");
+            Log.MachineSpirit.Debug("[MachineSpirit] Chat history cleared (personality change)");
         }
 
         /// <summary>
@@ -244,7 +245,7 @@ namespace CompanionAI_v3.MachineSpirit
             string oldModel = Config.Model;
             if (oldModel == newModel) return;
 
-            Main.LogDebug($"[MachineSpirit] Model changed: {oldModel} → {newModel}");
+            Log.MachineSpirit.Debug($"[MachineSpirit] Model changed: {oldModel} → {newModel}");
 
             // 1. Cancel any in-flight request
             LLMClient.Reset();
@@ -273,7 +274,7 @@ namespace CompanionAI_v3.MachineSpirit
         {
             if (Config == null) return;
 
-            Main.LogDebug($"[MachineSpirit] Personality changed to: {Config.Personality}");
+            Log.MachineSpirit.Debug($"[MachineSpirit] Personality changed to: {Config.Personality}");
 
             // 1. Cancel any in-flight request
             LLMClient.Reset();
@@ -380,7 +381,7 @@ namespace CompanionAI_v3.MachineSpirit
                                 _chatHistory.RemoveAt(responseIdx);
                         }
                         ChatWindow.SetThinking(false);
-                        Main.LogDebug($"[MachineSpirit] LLM error (silent): {error}");
+                        Log.MachineSpirit.Debug($"[MachineSpirit] LLM error (silent): {error}");
                     }
                 ));
             }
@@ -406,7 +407,7 @@ namespace CompanionAI_v3.MachineSpirit
                     onError: error =>
                     {
                         ChatWindow.SetThinking(false);
-                        Main.LogDebug($"[MachineSpirit] LLM error (silent): {error}");
+                        Log.MachineSpirit.Debug($"[MachineSpirit] LLM error (silent): {error}");
                     }
                 ));
             }
@@ -468,7 +469,7 @@ namespace CompanionAI_v3.MachineSpirit
                                 _chatHistory.RemoveAt(responseIdx);
                         }
                         ChatWindow.SetThinking(false);
-                        Main.LogDebug($"[MachineSpirit] LLM error (silent): {error}");
+                        Log.MachineSpirit.Debug($"[MachineSpirit] LLM error (silent): {error}");
                     }
                 ));
             }
@@ -493,7 +494,7 @@ namespace CompanionAI_v3.MachineSpirit
                     onError: error =>
                     {
                         ChatWindow.SetThinking(false);
-                        Main.LogDebug($"[MachineSpirit] LLM error (silent): {error}");
+                        Log.MachineSpirit.Debug($"[MachineSpirit] LLM error (silent): {error}");
                     }
                 ));
             }
@@ -546,7 +547,7 @@ namespace CompanionAI_v3.MachineSpirit
                             if (string.IsNullOrWhiteSpace(msg.Text) || msg.Text.Trim().Contains("[SKIP]"))
                             {
                                 _chatHistory.RemoveAt(responseIdx);
-                                Main.LogDebug("[MachineSpirit] Dialogue: skipped (uninteresting)");
+                                Log.MachineSpirit.Debug("[MachineSpirit] Dialogue: skipped (uninteresting)");
                             }
                         }
                         ChatWindow.SetThinking(false);
@@ -560,7 +561,7 @@ namespace CompanionAI_v3.MachineSpirit
                                 _chatHistory.RemoveAt(responseIdx);
                         }
                         ChatWindow.SetThinking(false);
-                        Main.LogDebug($"[MachineSpirit] LLM error (silent): {error}");
+                        Log.MachineSpirit.Debug($"[MachineSpirit] LLM error (silent): {error}");
                     }
                 ));
             }
@@ -585,7 +586,7 @@ namespace CompanionAI_v3.MachineSpirit
                     onError: error =>
                     {
                         ChatWindow.SetThinking(false);
-                        Main.LogDebug($"[MachineSpirit] LLM error (silent): {error}");
+                        Log.MachineSpirit.Debug($"[MachineSpirit] LLM error (silent): {error}");
                     }
                 ));
             }
@@ -646,7 +647,7 @@ namespace CompanionAI_v3.MachineSpirit
                                 _chatHistory.RemoveAt(responseIdx);
                         }
                         ChatWindow.SetThinking(false);
-                        Main.LogDebug($"[MachineSpirit] LLM error (silent): {error}");
+                        Log.MachineSpirit.Debug($"[MachineSpirit] LLM error (silent): {error}");
                     }
                 ));
             }
@@ -662,7 +663,7 @@ namespace CompanionAI_v3.MachineSpirit
                     onError: error =>
                     {
                         ChatWindow.SetThinking(false);
-                        Main.LogDebug($"[MachineSpirit] LLM error (silent): {error}");
+                        Log.MachineSpirit.Debug($"[MachineSpirit] LLM error (silent): {error}");
                     }
                 ));
             }
@@ -712,7 +713,7 @@ namespace CompanionAI_v3.MachineSpirit
                                 _chatHistory.RemoveAt(responseIdx);
                         }
                         ChatWindow.SetThinking(false);
-                        Main.LogDebug($"[MachineSpirit] LLM error (silent): {error}");
+                        Log.MachineSpirit.Debug($"[MachineSpirit] LLM error (silent): {error}");
                     }
                 ));
             }
@@ -728,7 +729,7 @@ namespace CompanionAI_v3.MachineSpirit
                     onError: error =>
                     {
                         ChatWindow.SetThinking(false);
-                        Main.LogDebug($"[MachineSpirit] LLM error (silent): {error}");
+                        Log.MachineSpirit.Debug($"[MachineSpirit] LLM error (silent): {error}");
                     }
                 ));
             }
@@ -794,7 +795,7 @@ namespace CompanionAI_v3.MachineSpirit
                                 _chatHistory.RemoveAt(responseIdx);
                         }
                         ChatWindow.SetThinking(false);
-                        Main.LogDebug($"[MachineSpirit] LLM error (silent): {error}");
+                        Log.MachineSpirit.Debug($"[MachineSpirit] LLM error (silent): {error}");
                     }
                 ));
             }
@@ -819,7 +820,7 @@ namespace CompanionAI_v3.MachineSpirit
                     onError: error =>
                     {
                         ChatWindow.SetThinking(false);
-                        Main.LogDebug($"[MachineSpirit] LLM error (silent): {error}");
+                        Log.MachineSpirit.Debug($"[MachineSpirit] LLM error (silent): {error}");
                     }
                 ));
             }
@@ -952,7 +953,7 @@ namespace CompanionAI_v3.MachineSpirit
                                 _chatHistory.RemoveAt(responseIdx);
                         }
                         ChatWindow.SetThinking(false);
-                        Main.LogDebug($"[MachineSpirit] LLM error (silent): {error}");
+                        Log.MachineSpirit.Debug($"[MachineSpirit] LLM error (silent): {error}");
                     }
                 ));
             }
@@ -978,7 +979,7 @@ namespace CompanionAI_v3.MachineSpirit
                     onError: error =>
                     {
                         ChatWindow.SetThinking(false);
-                        Main.LogDebug($"[MachineSpirit] LLM error (silent): {error}");
+                        Log.MachineSpirit.Debug($"[MachineSpirit] LLM error (silent): {error}");
                     }
                 ));
             }
@@ -1093,7 +1094,7 @@ namespace CompanionAI_v3.MachineSpirit
                                 _chatHistory.RemoveAt(responseIdx);
                         }
                         ChatWindow.SetThinking(false);
-                        Main.LogDebug($"[MachineSpirit] LLM error (silent): {error}");
+                        Log.MachineSpirit.Debug($"[MachineSpirit] LLM error (silent): {error}");
                     }
                 ));
             }
@@ -1118,7 +1119,7 @@ namespace CompanionAI_v3.MachineSpirit
                     onError: error =>
                     {
                         ChatWindow.SetThinking(false);
-                        Main.LogDebug($"[MachineSpirit] LLM error (silent): {error}");
+                        Log.MachineSpirit.Debug($"[MachineSpirit] LLM error (silent): {error}");
                     }
                 ));
             }
@@ -1241,7 +1242,7 @@ namespace CompanionAI_v3.MachineSpirit
                             if (string.IsNullOrWhiteSpace(msg.Text) || msg.Text.Trim().Contains("[SKIP]"))
                             {
                                 _chatHistory.RemoveAt(responseIdx);
-                                Main.LogDebug("[MachineSpirit] Idle: skipped (nothing interesting)");
+                                Log.MachineSpirit.Debug("[MachineSpirit] Idle: skipped (nothing interesting)");
                             }
                             else
                             {
@@ -1265,7 +1266,7 @@ namespace CompanionAI_v3.MachineSpirit
                         }
                         ChatWindow.SetThinking(false);
                         _idleVisionPending = false;
-                        Main.LogDebug($"[MachineSpirit] LLM error (silent): {error}");
+                        Log.MachineSpirit.Debug($"[MachineSpirit] LLM error (silent): {error}");
                     }
                 ));
             }
@@ -1292,7 +1293,7 @@ namespace CompanionAI_v3.MachineSpirit
                     onError: error =>
                     {
                         ChatWindow.SetThinking(false);
-                        Main.LogDebug($"[MachineSpirit] LLM error (silent): {error}");
+                        Log.MachineSpirit.Debug($"[MachineSpirit] LLM error (silent): {error}");
                     }
                 ));
             }
@@ -1353,7 +1354,7 @@ namespace CompanionAI_v3.MachineSpirit
                 yield break;
             }
 
-            Main.LogDebug($"[MachineSpirit] Summarizing {toSummarize.Count} old messages...");
+            Log.MachineSpirit.Debug($"[MachineSpirit] Summarizing {toSummarize.Count} old messages...");
 
             var summaryMessages = ContextBuilder.BuildSummaryPrompt(toSummarize);
 
@@ -1364,7 +1365,7 @@ namespace CompanionAI_v3.MachineSpirit
                 {
                     _conversationSummary = summary;
                     _summarizedUpToIndex = endIdx;
-                    Main.LogDebug($"[MachineSpirit] Summary updated: {summary.Length} chars");
+                    Log.MachineSpirit.Debug($"[MachineSpirit] Summary updated: {summary.Length} chars");
                 }
             );
 

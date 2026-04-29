@@ -4,6 +4,7 @@ using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.Utility;
 using UnityEngine;
 using CompanionAI_v3.GameInterface;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Core
 {
@@ -115,13 +116,13 @@ namespace CompanionAI_v3.Core
             // Point 타겟 시 중심까지 직선거리로 계산 → 대형 유닛에서 TargetTooFar 발생
             if (CombatAPI.IsPointTargetAbility(ability) && !isActuallyDirectional && !ability.IsMelee)
             {
-                Main.LogDebug($"[PlannedAction] Attack auto-converted to PositionalAttack: {ability.Name} (Point-target ability, non-directional)");
+                Log.Engine.Debug($"[PlannedAction] Attack auto-converted to PositionalAttack: {ability.Name} (Point-target ability, non-directional)");
                 return PositionalAttack(ability, target.Position, reason, apCost);
             }
 
             if (isActuallyDirectional)
             {
-                Main.LogDebug($"[PlannedAction] Directional pattern kept as unit target: {ability.Name} (PatternType={patternType}, IsDirectional=true)");
+                Log.Engine.Debug($"[PlannedAction] Directional pattern kept as unit target: {ability.Name} (PatternType={patternType}, IsDirectional=true)");
             }
 
             return new PlannedAction
@@ -178,7 +179,7 @@ namespace CompanionAI_v3.Core
             // ★ v3.7.80: Point 타겟 능력은 계획 단계에서부터 위치 기반으로 생성
             if (CombatAPI.IsPointTargetAbility(ability))
             {
-                Main.LogDebug($"[PlannedAction] Debuff auto-converted to PositionalDebuff: {ability.Name} (Point-target ability)");
+                Log.Engine.Debug($"[PlannedAction] Debuff auto-converted to PositionalDebuff: {ability.Name} (Point-target ability)");
                 return PositionalDebuff(ability, target.Position, reason, apCost);
             }
 

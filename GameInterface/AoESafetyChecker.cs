@@ -10,6 +10,7 @@ using Kingmaker.UnitLogic.Abilities.Components.Patterns;
 using UnityEngine;
 using CompanionAI_v3.Data;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.GameInterface
 {
@@ -56,7 +57,7 @@ namespace CompanionAI_v3.GameInterface
                 {
                     score.IsSafe = false;
                     score.Score = float.MinValue;
-                    Main.LogDebug($"[AoESafety] Position rejected: caster within own AoE ({casterDist:F1} tiles, radius {aoERadius:F1})");
+                    Log.Engine.Debug($"[AoESafety] Position rejected: caster within own AoE ({casterDist:F1} tiles, radius {aoERadius:F1})");
                     return score;
                 }
             }
@@ -77,11 +78,11 @@ namespace CompanionAI_v3.GameInterface
                     nativePattern = CombatAPI.GetAffectedNodes(ability, targetPosition, caster.Position);
                     nativePatternReady = !nativePattern.IsEmpty;
                     if (nativePatternReady && Main.IsDebugEnabled)
-                        Main.LogDebug($"[AoESafety][Native] EvalAoE {ability.Name}: pattern precomputed");
+                        Log.Engine.Debug($"[AoESafety][Native] EvalAoE {ability.Name}: pattern precomputed");
                 }
                 catch (Exception ex)
                 {
-                    Main.LogWarning($"[AoESafety][Native] EvalAoE precompute failed for {ability.Name}: {ex.Message}");
+                    Log.Engine.Warn($"[AoESafety][Native] EvalAoE precompute failed for {ability.Name}: {ex.Message}");
                 }
             }
 
@@ -132,12 +133,12 @@ namespace CompanionAI_v3.GameInterface
                             {
                                 score.IsSafe = false;
                                 score.Score = float.MinValue;
-                                CompanionAI_v3.Main.LogDebug($"[AOE] Too many player allies ({playerPartyAlliesHit} > {aoeConfig.MaxPlayerAlliesHit}) - rejected");
+                                Log.Engine.Debug($"[AOE] Too many player allies ({playerPartyAlliesHit} > {aoeConfig.MaxPlayerAlliesHit}) - rejected");
                                 return score;
                             }
 
                             totalScore -= SC.AoEPlayerAllyPenaltyMult * HIT_SCORE;
-                            CompanionAI_v3.Main.LogDebug($"[AOE] Player party ally in range: {unit.CharacterName} - penalty {SC.AoEPlayerAllyPenaltyMult}x applied");
+                            Log.Engine.Debug($"[AOE] Player party ally in range: {unit.CharacterName} - penalty {SC.AoEPlayerAllyPenaltyMult}x applied");
                             continue;  // NPC 페널티 중복 적용 방지
                         }
 
@@ -155,7 +156,7 @@ namespace CompanionAI_v3.GameInterface
                 {
                     // ★ v3.30.0: 피아 구분 실패 시 아군으로 간주 (안전 우선)
                     // 이전: 적으로 간주하여 AoE 보너스 → 분류 실패한 아군 피격 위험
-                    Main.Log($"[AoESafetyChecker] ★ Classification FAILED: {unit?.CharacterName}: {ex.Message}");
+                    Log.Engine.Info($"[AoESafetyChecker] ★ Classification FAILED: {unit?.CharacterName}: {ex.Message}");
                     score.AlliesHit++;
                     // ★ Fix 4: Classification failure also counts toward MaxPlayerAlliesHit hard reject
                     playerPartyAlliesHit++;
@@ -163,7 +164,7 @@ namespace CompanionAI_v3.GameInterface
                     {
                         score.IsSafe = false;
                         score.Score = float.MinValue;
-                        Main.LogDebug($"[AOE] Classification-failed unit counted as ally, too many ({playerPartyAlliesHit} > {aoeConfig.MaxPlayerAlliesHit}) - rejected");
+                        Log.Engine.Debug($"[AOE] Classification-failed unit counted as ally, too many ({playerPartyAlliesHit} > {aoeConfig.MaxPlayerAlliesHit}) - rejected");
                         return score;
                     }
                     totalScore -= SC.AoEPlayerAllyPenaltyMult * HIT_SCORE;
@@ -175,7 +176,7 @@ namespace CompanionAI_v3.GameInterface
             {
                 score.IsSafe = false;
                 score.Score = float.MinValue;
-                Main.LogDebug($"[AOE] Final check: too many player allies ({playerPartyAlliesHit} > {aoeConfig.MaxPlayerAlliesHit}) - rejected");
+                Log.Engine.Debug($"[AOE] Final check: too many player allies ({playerPartyAlliesHit} > {aoeConfig.MaxPlayerAlliesHit}) - rejected");
                 return score;
             }
 
@@ -362,11 +363,11 @@ namespace CompanionAI_v3.GameInterface
                     nativePattern = CombatAPI.GetAffectedNodes(ability, targetPosition, caster.Position);
                     nativePatternReady = !nativePattern.IsEmpty;
                     if (nativePatternReady && Main.IsDebugEnabled)
-                        Main.LogDebug($"[AoESafety][Native] IsAoESafe {ability.Name}: pattern precomputed");
+                        Log.Engine.Debug($"[AoESafety][Native] IsAoESafe {ability.Name}: pattern precomputed");
                 }
                 catch (Exception ex)
                 {
-                    Main.LogWarning($"[AoESafety][Native] IsAoESafe precompute failed for {ability.Name}: {ex.Message}");
+                    Log.Engine.Warn($"[AoESafety][Native] IsAoESafe precompute failed for {ability.Name}: {ex.Message}");
                 }
             }
 
@@ -402,7 +403,7 @@ namespace CompanionAI_v3.GameInterface
                     }
                 }
                 // intentional: IsAoESafe 의 ally 루프, IsPlayerEnemy/IsInPlayerParty 의 transient null/race 흡수
-                catch (Exception ex) { Main.LogDebug($"[AoESafety] {ex.Message}"); }
+                catch (Exception ex) { Log.Engine.Debug($"[AoESafety] {ex.Message}"); }
             }
 
             // 설정된 수 이하는 허용 (EvaluateAoEPosition에서 페널티로 처리)
@@ -485,11 +486,11 @@ namespace CompanionAI_v3.GameInterface
                     nativePattern = CombatAPI.GetAffectedNodes(ability, target.Position, fromPosition);
                     nativePatternReady = !nativePattern.IsEmpty;
                     if (nativePatternReady && Main.IsDebugEnabled)
-                        Main.LogDebug($"[AoESafety][Native] SafeFromPos {ability.Name}: pattern precomputed");
+                        Log.Engine.Debug($"[AoESafety][Native] SafeFromPos {ability.Name}: pattern precomputed");
                 }
                 catch (Exception ex)
                 {
-                    Main.LogWarning($"[AoESafety][Native] SafeFromPos precompute failed for {ability.Name}: {ex.Message}");
+                    Log.Engine.Warn($"[AoESafety][Native] SafeFromPos precompute failed for {ability.Name}: {ex.Message}");
                 }
             }
 
@@ -578,20 +579,20 @@ namespace CompanionAI_v3.GameInterface
                         if (playerPartyAlliesInRange > effectiveMaxAllies)
                         {
                             string checkType = aoERadius > 0 ? $"radius={aoERadius:F1}" : "scatter";
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[AOE] Unit-target safety: {ability.Name} -> {target.CharacterName} blocked ({checkType}, allies={playerPartyAlliesInRange} > max={effectiveMaxAllies})");
+                            if (Main.IsDebugEnabled) Log.Engine.Debug($"[AOE] Unit-target safety: {ability.Name} -> {target.CharacterName} blocked ({checkType}, allies={playerPartyAlliesInRange} > max={effectiveMaxAllies})");
                             return false;
                         }
                     }
                 }
                 // intentional: IsAoESafeForUnitTargetFromPosition 의 ally 루프, IsPlayerEnemy/IsInPlayerParty 접근 transient null 흡수
-                catch (Exception ex) { Main.LogDebug($"[AoESafety] {ex.Message}"); }
+                catch (Exception ex) { Log.Engine.Debug($"[AoESafety] {ex.Message}"); }
             }
 
             // ★ v3.30.0: AoE 안전 허용 시 진단 로깅 — 아군이 범위 내 있지만 허용된 경우 추적
             if (Main.IsDebugEnabled && playerPartyAlliesInRange > 0)
             {
                 int effectiveMaxAllies = (aoERadius <= 0 && hasScatterDanger) ? 0 : aoeConfig.MaxPlayerAlliesHit;
-                Main.LogDebug($"[AOE] Safety ALLOWED: {ability.Name} -> {target.CharacterName} " +
+                Log.Engine.Debug($"[AOE] Safety ALLOWED: {ability.Name} -> {target.CharacterName} " +
                     $"(allies_in_range={playerPartyAlliesInRange}, max={effectiveMaxAllies})");
             }
 
@@ -638,7 +639,7 @@ namespace CompanionAI_v3.GameInterface
 
                 if (alliesHit > maxAlliesAllowed)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug(
+                    if (Main.IsDebugEnabled) Log.Engine.Debug(
                         $"[AOE] Chain safety: {ability.Name} -> {target.CharacterName} blocked " +
                         $"(chainTargets={chainTargets.Count}, alliesHit={alliesHit} > max={maxAlliesAllowed})");
                     return false;
@@ -648,7 +649,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[AoESafety] Chain check error");
+                Log.Engine.Error(ex, $"[AoESafety] Chain check error");
                 return true;  // 에러 시 안전하게 허용 (기존 동작 유지)
             }
         }
@@ -686,11 +687,11 @@ namespace CompanionAI_v3.GameInterface
                     nativePattern = CombatAPI.GetAffectedNodes(ability, targetPosition, caster.Position);
                     nativePatternReady = !nativePattern.IsEmpty;
                     if (nativePatternReady && Main.IsDebugEnabled)
-                        Main.LogDebug($"[AoESafety][Native] EvalAlly {ability.Name}: pattern precomputed");
+                        Log.Engine.Debug($"[AoESafety][Native] EvalAlly {ability.Name}: pattern precomputed");
                 }
                 catch (Exception ex)
                 {
-                    Main.LogWarning($"[AoESafety][Native] EvalAlly precompute failed for {ability.Name}: {ex.Message}");
+                    Log.Engine.Warn($"[AoESafety][Native] EvalAlly precompute failed for {ability.Name}: {ex.Message}");
                 }
             }
 
@@ -966,11 +967,11 @@ namespace CompanionAI_v3.GameInterface
                     nativePattern = CombatAPI.GetAffectedNodes(ability, primaryTarget.Position, caster.Position);
                     nativePatternReady = !nativePattern.IsEmpty;
                     if (nativePatternReady && Main.IsDebugEnabled)
-                        Main.LogDebug($"[AoESafety][Native] EvalDir {ability.Name}: pattern precomputed");
+                        Log.Engine.Debug($"[AoESafety][Native] EvalDir {ability.Name}: pattern precomputed");
                 }
                 catch (Exception ex)
                 {
-                    Main.LogWarning($"[AoESafety][Native] pattern precompute failed for {ability.Name}: {ex.Message}");
+                    Log.Engine.Warn($"[AoESafety][Native] pattern precompute failed for {ability.Name}: {ex.Message}");
                 }
             }
 
@@ -1030,7 +1031,7 @@ namespace CompanionAI_v3.GameInterface
                             }
 
                             totalScore -= SC.AoEPlayerAllyPenaltyMult * HIT_SCORE;
-                            CompanionAI_v3.Main.LogDebug($"[AOE] Player party ally in directional pattern: {unit.CharacterName} - penalty {SC.AoEPlayerAllyPenaltyMult}x applied");
+                            Log.Engine.Debug($"[AOE] Player party ally in directional pattern: {unit.CharacterName} - penalty {SC.AoEPlayerAllyPenaltyMult}x applied");
                             continue;  // NPC 페널티 중복 적용 방지
                         }
 
@@ -1040,7 +1041,7 @@ namespace CompanionAI_v3.GameInterface
                 catch (Exception ex)
                 {
                     // ★ v3.30.0: 피아 구분 실패 시 아군으로 간주 (안전 우선)
-                    Main.Log($"[AoESafetyChecker] ★ DirectionalAoE classification FAILED: {unit?.CharacterName}: {ex.Message}");
+                    Log.Engine.Info($"[AoESafetyChecker] ★ DirectionalAoE classification FAILED: {unit?.CharacterName}: {ex.Message}");
                     score.AlliesHit++;
                     // ★ Fix 4: Classification failure also counts toward MaxPlayerAlliesHit hard reject
                     playerPartyAlliesHit++;
@@ -1115,11 +1116,11 @@ namespace CompanionAI_v3.GameInterface
                     nativePattern = CombatAPI.GetAffectedNodes(ability, primaryTarget.Position, fromPosition);
                     nativePatternReady = !nativePattern.IsEmpty;
                     if (nativePatternReady && Main.IsDebugEnabled)
-                        Main.LogDebug($"[AoESafety][Native] EvalDirFromPos {ability.Name}: pattern precomputed");
+                        Log.Engine.Debug($"[AoESafety][Native] EvalDirFromPos {ability.Name}: pattern precomputed");
                 }
                 catch (Exception ex)
                 {
-                    Main.LogWarning($"[AoESafety][Native] EvalDirFromPos precompute failed for {ability.Name}: {ex.Message}");
+                    Log.Engine.Warn($"[AoESafety][Native] EvalDirFromPos precompute failed for {ability.Name}: {ex.Message}");
                 }
             }
 
@@ -1182,7 +1183,7 @@ namespace CompanionAI_v3.GameInterface
                 catch (Exception ex)
                 {
                     // ★ v3.30.0: 피아 구분 실패 시 아군으로 간주 (안전 우선)
-                    Main.Log($"[AoESafetyChecker] ★ DirectionalAoE(Pos) classification FAILED: {unit?.CharacterName}: {ex.Message}");
+                    Log.Engine.Info($"[AoESafetyChecker] ★ DirectionalAoE(Pos) classification FAILED: {unit?.CharacterName}: {ex.Message}");
                     score.AlliesHit++;
                     // ★ Fix 4: Classification failure also counts toward MaxPlayerAlliesHit hard reject
                     playerPartyAlliesHit++;
@@ -1268,7 +1269,7 @@ namespace CompanionAI_v3.GameInterface
                             // 클러스터 밀도 보너스 추가
                             score.Score += bestCluster.Density * 5000f;
 
-                            CompanionAI_v3.Main.Log($"[AOE] Cluster-based position: " +
+                            Log.Engine.Info($"[AOE] Cluster-based position: " +
                                 $"{score.EnemiesHit} hits, density bonus={bestCluster.Density * 5000f:F0}, " +
                                 $"total={score.Score:F0}");
 
@@ -1278,12 +1279,12 @@ namespace CompanionAI_v3.GameInterface
                 }
 
                 // 폴백: 기존 방식
-                CompanionAI_v3.Main.LogDebug("[AOE] No valid cluster found, falling back to legacy method");
+                Log.Engine.Debug("[AOE] No valid cluster found, falling back to legacy method");
                 return FindBestAoEPosition(ability, caster, enemies, allies, minEnemiesRequired);
             }
             catch (Exception ex)
             {
-                CompanionAI_v3.Main.LogError(ex, $"[AOE] Cluster-based search failed, using legacy");
+                Log.Engine.Error(ex, $"[AOE] Cluster-based search failed, using legacy");
                 return FindBestAoEPosition(ability, caster, enemies, allies, minEnemiesRequired);
             }
         }

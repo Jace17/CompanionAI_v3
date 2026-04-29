@@ -2,6 +2,7 @@
 // ★ v3.60.0: Screenshot capture + resize for Gemma 3 vision
 using System;
 using UnityEngine;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.MachineSpirit
 {
@@ -29,7 +30,7 @@ namespace CompanionAI_v3.MachineSpirit
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[VisionCapture] Failed");
+                Log.MachineSpirit.Error(ex, $"[VisionCapture] Failed");
                 return null;
             }
             finally

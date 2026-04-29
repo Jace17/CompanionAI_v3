@@ -6,6 +6,7 @@ using CompanionAI_v3.Analysis;
 using CompanionAI_v3.Data;
 using CompanionAI_v3.Settings;
 using CompanionAI_v3.UI;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Diagnostics
 {
@@ -64,11 +65,11 @@ namespace CompanionAI_v3.Diagnostics
                 CombatReportCollector.Instance.LogPhase(
                     $"[Narrator] {unit.CharacterName} ({category}): {summary}");
 
-                Main.LogDebug($"[TacticalNarrator] {unit.CharacterName}: category={category}, lines={lines.Length}");
+                Log.Diagnostics.Debug($"[TacticalNarrator] {unit.CharacterName}: category={category}, lines={lines.Length}");
             }
             catch (Exception ex)
             {
-                Main.LogError($"[TacticalNarrator] Error: {ex.Message}");
+                Log.Diagnostics.Error($"[TacticalNarrator] Error: {ex.Message}");
             }
         }
 

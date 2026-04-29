@@ -17,6 +17,7 @@ using Pathfinding;
 using UnityEngine;
 using CompanionAI_v3.Core;
 using CompanionAI_v3.Data;  // ★ v3.7.52: FamiliarAbilities
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.GameInterface
 {
@@ -122,7 +123,7 @@ namespace CompanionAI_v3.GameInterface
                             if (Kingmaker.Settings.SettingsRoot.Game.TurnBased.CameraScrollToCurrentUnit.GetValue())
                                 Game.Instance.CameraController?.Follower?.Follow(unit);
                         }
-                        catch (Exception ex) { Main.LogError(ex, $"[CustomBehaviourTree] Pet camera follow failed"); }
+                        catch (Exception ex) { Log.Engine.Error(ex, $"[CustomBehaviourTree] Pet camera follow failed"); }
                     }
                     return;
                 }
@@ -130,7 +131,7 @@ namespace CompanionAI_v3.GameInterface
                 // 현재 트리 확인
                 if (_behaviourTreeField == null)
                 {
-                    Main.LogError("[CustomBehaviourTree] m_BehaviourTree field not found!");
+                    Log.Engine.Error("[CustomBehaviourTree] m_BehaviourTree field not found!");
                     return;
                 }
 
@@ -150,12 +151,12 @@ namespace CompanionAI_v3.GameInterface
                 }
 
                 // 커스텀 트리가 아님 → 교체 필요
-                Main.LogWarning($"[CustomBehaviourTree] {unit.CharacterName}: Native tree detected, replacing with custom tree");
+                Log.Engine.Warn($"[CustomBehaviourTree] {unit.CharacterName}: Native tree detected, replacing with custom tree");
 
                 // 커스텀 트리 생성
                 if (!TryCreateCustomTree(unit, out var customTree))
                 {
-                    Main.LogError($"[CustomBehaviourTree] Failed to create custom tree for {unit.CharacterName}");
+                    Log.Engine.Error($"[CustomBehaviourTree] Failed to create custom tree for {unit.CharacterName}");
                     return;
                 }
 
@@ -166,11 +167,11 @@ namespace CompanionAI_v3.GameInterface
                 // 트리 초기화 (중요!)
                 customTree.Init();
 
-                Main.Log($"[CustomBehaviourTree] Replaced tree for {unit.CharacterName} (during Tick)");
+                Log.Engine.Info($"[CustomBehaviourTree] Replaced tree for {unit.CharacterName} (during Tick)");
             }
             catch (Exception ex)
             {
-                Main.LogError($"[CustomBehaviourTree] Tick_Prefix error: {ex.Message}");
+                Log.Engine.Error($"[CustomBehaviourTree] Tick_Prefix error: {ex.Message}");
             }
         }
 
@@ -190,7 +191,7 @@ namespace CompanionAI_v3.GameInterface
             {
                 if (_rootNodeField == null)
                 {
-                    Main.LogError("[CustomBehaviourTree] root field not found in BehaviourTree!");
+                    Log.Engine.Error("[CustomBehaviourTree] root field not found in BehaviourTree!");
                     return false;
                 }
 
@@ -203,7 +204,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogError($"[CustomBehaviourTree] IsCustomTree error: {ex.Message}");
+                Log.Engine.Error($"[CustomBehaviourTree] IsCustomTree error: {ex.Message}");
                 return false;
             }
         }
@@ -238,25 +239,25 @@ namespace CompanionAI_v3.GameInterface
                 // 커스텀 트리 생성
                 if (!TryCreateCustomTree(unit, out var customTree))
                 {
-                    Main.LogWarning($"[CustomBehaviourTree] Failed to create custom tree for {unit.CharacterName}");
+                    Log.Engine.Warn($"[CustomBehaviourTree] Failed to create custom tree for {unit.CharacterName}");
                     return;
                 }
 
                 // m_BehaviourTree 필드 직접 설정
                 if (_behaviourTreeField == null)
                 {
-                    Main.LogError("[CustomBehaviourTree] m_BehaviourTree field not found!");
+                    Log.Engine.Error("[CustomBehaviourTree] m_BehaviourTree field not found!");
                     return;
                 }
 
                 // 새 트리 설정 (게임이 이미 트리를 생성했지만, 우리 트리로 교체)
                 _behaviourTreeField.SetValue(__instance, customTree);
 
-                Main.Log($"[CustomBehaviourTree] Replaced tree for {unit.CharacterName}");
+                Log.Engine.Info($"[CustomBehaviourTree] Replaced tree for {unit.CharacterName}");
             }
             catch (Exception ex)
             {
-                Main.LogError($"[CustomBehaviourTree] UpdateBehaviourTree_Postfix error: {ex.Message}");
+                Log.Engine.Error($"[CustomBehaviourTree] UpdateBehaviourTree_Postfix error: {ex.Message}");
             }
         }
 
@@ -269,7 +270,7 @@ namespace CompanionAI_v3.GameInterface
             result = null;
             try
             {
-                Main.LogDebug($"[CustomBehaviourTree] Creating custom tree for {unit.CharacterName}");
+                Log.Engine.Debug($"[CustomBehaviourTree] Creating custom tree for {unit.CharacterName}");
 
                 // ★ CompanionAI 전용 심플 트리 생성
                 // 핵심: 모든 결정이 CompanionAIDecisionNode를 통과
@@ -328,7 +329,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogError($"[CustomBehaviourTree] Error creating custom tree: {ex.Message}");
+                Log.Engine.Error($"[CustomBehaviourTree] Error creating custom tree: {ex.Message}");
                 return false;  // 실패 시 게임 기본 트리 사용
             }
         }
@@ -398,13 +399,13 @@ namespace CompanionAI_v3.GameInterface
 
             if (waitCount >= MAX_CAN_ACT_WAIT_FRAMES)
             {
-                Main.LogWarning($"[CompanionAIDecisionNode] {unit.CharacterName}: ★ CanActInTurnBased=false for {waitCount} frames — ending turn (possible stun/incapacitation)");
+                Log.Engine.Warn($"[CompanionAIDecisionNode] {unit.CharacterName}: ★ CanActInTurnBased=false for {waitCount} frames — ending turn (possible stun/incapacitation)");
                 _canActWaitCounts.Remove(uid);
                 return CanActCheckResult.Timeout;
             }
 
             if (waitCount == 1 || waitCount % 60 == 0)
-                Main.Log($"[CompanionAIDecisionNode] {unit.CharacterName}: Waiting for CanActInTurnBased (frame {waitCount})");
+                Log.Engine.Info($"[CompanionAIDecisionNode] {unit.CharacterName}: Waiting for CanActInTurnBased (frame {waitCount})");
 
             return CanActCheckResult.Waiting;
         }
@@ -467,14 +468,14 @@ namespace CompanionAI_v3.GameInterface
             var context = blackboard.DecisionContext;
             if (context == null)
             {
-                Main.LogWarning("[CompanionAIDecisionNode] DecisionContext is null");
+                Log.Engine.Warn("[CompanionAIDecisionNode] DecisionContext is null");
                 return Status.Failure;
             }
 
             var unit = context.Unit;
             if (unit == null)
             {
-                Main.LogWarning("[CompanionAIDecisionNode] Unit is null");
+                Log.Engine.Warn("[CompanionAIDecisionNode] Unit is null");
                 return Status.Failure;
             }
 
@@ -484,7 +485,7 @@ namespace CompanionAI_v3.GameInterface
                 if (FamiliarAPI.IsFamiliar(unit))
                 {
                     var master = FamiliarAPI.GetMaster(unit);
-                    Main.LogDebug($"[CompanionAIDecisionNode] {unit.CharacterName}: Familiar unit - skipping (controlled by {master?.CharacterName ?? "master"})");
+                    Log.Engine.Debug($"[CompanionAIDecisionNode] {unit.CharacterName}: Familiar unit - skipping (controlled by {master?.CharacterName ?? "master"})");
                     blackboard.IsFinishedTurn = true;
                     return Status.Success;  // 즉시 턴 종료
                 }
@@ -549,7 +550,7 @@ namespace CompanionAI_v3.GameInterface
                             var cmd = new UnitUseAbilityParams(result.Ability, result.Target);
                             cmd.AllTargets = result.AllTargets;
                             unit.Commands.Run(cmd);
-                            Main.Log($"[CompanionAIDecisionNode] {unit.CharacterName}: Cast MultiTarget {result.Ability?.Name} ({result.AllTargets.Count} targets)");
+                            Log.Engine.Info($"[CompanionAIDecisionNode] {unit.CharacterName}: Cast MultiTarget {result.Ability?.Name} ({result.AllTargets.Count} targets)");
                             return Status.Running;  // 명령 완료 대기 (다음 tick에서 IsCommandQueueEmpty 체크)
                         }
 
@@ -559,7 +560,7 @@ namespace CompanionAI_v3.GameInterface
                         // AbilityMultiTarget이 있어도 단일 Point로 시전 가능한 능력이 있음 (예: Servo-Skull Redirect)
                         if (FamiliarAbilities.IsMultiTargetFamiliarAbility(result.Ability))
                         {
-                            Main.LogError($"[CompanionAIDecisionNode] BLOCKED: MultiTarget ability {result.Ability.Name} without AllTargets! This ability requires 2 Point targets.");
+                            Log.Engine.Error($"[CompanionAIDecisionNode] BLOCKED: MultiTarget ability {result.Ability.Name} without AllTargets! This ability requires 2 Point targets.");
                             // 이 능력을 스킵하고 다음 행동으로 (리플랜 트리거)
                             return Status.Running;
                         }
@@ -569,7 +570,7 @@ namespace CompanionAI_v3.GameInterface
                         context.AbilityTarget = result.Target;
                         // ★ v3.5.33: Stale 이동 데이터 클리어 - Charge 후 이동 버그 방지
                         context.FoundBetterPlace = default;
-                        Main.Log($"[CompanionAIDecisionNode] {unit.CharacterName}: Cast {result.Ability?.Name} -> {result.Target?.Entity}");
+                        Log.Engine.Info($"[CompanionAIDecisionNode] {unit.CharacterName}: Cast {result.Ability?.Name} -> {result.Target?.Entity}");
                         return Status.Success;  // → Selector가 TaskNodeCastAbility 실행
 
                     case ResultType.MoveTo:
@@ -589,14 +590,14 @@ namespace CompanionAI_v3.GameInterface
                                         Game.Instance.CameraController?.Follower?.Follow(unit);
                                     }
                                 }
-                                catch (Exception ex) { Main.LogError(ex, $"[CustomBehaviourTree] Move camera follow failed"); }
+                                catch (Exception ex) { Log.Engine.Error(ex, $"[CustomBehaviourTree] Move camera follow failed"); }
 
-                                Main.Log($"[CompanionAIDecisionNode] {unit.CharacterName}: Move to {result.Destination.Value}");
+                                Log.Engine.Info($"[CompanionAIDecisionNode] {unit.CharacterName}: Move to {result.Destination.Value}");
                                 return Status.Success;  // → Selector가 Movement 노드 실행
                             }
                             else
                             {
-                                Main.LogWarning($"[CompanionAIDecisionNode] {unit.CharacterName}: Failed to setup movement");
+                                Log.Engine.Warn($"[CompanionAIDecisionNode] {unit.CharacterName}: Failed to setup movement");
                             }
                         }
                         // 이동 설정 실패 시 턴 종료
@@ -608,7 +609,7 @@ namespace CompanionAI_v3.GameInterface
                         blackboard.IsFinishedTurn = true;
                         context.Ability = null;
                         context.AbilityTarget = null;
-                        Main.Log($"[CompanionAIDecisionNode] {unit.CharacterName}: End turn - {result.Reason}");
+                        Log.Engine.Info($"[CompanionAIDecisionNode] {unit.CharacterName}: End turn - {result.Reason}");
                         return Status.Success;  // → Selector가 TaskNodeTryFinishTurn으로
 
                     case ResultType.Continue:
@@ -621,14 +622,14 @@ namespace CompanionAI_v3.GameInterface
 
                     case ResultType.Failure:
                     default:
-                        Main.LogWarning($"[CompanionAIDecisionNode] {unit.CharacterName}: Failure - {result.Reason}");
+                        Log.Engine.Warn($"[CompanionAIDecisionNode] {unit.CharacterName}: Failure - {result.Reason}");
                         blackboard.IsFinishedTurn = true;
                         return Status.Success;  // 실패 시 턴 종료
                 }
             }
             catch (Exception ex)
             {
-                Main.LogError($"[CompanionAIDecisionNode] {unit?.CharacterName}: Error - {ex.Message}");
+                Log.Engine.Error($"[CompanionAIDecisionNode] {unit?.CharacterName}: Error - {ex.Message}");
                 blackboard.IsFinishedTurn = true;
                 return Status.Success;  // 예외 시 턴 종료
             }
@@ -648,14 +649,14 @@ namespace CompanionAI_v3.GameInterface
                 // UnitMoveVariants 확인
                 if (context.UnitMoveVariants.IsZero)
                 {
-                    Main.LogWarning($"[CompanionAIDecisionNode] No move variants available");
+                    Log.Engine.Warn($"[CompanionAIDecisionNode] No move variants available");
                     return false;
                 }
 
                 var cells = context.UnitMoveVariants.cells;
                 if (cells == null || cells.Count == 0)
                 {
-                    Main.LogWarning($"[CompanionAIDecisionNode] Move variants cells is empty");
+                    Log.Engine.Warn($"[CompanionAIDecisionNode] Move variants cells is empty");
                     return false;
                 }
 
@@ -663,7 +664,7 @@ namespace CompanionAI_v3.GameInterface
                 var targetNode = destination.GetNearestNodeXZ() as CustomGridNodeBase;
                 if (targetNode == null)
                 {
-                    Main.LogWarning($"[CompanionAIDecisionNode] Cannot find node for destination {destination}");
+                    Log.Engine.Warn($"[CompanionAIDecisionNode] Cannot find node for destination {destination}");
                     return false;
                 }
 
@@ -705,14 +706,14 @@ namespace CompanionAI_v3.GameInterface
                                             float nodeDist = Vector3.Distance(pathNodeBase.Vector3Position, destination);
                                             if (nodeDist >= currentDistToDest)
                                             {
-                                                if (Main.IsDebugEnabled) Main.LogDebug($"[CompanionAIDecisionNode] A* step {i} skipped — not closer (dist={nodeDist:F1} >= current={currentDistToDest:F1})");
+                                                if (Main.IsDebugEnabled) Log.Engine.Debug($"[CompanionAIDecisionNode] A* step {i} skipped — not closer (dist={nodeDist:F1} >= current={currentDistToDest:F1})");
                                                 continue;
                                             }
                                         }
 
                                         bestCell = pathCell;
                                         foundCell = true;
-                                        if (Main.IsDebugEnabled) Main.LogDebug($"[CompanionAIDecisionNode] A* path: found reachable node at step {i}/{fullPath.path.Count - 1}");
+                                        if (Main.IsDebugEnabled) Log.Engine.Debug($"[CompanionAIDecisionNode] A* path: found reachable node at step {i}/{fullPath.path.Count - 1}");
                                         break;
                                     }
                                 }
@@ -720,7 +721,7 @@ namespace CompanionAI_v3.GameInterface
                         }
                         catch (Exception ex)
                         {
-                            if (Main.IsDebugEnabled) Main.LogError(ex, $"[CompanionAIDecisionNode] A* path error");
+                            if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CompanionAIDecisionNode] A* path error");
                         }
                     }
 
@@ -747,7 +748,7 @@ namespace CompanionAI_v3.GameInterface
 
                 if (!foundCell)
                 {
-                    Main.LogWarning($"[CompanionAIDecisionNode] No reachable cell found for destination");
+                    Log.Engine.Warn($"[CompanionAIDecisionNode] No reachable cell found for destination");
                     return false;
                 }
 
@@ -756,7 +757,7 @@ namespace CompanionAI_v3.GameInterface
                 float availableMP = unit.CombatState?.ActionPointsBlue ?? 0f;
                 if (bestCell.Length > availableMP)
                 {
-                    Main.LogDebug($"[CompanionAIDecisionNode] Trimming path (need {bestCell.Length:F1}, have {availableMP:F1})");
+                    Log.Engine.Debug($"[CompanionAIDecisionNode] Trimming path (need {bestCell.Length:F1}, have {availableMP:F1})");
 
                     var trimmedCell = bestCell;
                     while (trimmedCell.Length > availableMP && trimmedCell.ParentNode != null)
@@ -770,7 +771,7 @@ namespace CompanionAI_v3.GameInterface
                             }
                             else
                             {
-                                Main.LogDebug($"[CompanionAIDecisionNode] Parent path not shorter, stopping trim");
+                                Log.Engine.Debug($"[CompanionAIDecisionNode] Parent path not shorter, stopping trim");
                                 break;
                             }
                         }
@@ -783,7 +784,7 @@ namespace CompanionAI_v3.GameInterface
                 var currentNode = unit.Position.GetNearestNodeXZ();
                 if (bestCell.Node == currentNode)
                 {
-                    Main.LogDebug($"[CompanionAIDecisionNode] Already at destination");
+                    Log.Engine.Debug($"[CompanionAIDecisionNode] Already at destination");
                     return false;
                 }
 
@@ -794,12 +795,12 @@ namespace CompanionAI_v3.GameInterface
                     BestCell = bestCell
                 };
 
-                Main.Log($"[CompanionAIDecisionNode] Movement setup complete - BestCell.Node={bestCell.Node}");
+                Log.Engine.Info($"[CompanionAIDecisionNode] Movement setup complete - BestCell.Node={bestCell.Node}");
                 return true;
             }
             catch (Exception ex)
             {
-                Main.LogError($"[CompanionAIDecisionNode] SetupMovement error: {ex.Message}");
+                Log.Engine.Error($"[CompanionAIDecisionNode] SetupMovement error: {ex.Message}");
                 return false;
             }
         }

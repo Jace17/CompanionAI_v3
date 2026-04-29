@@ -10,6 +10,7 @@ using Newtonsoft.Json.Linq;
 using CompanionAI_v3.Analysis;
 using CompanionAI_v3.MachineSpirit;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Planning.LLM
 {
@@ -96,7 +97,7 @@ namespace CompanionAI_v3.Planning.LLM
                     if (i > 0) sb.Append(',');
                     sb.Append(ChoiceLabels[i]).Append("=orig").Append(_shuffleMap[i]);
                 }
-                Main.LogDebug($"[LLMJudge] Shuffle map: {sb}");
+                Log.Planning.Debug($"[LLMJudge] Shuffle map: {sb}");
             }
 
             return shuffled;
@@ -141,7 +142,7 @@ namespace CompanionAI_v3.Planning.LLM
         {
             if (_isJudging)
             {
-                Main.Log("[LLMJudge] Already judging — fallback to index 0");
+                Log.Planning.Info("[LLMJudge] Already judging — fallback to index 0");
                 onResult?.Invoke(0);
                 yield break;
             }
@@ -176,7 +177,7 @@ namespace CompanionAI_v3.Planning.LLM
                 }
                 catch (Exception msgEx)
                 {
-                    Main.LogWarning($"[LLMJudge] Message build failed: {msgEx.Message} — fallback to index 0");
+                    Log.Planning.Warn($"[LLMJudge] Message build failed: {msgEx.Message} — fallback to index 0");
                     _isJudging = false;
                     onResult?.Invoke(0);
                     yield break;
@@ -197,7 +198,7 @@ namespace CompanionAI_v3.Planning.LLM
                 // 3. baseUrl + 로그
                 string baseUrl = Main.Settings?.MachineSpirit?.ApiUrl;
                 if (string.IsNullOrEmpty(baseUrl)) baseUrl = "http://localhost:11434";
-                Main.LogDebug($"[LLMJudge] → {LLMHttpClient.NormalizeBaseUrl(baseUrl)}/api/chat, model={model}, candidates={candidateCount}");
+                Log.Planning.Debug($"[LLMJudge] → {LLMHttpClient.NormalizeBaseUrl(baseUrl)}/api/chat, model={model}, candidates={candidateCount}");
 
                 // 4. HTTP 요청 (LLMHttpClient.PostChatAsync 위임)
                 LLMHttpClient.Response response = default(LLMHttpClient.Response);
@@ -210,7 +211,7 @@ namespace CompanionAI_v3.Planning.LLM
                 if (response.Success)
                 {
                     string raw = response.RawJson ?? "";
-                    Main.LogDebug($"[LLMJudge] Raw response ({raw.Length} chars): {Truncate(raw, 300)}");
+                    Log.Planning.Debug($"[LLMJudge] Raw response ({raw.Length} chars): {Truncate(raw, 300)}");
                     int shuffledIndex = ParseResponse(raw, candidateCount);
                     // ★ v3.105.0: shuffled idx → 원본 idx 역매핑
                     selectedIndex = (shuffledIndex >= 0 && shuffledIndex < candidateCount) ? _shuffleMap[shuffledIndex] : 0;
@@ -219,7 +220,7 @@ namespace CompanionAI_v3.Planning.LLM
                     string strategyLabel = candidates[selectedIndex].Strategy != null
                         ? candidates[selectedIndex].Strategy.Sequence.ToString()
                         : candidates[selectedIndex].Plan?.Priority.ToString() ?? "Unknown";
-                    Main.Log($"[LLMJudge] Selected: {ChoiceLabels[selectedIndex]} " +
+                    Log.Planning.Info($"[LLMJudge] Selected: {ChoiceLabels[selectedIndex]} " +
                         $"({strategyLabel}) [promptPos={ChoiceLabels[shuffledIndex]}] in {LastJudgeTimeMs}ms");
                 }
                 else
@@ -229,7 +230,7 @@ namespace CompanionAI_v3.Planning.LLM
                     string errorText = response.WasTimeout
                         ? "Judge timeout exceeded"
                         : $"HTTP {response.HttpStatusCode}: {response.ErrorMessage}";
-                    Main.Log($"[LLMJudge] Failed: {errorText} — fallback to index 0 ({LastJudgeTimeMs}ms)");
+                    Log.Planning.Info($"[LLMJudge] Failed: {errorText} — fallback to index 0 ({LastJudgeTimeMs}ms)");
                 }
 
                 onResult?.Invoke(selectedIndex);
@@ -257,7 +258,7 @@ namespace CompanionAI_v3.Planning.LLM
         {
             if (_isJudging)
             {
-                Main.Log("[LLMJudge] Already judging — fallback confidence");
+                Log.Planning.Info("[LLMJudge] Already judging — fallback confidence");
                 onResult?.Invoke(new JudgeConfidence { PreferredIndex = 0, IsValid = false });
                 yield break;
             }
@@ -295,7 +296,7 @@ namespace CompanionAI_v3.Planning.LLM
                 }
                 catch (Exception msgEx)
                 {
-                    Main.LogWarning($"[LLMJudge] Confidence message build failed: {msgEx.Message}");
+                    Log.Planning.Warn($"[LLMJudge] Confidence message build failed: {msgEx.Message}");
                     _isJudging = false;
                     onResult?.Invoke(new JudgeConfidence { PreferredIndex = 0, IsValid = false });
                     yield break;
@@ -316,7 +317,7 @@ namespace CompanionAI_v3.Planning.LLM
                 // 3. baseUrl + 로그
                 string baseUrl = Main.Settings?.MachineSpirit?.ApiUrl;
                 if (string.IsNullOrEmpty(baseUrl)) baseUrl = "http://localhost:11434";
-                Main.LogDebug($"[LLMJudge] Confidence → {LLMHttpClient.NormalizeBaseUrl(baseUrl)}/api/chat, model={model}, candidates={candidateCount}");
+                Log.Planning.Debug($"[LLMJudge] Confidence → {LLMHttpClient.NormalizeBaseUrl(baseUrl)}/api/chat, model={model}, candidates={candidateCount}");
 
                 // 4. HTTP 요청 (LLMHttpClient.PostChatAsync 위임)
                 LLMHttpClient.Response response = default(LLMHttpClient.Response);
@@ -329,7 +330,7 @@ namespace CompanionAI_v3.Planning.LLM
                 if (response.Success)
                 {
                     string raw = response.RawJson ?? "";
-                    Main.LogDebug($"[LLMJudge] Confidence raw ({raw.Length} chars): {Truncate(raw, 300)}");
+                    Log.Planning.Debug($"[LLMJudge] Confidence raw ({raw.Length} chars): {Truncate(raw, 300)}");
                     confidence = ParseConfidenceResponse(raw, candidateCount);
                     stopwatch.Stop();
                     LastJudgeTimeMs = stopwatch.ElapsedMilliseconds;
@@ -362,13 +363,13 @@ namespace CompanionAI_v3.Planning.LLM
                             ratioStr.Append(ChoiceLabels[i]).Append(':').Append(confidence.Ratios[i].ToString("F2"));
                         }
                         // ★ v3.105.0: promptPos로 LLM 관점의 primacy 선택 기록 (post-hoc 편향 분석용)
-                        Main.Log($"[LLMJudge] Confidence: [{ratioStr}] preferred={ChoiceLabels[confidence.PreferredIndex]} [promptPos={ChoiceLabels[preferredPromptPos]}] ({LastJudgeTimeMs}ms)");
+                        Log.Planning.Info($"[LLMJudge] Confidence: [{ratioStr}] preferred={ChoiceLabels[confidence.PreferredIndex]} [promptPos={ChoiceLabels[preferredPromptPos]}] ({LastJudgeTimeMs}ms)");
                         if (!string.IsNullOrEmpty(confidence.Narration))
-                            Main.Log($"[LLMJudge] Narration: {confidence.Narration}");
+                            Log.Planning.Info($"[LLMJudge] Narration: {confidence.Narration}");
                     }
                     else
                     {
-                        Main.Log($"[LLMJudge] Confidence parse failed, preferred={ChoiceLabels[confidence.PreferredIndex]} ({LastJudgeTimeMs}ms)");
+                        Log.Planning.Info($"[LLMJudge] Confidence parse failed, preferred={ChoiceLabels[confidence.PreferredIndex]} ({LastJudgeTimeMs}ms)");
                     }
                 }
                 else
@@ -379,7 +380,7 @@ namespace CompanionAI_v3.Planning.LLM
                     string errorText = response.WasTimeout
                         ? "Judge confidence timeout exceeded"
                         : $"HTTP {response.HttpStatusCode}: {response.ErrorMessage}";
-                    Main.Log($"[LLMJudge] Confidence failed: {errorText} ({LastJudgeTimeMs}ms)");
+                    Log.Planning.Info($"[LLMJudge] Confidence failed: {errorText} ({LastJudgeTimeMs}ms)");
                 }
 
                 onResult?.Invoke(confidence);
@@ -481,7 +482,7 @@ namespace CompanionAI_v3.Planning.LLM
 
                 if (string.IsNullOrEmpty(content))
                 {
-                    Main.LogDebug("[LLMJudge] Empty content in response");
+                    Log.Planning.Debug("[LLMJudge] Empty content in response");
                     return 0;
                 }
 
@@ -524,7 +525,7 @@ namespace CompanionAI_v3.Planning.LLM
 
                 if (string.IsNullOrEmpty(choice))
                 {
-                    Main.LogDebug($"[LLMJudge] No valid choice in content: {Truncate(content, 50)}");
+                    Log.Planning.Debug($"[LLMJudge] No valid choice in content: {Truncate(content, 50)}");
                     return 0;
                 }
 
@@ -533,7 +534,7 @@ namespace CompanionAI_v3.Planning.LLM
 
                 if (index < 0 || index >= candidateCount)
                 {
-                    Main.LogDebug($"[LLMJudge] Choice '{choice}' out of range (0-{candidateCount - 1})");
+                    Log.Planning.Debug($"[LLMJudge] Choice '{choice}' out of range (0-{candidateCount - 1})");
                     return 0;
                 }
 
@@ -541,7 +542,7 @@ namespace CompanionAI_v3.Planning.LLM
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[LLMJudge] Parse error, raw={Truncate(rawResponse, 200)}");
+                Log.Planning.Error(ex, $"[LLMJudge] Parse error, raw={Truncate(rawResponse, 200)}");
                 return 0;
             }
         }
@@ -727,7 +728,7 @@ namespace CompanionAI_v3.Planning.LLM
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[LLMJudge] Confidence parse error");
+                Log.Planning.Error(ex, $"[LLMJudge] Confidence parse error");
                 return fallback;
             }
         }

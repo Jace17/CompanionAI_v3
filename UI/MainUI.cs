@@ -8,6 +8,7 @@ using CompanionAI_v3.Data;
 using CompanionAI_v3.Diagnostics;
 using CompanionAI_v3.Settings;
 using MSp = CompanionAI_v3.MachineSpirit;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.UI
 {
@@ -1515,7 +1516,7 @@ namespace CompanionAI_v3.UI
             }
             catch (System.Exception ex)
             {
-                Main.LogError(ex, $"[MachineSpirit] Failed to start ollama pull");
+                Log.UI.Error(ex, $"[MachineSpirit] Failed to start ollama pull");
                 _installStatus = $"Error: {ex.Message}";
                 startFailed = true;
             }
@@ -1548,7 +1549,7 @@ namespace CompanionAI_v3.UI
 
             if (proc.ExitCode == 0)
             {
-                Main.LogDebug($"[MachineSpirit] Model '{modelId}' installed successfully");
+                Log.UI.Debug($"[MachineSpirit] Model '{modelId}' installed successfully");
                 proc.Dispose();
 
                 // ★ v3.71.0: Check and fix template for community models
@@ -1575,7 +1576,7 @@ namespace CompanionAI_v3.UI
             {
                 string err = "";
                 try { err = proc.StandardError.ReadToEnd(); } catch { }
-                Main.LogDebug($"[MachineSpirit] Model install failed (exit {proc.ExitCode}): {err}");
+                Log.UI.Debug($"[MachineSpirit] Model install failed (exit {proc.ExitCode}): {err}");
                 _installStatus = $"Install failed. Check Ollama is running.";
                 proc.Dispose();
                 yield return new UnityEngine.WaitForSeconds(5f);
@@ -1883,7 +1884,7 @@ namespace CompanionAI_v3.UI
                     .Select(unit => new CharacterInfo { Id = unit.UniqueId ?? "unknown", Name = unit.CharacterName ?? "Unnamed", Unit = unit })
                     .ToList();
             }
-            catch (Exception ex) { Main.LogError(ex, $"[MainUI] GetPartyMembers error"); return new List<CharacterInfo>(); }
+            catch (Exception ex) { Log.UI.Error(ex, $"[MainUI] GetPartyMembers error"); return new List<CharacterInfo>(); }
         }
 
         private class CharacterInfo

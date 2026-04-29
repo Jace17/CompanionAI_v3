@@ -9,6 +9,7 @@ using CompanionAI_v3.Diagnostics.Models;
 using CompanionAI_v3.GameInterface;
 using CompanionAI_v3.Planning;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Diagnostics
 {
@@ -65,7 +66,7 @@ namespace CompanionAI_v3.Diagnostics
             }
             catch { /* 파티 수집 실패 시 무시 */ }
 
-            Main.Log($"[CombatReport] Combat started → ID={id}");
+            Log.Diagnostics.Info($"[CombatReport] Combat started → ID={id}");
         }
 
         public void OnCombatEnd(string result)

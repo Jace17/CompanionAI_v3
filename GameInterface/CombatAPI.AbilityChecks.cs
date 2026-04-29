@@ -10,6 +10,7 @@ using Kingmaker.UnitLogic.Buffs.Components;           // WarhammerAbilityRestric
 using Kingmaker.Utility;                              // TargetWrapper
 using Kingmaker.View.Covers;                          // LosCalculations
 using CompanionAI_v3.Data;                            // AbilityDatabase, AbilityTiming
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.GameInterface
 {
@@ -39,7 +40,7 @@ namespace CompanionAI_v3.GameInterface
                 {
                     reason = GetRestrictionReason(ability);
                     // 디버그 로깅 - 어떤 능력이 왜 제한되는지 파악
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] CanUseAbilityOn: {ability.Name} IsRestricted=true - {reason}");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] CanUseAbilityOn: {ability.Name} IsRestricted=true - {reason}");
                     return false;
                 }
 
@@ -112,7 +113,7 @@ namespace CompanionAI_v3.GameInterface
                 {
                     // 자세한 이유 파악 시도
                     reason = GetRestrictionReason(ability);
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsRestricted=true for {ability.Name}: {reason}");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] IsRestricted=true for {ability.Name}: {reason}");
                     return false;
                 }
 
@@ -120,7 +121,7 @@ namespace CompanionAI_v3.GameInterface
                 if (!ability.IsAvailable)
                 {
                     reason = GetUnavailabilityReason(ability);
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsAvailable=false for {ability.Name}: {reason}");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] IsAvailable=false for {ability.Name}: {reason}");
                     return false;
                 }
 
@@ -128,7 +129,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] MeetsCasterFactRequirements error for {ability?.Name}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] MeetsCasterFactRequirements error for {ability?.Name}");
                 return true; // 에러 시 일단 허용
             }
         }
@@ -312,7 +313,7 @@ namespace CompanionAI_v3.GameInterface
             catch (Exception ex)
             {
                 // ★ v3.4.01: P1-2 예외 상세 로깅
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsAbilityAvailable error for {ability.Name}");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsAbilityAvailable error for {ability.Name}");
                 return false;
             }
         }
@@ -530,21 +531,21 @@ namespace CompanionAI_v3.GameInterface
                 // 쿨다운이어도 런앤건 등으로 보너스 사용이 부여되면 IsAvailable=true
                 if (ability.IsAvailable)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] CooldownCheck: {abilityName} - IsAvailable=true (bonus usage available)");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] CooldownCheck: {abilityName} - IsAvailable=true (bonus usage available)");
                     return false; // 보너스 사용 가능 → 쿨다운 아닌 것으로 처리
                 }
 
                 var caster = ability.Caster as BaseUnitEntity;
                 if (caster == null)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] CooldownCheck: {abilityName} - caster is null");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] CooldownCheck: {abilityName} - caster is null");
                     return false;
                 }
 
                 var cooldownPart = caster.AbilityCooldowns;
                 if (cooldownPart == null)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] CooldownCheck: {abilityName} - cooldownPart is null");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] CooldownCheck: {abilityName} - cooldownPart is null");
                     return false;
                 }
 
@@ -552,7 +553,7 @@ namespace CompanionAI_v3.GameInterface
                 bool isOnCooldown = cooldownPart.IsOnCooldown(ability);
                 if (isOnCooldown)
                 {
-                    if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] CooldownCheck: {abilityName} - ability on cooldown");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] CooldownCheck: {abilityName} - ability on cooldown");
                     return true;
                 }
 
@@ -569,7 +570,7 @@ namespace CompanionAI_v3.GameInterface
                         string groupId = group.AssetGuid?.ToString() ?? group.name ?? "unknown";
                         if (seenGroups.Contains(groupId))
                         {
-                            Main.Log($"[CombatAPI] ★ {abilityName}: BLOCKED - duplicate group detected (game data bug)");
+                            Log.Engine.Info($"[CombatAPI] ★ {abilityName}: BLOCKED - duplicate group detected (game data bug)");
                             return true; // 중복 그룹이 있으면 사용 차단
                         }
                         seenGroups.Add(groupId);
@@ -577,7 +578,7 @@ namespace CompanionAI_v3.GameInterface
                         bool groupOnCooldown = cooldownPart.GroupIsOnCooldown(group);
                         if (groupOnCooldown)
                         {
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] CooldownCheck: {abilityName} - Group '{group.name}' on cooldown");
+                            if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] CooldownCheck: {abilityName} - Group '{group.name}' on cooldown");
                             return true;
                         }
                     }
@@ -587,7 +588,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                Main.LogError($"[CombatAPI] IsAbilityOnCooldownWithGroups error: {ex.Message}\n{ex.StackTrace}");
+                Log.Engine.Error($"[CombatAPI] IsAbilityOnCooldownWithGroups error: {ex.Message}\n{ex.StackTrace}");
                 return false; // 에러 시 일단 허용
             }
         }
@@ -666,7 +667,7 @@ namespace CompanionAI_v3.GameInterface
                     if (onlyOnCooldown && ability.IsAvailable)
                     {
                         // 쿨다운이지만 보너스 사용 가능 (런 앤 건 등)
-                        if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsAbilityAvailable: {ability.Name} on cooldown but has bonus usage");
+                        if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] IsAbilityAvailable: {ability.Name} on cooldown but has bonus usage");
                         return true;
                     }
 
@@ -680,7 +681,7 @@ namespace CompanionAI_v3.GameInterface
                         var caster = ability.Caster;
                         if (caster != null && caster.Facts.HasComponent<WarhammerFreeUltimateBuff>(null))
                         {
-                            if (Main.IsDebugEnabled) Main.LogDebug($"[CombatAPI] IsAbilityAvailable: {ability.Name} has WarhammerFreeUltimateBuff - bypassing round limit");
+                            if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] IsAbilityAvailable: {ability.Name} has WarhammerFreeUltimateBuff - bypassing round limit");
                             return true;
                         }
                     }
@@ -711,7 +712,7 @@ namespace CompanionAI_v3.GameInterface
             }
             catch (Exception ex)
             {
-                if (Main.IsDebugEnabled) Main.LogError(ex, $"[CombatAPI] IsOffensiveAbility failed");
+                if (Main.IsDebugEnabled) Log.Engine.Error(ex, $"[CombatAPI] IsOffensiveAbility failed");
                 return false;
             }
         }

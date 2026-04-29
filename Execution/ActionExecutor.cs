@@ -8,6 +8,7 @@ using CompanionAI_v3.Core;
 using CompanionAI_v3.Analysis;
 using CompanionAI_v3.Data;
 using CompanionAI_v3.GameInterface;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Execution
 {
@@ -39,7 +40,7 @@ namespace CompanionAI_v3.Execution
                 return ExecutionResult.EndTurn("No action");
             }
 
-            Main.LogDebug($"[Executor] Executing: {action}");
+            Log.Engine.Debug($"[Executor] Executing: {action}");
 
             try
             {
@@ -79,7 +80,7 @@ namespace CompanionAI_v3.Execution
             }
             catch (Exception ex)
             {
-                Main.LogError($"[Executor] Error executing {action.Type}: {ex.Message}");
+                Log.Engine.Error($"[Executor] Error executing {action.Type}: {ex.Message}");
                 return ExecutionResult.Failure($"Execution error: {ex.Message}");
             }
         }
@@ -97,7 +98,7 @@ namespace CompanionAI_v3.Execution
 
             if (unit.Body.CurrentHandEquipmentSetIndex == targetSet)
             {
-                Main.Log($"[Executor] Weapon switch skipped — already on Set {targetSet}");
+                Log.Engine.Info($"[Executor] Weapon switch skipped — already on Set {targetSet}");
                 return ExecutionResult.Continue();
             }
 
@@ -112,7 +113,7 @@ namespace CompanionAI_v3.Execution
             // 캐시 전체 무효화 — 무기 변경 시 사거리/능력/타겟팅 모두 변함
             CombatCache.ClearAll();
 
-            Main.Log($"[Executor] ★ Weapon switch executed: {unit.CharacterName} -> Set {targetSet}");
+            Log.Engine.Info($"[Executor] ★ Weapon switch executed: {unit.CharacterName} -> Set {targetSet}");
             // ★ v3.9.78: Waiting 반환 — GameCommand 비동기 처리 대기
             // Continue → goto executeNextAction → 같은 프레임에서 stale 데이터로 재분석 (버그)
             // Waiting → 게임에 제어 반환 → 다음 프레임 AnalyzePhase에서 fresh 분석
@@ -158,11 +159,11 @@ namespace CompanionAI_v3.Execution
 
                         if (enemiesNearRaven < 1)
                         {
-                            Main.Log($"[Executor] ★ Warp Relay SKIPPED - Raven at ({freshFamiliar.Position.x:F1}, {freshFamiliar.Position.z:F1}) " +
+                            Log.Engine.Info($"[Executor] ★ Warp Relay SKIPPED - Raven at ({freshFamiliar.Position.x:F1}, {freshFamiliar.Position.z:F1}) " +
                                 $"has 0 enemies in range ({checkRadius:F1} tiles" + (abilityAoE > 0 ? $", AoE={abilityAoE:F1}" : ", generic") + ")");
                             return ExecutionResult.Failure("No enemies near familiar for Warp Relay");
                         }
-                        Main.LogDebug($"[Executor] Warp Relay check OK: {enemiesNearRaven} enemies near Raven (radius={checkRadius:F1} tiles)");
+                        Log.Engine.Debug($"[Executor] Warp Relay check OK: {enemiesNearRaven} enemies near Raven (radius={checkRadius:F1} tiles)");
                     }
 
                     // ★ v3.7.78: Point 타겟 능력 여부 체크
@@ -170,18 +171,18 @@ namespace CompanionAI_v3.Execution
                     {
                         // AOE 능력은 사역마 위치에 캐스트
                         target = new TargetWrapper(freshFamiliar.Position);
-                        Main.LogDebug($"[Executor] Familiar target re-resolved to POSITION: ({freshFamiliar.Position.x:F1}, {freshFamiliar.Position.y:F1}, {freshFamiliar.Position.z:F1})");
+                        Log.Engine.Debug($"[Executor] Familiar target re-resolved to POSITION: ({freshFamiliar.Position.x:F1}, {freshFamiliar.Position.y:F1}, {freshFamiliar.Position.z:F1})");
                     }
                     else
                     {
                         // Unit 타겟 능력은 사역마 유닛에 캐스트
                         target = new TargetWrapper(freshFamiliar);
-                        Main.LogDebug($"[Executor] Familiar target re-resolved to UNIT: {freshFamiliar.CharacterName}");
+                        Log.Engine.Debug($"[Executor] Familiar target re-resolved to UNIT: {freshFamiliar.CharacterName}");
                     }
                 }
                 else
                 {
-                    Main.LogWarning($"[Executor] Familiar target stale and cannot be re-resolved");
+                    Log.Engine.Warn($"[Executor] Familiar target stale and cannot be re-resolved");
                     return ExecutionResult.Failure("Familiar not available");
                 }
             }
@@ -195,7 +196,7 @@ namespace CompanionAI_v3.Execution
             // 계획 시점에서는 사용 가능했지만, 이전 액션 실행으로 그룹이 쿨다운될 수 있음
             if (CombatAPI.IsAbilityOnCooldownWithGroups(ability))
             {
-                Main.LogWarning($"[Executor] Ability skipped (group cooldown): {ability.Name}");
+                Log.Engine.Warn($"[Executor] Ability skipped (group cooldown): {ability.Name}");
                 return ExecutionResult.Failure($"Group cooldown: {ability.Name}");
             }
 
@@ -204,7 +205,7 @@ namespace CompanionAI_v3.Execution
             if (!CombatAPI.IsAbilityAvailable(ability, out unavailableReasons))
             {
                 string reasons = string.Join(", ", unavailableReasons);
-                Main.LogWarning($"[Executor] Ability unavailable: {ability.Name} - {reasons}");
+                Log.Engine.Warn($"[Executor] Ability unavailable: {ability.Name} - {reasons}");
                 return ExecutionResult.Failure($"Ability unavailable: {reasons}");
             }
 
@@ -220,12 +221,12 @@ namespace CompanionAI_v3.Execution
             {
                 if (targetUnit.LifeState.IsDead)
                 {
-                    Main.LogWarning($"[Executor] ★ Target already dead: {ability.Name} -> {targetUnit.CharacterName}");
+                    Log.Engine.Warn($"[Executor] ★ Target already dead: {ability.Name} -> {targetUnit.CharacterName}");
                     return ExecutionResult.Failure($"Target is dead");
                 }
                 if (!targetUnit.IsConscious)
                 {
-                    Main.LogWarning($"[Executor] ★ Target unconscious: {ability.Name} -> {targetUnit.CharacterName}");
+                    Log.Engine.Warn($"[Executor] ★ Target unconscious: {ability.Name} -> {targetUnit.CharacterName}");
                     return ExecutionResult.Failure($"Target is unconscious");
                 }
             }
@@ -247,10 +248,10 @@ namespace CompanionAI_v3.Execution
             {
                 if (!CombatAPI.CanReachTargetFromPosition(ability, casterUnit.Position, targetUnit))
                 {
-                    Main.LogWarning($"[Executor] ★ Execution-time reachability FAILED: {ability.Name} -> {targetUnit.CharacterName} from ({casterUnit.Position.x:F1}, {casterUnit.Position.z:F1})");
+                    Log.Engine.Warn($"[Executor] ★ Execution-time reachability FAILED: {ability.Name} -> {targetUnit.CharacterName} from ({casterUnit.Position.x:F1}, {casterUnit.Position.z:F1})");
                     return ExecutionResult.Failure($"Target unreachable from current position");
                 }
-                Main.LogDebug($"[Executor] Execution-time reachability OK: {ability.Name} -> {targetUnit.CharacterName}");
+                Log.Engine.Debug($"[Executor] Execution-time reachability OK: {ability.Name} -> {targetUnit.CharacterName}");
             }
 
             // 최종 검증 - 타겟에게 사용 가능한지
@@ -260,7 +261,7 @@ namespace CompanionAI_v3.Execution
                 string reason;
                 if (!CombatAPI.CanUseAbilityOn(ability, target, out reason))
                 {
-                    Main.LogWarning($"[Executor] Ability blocked: {ability.Name} - {reason}");
+                    Log.Engine.Warn($"[Executor] Ability blocked: {ability.Name} - {reason}");
                     return ExecutionResult.Failure(reason);
                 }
             }
@@ -283,7 +284,7 @@ namespace CompanionAI_v3.Execution
                 if (estimatedDamage > 0)
                 {
                     TeamBlackboard.Instance.RecordDamageDealt(estimatedDamage);
-                    Main.LogDebug($"[Executor] Attack: {ability.Name} -> {targetEntity.CharacterName}, EstDmg={estimatedDamage:F0}");
+                    Log.Engine.Debug($"[Executor] Attack: {ability.Name} -> {targetEntity.CharacterName}, EstDmg={estimatedDamage:F0}");
                 }
 
                 // ★ v3.8.46: Target Inertia - 공격 타겟 기록 (다음 턴 관성 보너스용)
@@ -318,7 +319,7 @@ namespace CompanionAI_v3.Execution
             // ★ v3.7.25: MultiTarget 능력 처리
             if (action.AllTargets != null && action.AllTargets.Count > 0)
             {
-                Main.Log($"[Executor] Cast MultiTarget: {ability.Name} ({action.AllTargets.Count} targets)");
+                Log.Engine.Info($"[Executor] Cast MultiTarget: {ability.Name} ({action.AllTargets.Count} targets)");
                 return ExecutionResult.CastAbilityMultiTarget(ability, action.AllTargets);
             }
 
@@ -327,30 +328,30 @@ namespace CompanionAI_v3.Execution
             {
                 var caster = ability.Caster as BaseUnitEntity;
                 var targetNode = target.Point.GetNearestNodeXZ() as CustomGridNodeBase;
-                Main.LogDebug($"[Executor] Point-target ability: {ability.Name}");
-                Main.LogDebug($"[Executor]   Caster: {caster?.CharacterName} at ({caster?.Position.x:F1}, {caster?.Position.y:F1}, {caster?.Position.z:F1})");
-                Main.LogDebug($"[Executor]   Target point: ({target.Point.x:F2}, {target.Point.y:F2}, {target.Point.z:F2})");
+                Log.Engine.Debug($"[Executor] Point-target ability: {ability.Name}");
+                Log.Engine.Debug($"[Executor]   Caster: {caster?.CharacterName} at ({caster?.Position.x:F1}, {caster?.Position.y:F1}, {caster?.Position.z:F1})");
+                Log.Engine.Debug($"[Executor]   Target point: ({target.Point.x:F2}, {target.Point.y:F2}, {target.Point.z:F2})");
                 if (targetNode != null)
                 {
-                    Main.LogDebug($"[Executor]   Target node: ({targetNode.XCoordinateInGrid}, {targetNode.ZCoordinateInGrid}), Walkable={targetNode.Walkable}");
-                    Main.LogDebug($"[Executor]   Node position: ({targetNode.Vector3Position.x:F2}, {targetNode.Vector3Position.y:F2}, {targetNode.Vector3Position.z:F2})");
+                    Log.Engine.Debug($"[Executor]   Target node: ({targetNode.XCoordinateInGrid}, {targetNode.ZCoordinateInGrid}), Walkable={targetNode.Walkable}");
+                    Log.Engine.Debug($"[Executor]   Node position: ({targetNode.Vector3Position.x:F2}, {targetNode.Vector3Position.y:F2}, {targetNode.Vector3Position.z:F2})");
 
                     // 노드 점유 상태 확인
                     if (targetNode.TryGetUnit(out var occupant))
                     {
-                        Main.LogDebug($"[Executor]   Node occupied by: {occupant?.CharacterName}");
+                        Log.Engine.Debug($"[Executor]   Node occupied by: {occupant?.CharacterName}");
                     }
                 }
                 else
                 {
-                    Main.LogDebug($"[Executor]   Target node: NULL (invalid position?)");
+                    Log.Engine.Debug($"[Executor]   Target node: NULL (invalid position?)");
                 }
 
                 // Familiar 관련 추가 진단
                 if (FamiliarAPI.HasFamiliar(caster))
                 {
                     var familiar = FamiliarAPI.GetFamiliar(caster);
-                    Main.LogDebug($"[Executor]   Familiar: {familiar?.CharacterName}, Conscious={familiar?.IsConscious}, Pos=({familiar?.Position.x:F1}, {familiar?.Position.y:F1}, {familiar?.Position.z:F1})");
+                    Log.Engine.Debug($"[Executor]   Familiar: {familiar?.CharacterName}, Conscious={familiar?.IsConscious}, Pos=({familiar?.Position.x:F1}, {familiar?.Position.y:F1}, {familiar?.Position.z:F1})");
 
                     // 현재 위치에서 타겟까지 거리
                     if (familiar != null)
@@ -359,14 +360,14 @@ namespace CompanionAI_v3.Execution
                         // ★ v3.8.55: support range 대비 거리 표시
                         float supportRange = FamiliarAPI.GetRavenSupportRangeMeters(familiar);
                         bool withinRange = distToTarget <= supportRange;
-                        Main.LogDebug($"[Executor]   Familiar distance to target: {distToTarget:F1}m ({CombatAPI.MetersToTiles(distToTarget):F1} tiles) " +
+                        Log.Engine.Debug($"[Executor]   Familiar distance to target: {distToTarget:F1}m ({CombatAPI.MetersToTiles(distToTarget):F1} tiles) " +
                             $"[support range={supportRange:F1}m, {(withinRange ? "OK" : "★ OUT OF RANGE")}]");
                     }
                 }
             }
 
             // 일반 능력 실행 명령 반환
-            Main.Log($"[Executor] Cast: {ability.Name} -> {GetTargetName(target)}");
+            Log.Engine.Info($"[Executor] Cast: {ability.Name} -> {GetTargetName(target)}");
             return ExecutionResult.CastAbility(ability, target);
         }
 
@@ -385,7 +386,7 @@ namespace CompanionAI_v3.Execution
                 if (snapshot.WasAlive && snapshot.Target.LifeState.IsDead)
                 {
                     TeamBlackboard.Instance.RecordKill(snapshot.Target);
-                    Main.Log($"[Executor] ★ Kill confirmed: {snapshot.Target.CharacterName}");
+                    Log.Engine.Info($"[Executor] ★ Kill confirmed: {snapshot.Target.CharacterName}");
                 }
             }
 
@@ -422,14 +423,14 @@ namespace CompanionAI_v3.Execution
                     var destNode = destination.GetNearestNodeXZ();
                     if (currentNode != null && destNode != null && currentNode == destNode)
                     {
-                        Main.Log($"[Executor] Already at destination — skipping move");
+                        Log.Engine.Info($"[Executor] Already at destination — skipping move");
                         return ExecutionResult.Continue();
                     }
                 }
                 catch { }
             }
 
-            Main.Log($"[Executor] Move to: {destination}");
+            Log.Engine.Info($"[Executor] Move to: {destination}");
             return ExecutionResult.MoveTo(destination);
         }
 

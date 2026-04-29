@@ -4,6 +4,7 @@ using Kingmaker.Pathfinding;
 using Kingmaker.View.Covers;
 using Pathfinding;
 using UnityEngine;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.GameInterface
 {
@@ -75,7 +76,7 @@ namespace CompanionAI_v3.GameInterface
                 catch (System.Exception ex)
                 {
                     if (Main.IsDebugEnabled)
-                        Main.LogWarning($"[TileScorerPort] GetWarhammerLos failed for {enemy?.CharacterName}: {ex.Message}");
+                        Log.Engine.Warn($"[TileScorerPort] GetWarhammerLos failed for {enemy?.CharacterName}: {ex.Message}");
                 }
             }
 
@@ -132,7 +133,7 @@ namespace CompanionAI_v3.GameInterface
                 catch (System.Exception ex)
                 {
                     if (Main.IsDebugEnabled)
-                        Main.LogWarning($"[TileScorerPort] GetStayingAwayScore failed for {enemy?.CharacterName}: {ex.Message}");
+                        Log.Engine.Warn($"[TileScorerPort] GetStayingAwayScore failed for {enemy?.CharacterName}: {ex.Message}");
                 }
             }
 
@@ -219,7 +220,7 @@ namespace CompanionAI_v3.GameInterface
                 catch (System.Exception ex)
                 {
                     if (Main.IsDebugEnabled)
-                        Main.LogWarning($"[TileScorerPort] GetEnsuredCoverComponents failed for {enemy?.CharacterName}: {ex.Message}");
+                        Log.Engine.Warn($"[TileScorerPort] GetEnsuredCoverComponents failed for {enemy?.CharacterName}: {ex.Message}");
                 }
             }
 

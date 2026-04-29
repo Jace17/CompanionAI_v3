@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 using Newtonsoft.Json.Linq;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.MachineSpirit.Knowledge
 {
@@ -29,7 +30,7 @@ namespace CompanionAI_v3.MachineSpirit.Knowledge
             _isComputing = true;
             _computedCount = 0;
 
-            Main.LogDebug($"[VectorSearch] Starting embedding computation for {entries.Count} entries...");
+            Log.MachineSpirit.Debug($"[VectorSearch] Starting embedding computation for {entries.Count} entries...");
 
             for (int i = 0; i < entries.Count; i++)
             {
@@ -62,7 +63,7 @@ namespace CompanionAI_v3.MachineSpirit.Knowledge
 
             _isReady = true;
             _isComputing = false;
-            Main.LogDebug($"[VectorSearch] Embedding complete: {_computedCount}/{entries.Count} entries");
+            Log.MachineSpirit.Debug($"[VectorSearch] Embedding complete: {_computedCount}/{entries.Count} entries");
         }
 
         /// <summary>

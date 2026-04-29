@@ -4,6 +4,7 @@ using CompanionAI_v3.Core;
 using CompanionAI_v3.Analysis;
 using CompanionAI_v3.Settings;
 using CompanionAI_v3.GameInterface;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Planning.LLM
 {
@@ -115,7 +116,7 @@ namespace CompanionAI_v3.Planning.LLM
 
             if (situation?.Unit == null || situation.Enemies == null || situation.Enemies.Count == 0)
             {
-                Main.Log("[CandidatePlanGenerator] No unit or enemies — returning empty");
+                Log.Planning.Info("[CandidatePlanGenerator] No unit or enemies — returning empty");
                 return candidates;
             }
 
@@ -125,7 +126,7 @@ namespace CompanionAI_v3.Planning.LLM
             // 이 플래그는 LLM 프롬프트 생성기(Encoder/Summarizer)와 디스플레이 전용이며,
             // 그들은 CandidatePlanGenerator 실행 구간 *밖*에서 원본값만 읽음. 오버라이드는 no-op이었음.
 
-            Main.Log($"[CandidatePlanGenerator] Generating candidates for {situation.Unit.CharacterName}" +
+            Log.Planning.Info($"[CandidatePlanGenerator] Generating candidates for {situation.Unit.CharacterName}" +
                 $" (BestTarget={originalBestTarget?.CharacterName ?? "none"}, " +
                 $"HP={situation.HPPercent:F0}%, weights={llmWeights?.ToString() ?? "none"})");
 
@@ -164,7 +165,7 @@ namespace CompanionAI_v3.Planning.LLM
                     }
                     catch (System.Exception ex)
                     {
-                        Main.Log($"[CandidatePlanGenerator] LLM weights plan failed: {ex.Message}");
+                        Log.Planning.Info($"[CandidatePlanGenerator] LLM weights plan failed: {ex.Message}");
                         llmPlan = null;
                     }
                     TargetScorer.ClearActiveTurnState();
@@ -220,7 +221,7 @@ namespace CompanionAI_v3.Planning.LLM
                 }
                 catch (System.Exception ex)
                 {
-                    Main.Log($"[CandidatePlanGenerator] Baseline plan failed: {ex.Message}");
+                    Log.Planning.Info($"[CandidatePlanGenerator] Baseline plan failed: {ex.Message}");
                     basePlan = null;
                 }
 
@@ -253,7 +254,7 @@ namespace CompanionAI_v3.Planning.LLM
                 TargetScorer.ClearActiveTurnState();
             }
 
-            Main.Log($"[CandidatePlanGenerator] Generated {candidates.Count} candidates: " +
+            Log.Planning.Info($"[CandidatePlanGenerator] Generated {candidates.Count} candidates: " +
                 string.Join(", ", GetCandidateTags(candidates)));
             return candidates;
         }

@@ -8,6 +8,7 @@ using System.Collections;
 using System.Text;
 using CompanionAI_v3.Analysis;
 using CompanionAI_v3.Settings;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Planning.LLM
 {
@@ -71,7 +72,7 @@ namespace CompanionAI_v3.Planning.LLM
             float threshold = SCORER_TIMEOUT_SECONDS + WATCHDOG_GRACE_SECONDS;
             if (elapsed > threshold)
             {
-                Main.Log($"[LLMScorer] Watchdog: stale _isScoring latch ({elapsed:F1}s > {threshold:F1}s) — force reset");
+                Log.Planning.Info($"[LLMScorer] Watchdog: stale _isScoring latch ({elapsed:F1}s > {threshold:F1}s) — force reset");
                 _isScoring = false;
             }
         }
@@ -96,7 +97,7 @@ namespace CompanionAI_v3.Planning.LLM
             TickWatchdog();  // ★ v3.112.4 (C3): stale latch 검증 후
             if (_isScoring)
             {
-                Main.Log("[LLMScorer] Already scoring -- fallback to defaults");
+                Log.Planning.Info("[LLMScorer] Already scoring -- fallback to defaults");
                 onResult?.Invoke(new ScorerWeights());
                 yield break;
             }
@@ -142,7 +143,7 @@ namespace CompanionAI_v3.Planning.LLM
                 }
                 catch (Exception msgEx)
                 {
-                    Main.LogWarning($"[LLMScorer] Message build failed: {msgEx.Message} -- fallback to defaults");
+                    Log.Planning.Warn($"[LLMScorer] Message build failed: {msgEx.Message} -- fallback to defaults");
                     _isScoring = false;
                     onResult?.Invoke(new ScorerWeights());
                     yield break;
@@ -171,7 +172,7 @@ namespace CompanionAI_v3.Planning.LLM
                 // ★ v3.110.4: 토큰 회귀 감지용 — user msg 길이 + 대략 토큰 (chars/4).
                 // 컴포넌트 누적(TEAM BRIEF, CMD, PAST, KB, E line)으로 예산 초과 시 응답 지연 증가.
                 int userChars = userMsg?.Length ?? 0;
-                Main.LogDebug($"[LLMScorer] -> {normalizedUrl}/api/chat, model={model}, enemies={enemyCount}, userMsg={userChars}ch (~{userChars / 4}tok)");
+                Log.Planning.Debug($"[LLMScorer] -> {normalizedUrl}/api/chat, model={model}, enemies={enemyCount}, userMsg={userChars}ch (~{userChars / 4}tok)");
 
                 // 5. HTTP 요청 (LLMHttpClient.PostChatAsync 위임)
                 LLMHttpClient.Response response = default(LLMHttpClient.Response);
@@ -187,7 +188,7 @@ namespace CompanionAI_v3.Planning.LLM
                 if (response.Success && !string.IsNullOrEmpty(response.RawJson))
                 {
                     string responseText = response.RawJson;
-                    Main.LogDebug($"[LLMScorer] Raw response ({responseText.Length} chars): {Truncate(responseText, 300)}");
+                    Log.Planning.Debug($"[LLMScorer] Raw response ({responseText.Length} chars): {Truncate(responseText, 300)}");
                     string content = LLMHttpClient.ExtractContent(responseText);
                     weights = ScorerWeights.Parse(content, enemyCount, displayMap);  // ★ v3.101.0: display → original 역매핑
 
@@ -209,9 +210,9 @@ namespace CompanionAI_v3.Planning.LLM
                             targetInfo = $" [target={targetEnemy.CharacterName ?? "?"} HP={tHp:F0}% d={tDist:F1}]";
                         }
                     }
-                    Main.Log($"[LLMScorer] Result: {weights}{targetInfo} in {LastScorerTimeMs}ms");
+                    Log.Planning.Info($"[LLMScorer] Result: {weights}{targetInfo} in {LastScorerTimeMs}ms");
                     if (!string.IsNullOrEmpty(weights.Reasoning))
-                        Main.Log($"[LLMScorer] Reasoning: {weights.Reasoning}");
+                        Log.Planning.Info($"[LLMScorer] Reasoning: {weights.Reasoning}");
                 }
                 else
                 {
@@ -220,7 +221,7 @@ namespace CompanionAI_v3.Planning.LLM
                     string errorText = response.WasTimeout
                         ? "Scorer timeout exceeded"
                         : $"HTTP {response.HttpStatusCode}: {response.ErrorMessage}";
-                    Main.Log($"[LLMScorer] Failed: {errorText} -- fallback to defaults ({LastScorerTimeMs}ms)");
+                    Log.Planning.Info($"[LLMScorer] Failed: {errorText} -- fallback to defaults ({LastScorerTimeMs}ms)");
                 }
 
                 _pendingWeights = weights;

@@ -5,6 +5,7 @@
 // ★ v3.114.0 (Phase F.2): UnityWebRequest/HttpWebRequest → LLMHttpClient 마이그레이션.
 using System.Collections;
 using System.Collections.Generic;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Planning.LLM
 {
@@ -83,7 +84,7 @@ namespace CompanionAI_v3.Planning.LLM
             _isWarming = true;
             try
             {
-                Main.Log($"[LLMWarmup] Preloading model '{modelId}'...");
+                Log.Planning.Info($"[LLMWarmup] Preloading model '{modelId}'...");
 
                 // Build request via LLMHttpClient.BuildChatRequest (Warmup pattern: user 메시지만, num_predict=1, keep_alive=-1)
                 var body = LLMHttpClient.BuildChatRequest(
@@ -103,11 +104,11 @@ namespace CompanionAI_v3.Planning.LLM
                 if (response.Success)
                 {
                     _warmedModels.Add(modelId);
-                    Main.Log($"[LLMWarmup] Model '{modelId}' warmed in {response.ElapsedSeconds:F1}s");
+                    Log.Planning.Info($"[LLMWarmup] Model '{modelId}' warmed in {response.ElapsedSeconds:F1}s");
                 }
                 else
                 {
-                    Main.LogDebug($"[LLMWarmup] Warmup failed for '{modelId}': {response.ErrorMessage} (HTTP {response.HttpStatusCode})");
+                    Log.Planning.Debug($"[LLMWarmup] Warmup failed for '{modelId}': {response.ErrorMessage} (HTTP {response.HttpStatusCode})");
                     // 실패 시 _warmedModels에 추가하지 않음 → 다음 체크 시 재시도
                 }
             }
@@ -143,7 +144,7 @@ namespace CompanionAI_v3.Planning.LLM
             {
                 if (totalSw.ElapsedMilliseconds > TotalBudgetMs)
                 {
-                    Main.LogDebug($"[LLMWarmup] Unload budget ({TotalBudgetMs}ms) exceeded — skipping remaining models");
+                    Log.Planning.Debug($"[LLMWarmup] Unload budget ({TotalBudgetMs}ms) exceeded — skipping remaining models");
                     break;
                 }
 
@@ -155,11 +156,11 @@ namespace CompanionAI_v3.Planning.LLM
 
                 if (response.Success)
                 {
-                    Main.Log($"[LLMWarmup] Unloaded model '{model}' (HTTP {response.HttpStatusCode}, {totalSw.ElapsedMilliseconds}ms)");
+                    Log.Planning.Info($"[LLMWarmup] Unloaded model '{model}' (HTTP {response.HttpStatusCode}, {totalSw.ElapsedMilliseconds}ms)");
                 }
                 else
                 {
-                    Main.LogDebug($"[LLMWarmup] Unload failed for '{model}' ({totalSw.ElapsedMilliseconds}ms): {response.ErrorMessage}");
+                    Log.Planning.Debug($"[LLMWarmup] Unload failed for '{model}' ({totalSw.ElapsedMilliseconds}ms): {response.ErrorMessage}");
                     // budget 내에서 다음 모델 시도 — keep_alive=0 payload 는 TCP 송신만 되면 됨
                 }
             }

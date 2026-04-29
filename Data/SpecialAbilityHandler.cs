@@ -10,6 +10,7 @@ using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Abilities.Components;
 using Kingmaker.UnitLogic.Buffs.Components;
 using UnityEngine;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Data
 {
@@ -164,27 +165,27 @@ namespace CompanionAI_v3.Data
                     bool hasDoT = HasDoT(target, dotType);
                     if (!hasDoT)
                     {
-                        Main.LogDebug($"[SpecialAbility] {ability.Name} skipped - target has no {dotType} DoT");
+                        Log.Persistence.Debug($"[SpecialAbility] {ability.Name} skipped - target has no {dotType} DoT");
                         return false;
                     }
-                    Main.Log($"[SpecialAbility] {ability.Name} effective - target has {dotType} DoT!");
+                    Log.Persistence.Info($"[SpecialAbility] {ability.Name} effective - target has {dotType} DoT!");
                     return true;
 
                 case SpecialAbilityType.ChainEffect:
                     int chainTargets = CountChainTargets(ability, target, enemies);
                     if (chainTargets < 2)
                     {
-                        Main.LogDebug($"[SpecialAbility] {ability.Name} skipped - only {chainTargets} chain target(s)");
+                        Log.Persistence.Debug($"[SpecialAbility] {ability.Name} skipped - only {chainTargets} chain target(s)");
                         return false;
                     }
-                    Main.Log($"[SpecialAbility] {ability.Name} effective - {chainTargets} chain targets!");
+                    Log.Persistence.Info($"[SpecialAbility] {ability.Name} effective - {chainTargets} chain targets!");
                     return true;
 
                 case SpecialAbilityType.DebuffEnhancer:
                     bool hasDebuff = HasDebuff(target);
                     if (!hasDebuff)
                     {
-                        Main.LogDebug($"[SpecialAbility] {ability.Name} skipped - target has no debuff");
+                        Log.Persistence.Debug($"[SpecialAbility] {ability.Name} skipped - target has no debuff");
                         return false;
                     }
                     return true;
@@ -253,7 +254,7 @@ namespace CompanionAI_v3.Data
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[SpecialAbility] HasDoT error");
+                Log.Persistence.Error(ex, $"[SpecialAbility] HasDoT error");
                 return false;
             }
         }
@@ -283,7 +284,7 @@ namespace CompanionAI_v3.Data
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[SpecialAbility] CountDOTStacks error");
+                Log.Persistence.Error(ex, $"[SpecialAbility] CountDOTStacks error");
                 return 0;
             }
         }
@@ -390,11 +391,11 @@ namespace CompanionAI_v3.Data
                 }
 
                 if (Main.IsDebugEnabled)
-                    Main.LogDebug($"[SpecialAbility] Chain prediction: {ability.Name} -> {result.Count} targets (radius={radiusCells} cells, max={maxTargets})");
+                    Log.Persistence.Debug($"[SpecialAbility] Chain prediction: {ability.Name} -> {result.Count} targets (radius={radiusCells} cells, max={maxTargets})");
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[SpecialAbility] Chain prediction error");
+                Log.Persistence.Error(ex, $"[SpecialAbility] Chain prediction error");
             }
 
             return result;
@@ -481,7 +482,7 @@ namespace CompanionAI_v3.Data
                         count++;
                 }
             }
-            catch (Exception ex) { Main.LogError(ex, $"[SpecialAbility] CountDebuffs error"); }
+            catch (Exception ex) { Log.Persistence.Error(ex, $"[SpecialAbility] CountDebuffs error"); }
 
             return count;
         }
@@ -551,7 +552,7 @@ namespace CompanionAI_v3.Data
                         {
                             if (AppliesBurningDOT(avail))
                             {
-                                Main.Log($"[SpecialAbility] Combo: Use {avail.Name} first before {ability.Name}");
+                                Log.Persistence.Info($"[SpecialAbility] Combo: Use {avail.Name} first before {ability.Name}");
                                 return avail;
                             }
                         }

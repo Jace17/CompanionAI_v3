@@ -4,6 +4,7 @@ using System.IO;
 using Newtonsoft.Json;
 using CompanionAI_v3.Settings;
 using static CompanionAI_v3.Data.CompanionDialogue;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Data
 {
@@ -98,7 +99,7 @@ namespace CompanionAI_v3.Data
                 }
             }
 
-            Main.Log($"[Dialogue] JSON init complete: {loaded} loaded, {exported} exported ({dialogueFolder})");
+            Log.Persistence.Info($"[Dialogue] JSON init complete: {loaded} loaded, {exported} exported ({dialogueFolder})");
         }
 
         /// <summary>JSON 파일 하나 로드 → Dictionary 변환</summary>
@@ -110,7 +111,7 @@ namespace CompanionAI_v3.Data
                 var raw = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, string[]>>>(json);
                 if (raw == null || raw.Count == 0)
                 {
-                    Main.LogError($"[Dialogue] Empty or invalid JSON: {filePath}");
+                    Log.Persistence.Error($"[Dialogue] Empty or invalid JSON: {filePath}");
                     return null;
                 }
 
@@ -121,7 +122,7 @@ namespace CompanionAI_v3.Data
                 {
                     if (!Enum.TryParse(companionKvp.Key, true, out CompanionId companionId))
                     {
-                        Main.LogDebug($"[Dialogue] Unknown companion key: \"{companionKvp.Key}\" in {Path.GetFileName(filePath)}");
+                        Log.Persistence.Debug($"[Dialogue] Unknown companion key: \"{companionKvp.Key}\" in {Path.GetFileName(filePath)}");
                         skipped++;
                         continue;
                     }
@@ -131,7 +132,7 @@ namespace CompanionAI_v3.Data
                     {
                         if (!Enum.TryParse(catKvp.Key, true, out SpeechCategory category))
                         {
-                            Main.LogDebug($"[Dialogue] Unknown category key: \"{catKvp.Key}\" for {companionKvp.Key} in {Path.GetFileName(filePath)}");
+                            Log.Persistence.Debug($"[Dialogue] Unknown category key: \"{catKvp.Key}\" for {companionKvp.Key} in {Path.GetFileName(filePath)}");
                             skipped++;
                             continue;
                         }
@@ -144,13 +145,13 @@ namespace CompanionAI_v3.Data
                         result[companionId] = categories;
                 }
 
-                Main.Log($"[Dialogue] Loaded {Path.GetFileName(filePath)}: {result.Count} companions" +
+                Log.Persistence.Info($"[Dialogue] Loaded {Path.GetFileName(filePath)}: {result.Count} companions" +
                          (skipped > 0 ? $" ({skipped} skipped entries)" : ""));
                 return result;
             }
             catch (Exception ex)
             {
-                Main.LogError($"[Dialogue] Failed to load {filePath}: {ex.Message}");
+                Log.Persistence.Error($"[Dialogue] Failed to load {filePath}: {ex.Message}");
                 return null;
             }
         }
@@ -201,11 +202,11 @@ namespace CompanionAI_v3.Data
                 string json = JsonConvert.SerializeObject(serializable, Formatting.Indented);
                 File.WriteAllText(filePath, json);
 
-                Main.LogDebug($"[Dialogue] Exported default {fileName}");
+                Log.Persistence.Debug($"[Dialogue] Exported default {fileName}");
             }
             catch (Exception ex)
             {
-                Main.LogError($"[Dialogue] Failed to export {lang}: {ex.Message}");
+                Log.Persistence.Error($"[Dialogue] Failed to export {lang}: {ex.Message}");
             }
         }
 
@@ -242,7 +243,7 @@ namespace CompanionAI_v3.Data
                 }
             }
 
-            Main.Log($"[Dialogue] Reloaded {loaded} JSON dialogue files");
+            Log.Persistence.Info($"[Dialogue] Reloaded {loaded} JSON dialogue files");
         }
 
         #endregion

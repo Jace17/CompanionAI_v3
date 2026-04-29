@@ -9,6 +9,7 @@ using Kingmaker.UnitLogic.Abilities.Components;
 using Kingmaker.UnitLogic.Mechanics.Actions;
 using Kingmaker.Mechanics.Actions;
 using CompanionAI_v3.GameInterface;
+using CompanionAI_v3.Logging;
 
 namespace CompanionAI_v3.Data
 {
@@ -479,12 +480,12 @@ namespace CompanionAI_v3.Data
                 // 6. 추가 턴 부여 능력 제외 (가이드 명시)
                 if (IsExtraTurnAbility(ability)) return false;
 
-                Main.LogDebug($"[FamiliarAbilities] {ability.Name}: Valid Extrapolation target");
+                Log.Persistence.Debug($"[FamiliarAbilities] {ability.Name}: Valid Extrapolation target");
                 return true;
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[FamiliarAbilities] IsExtrapolationTarget error");
+                Log.Persistence.Error(ex, $"[FamiliarAbilities] IsExtrapolationTarget error");
                 return false;
             }
         }
@@ -560,16 +561,16 @@ namespace CompanionAI_v3.Data
                 if (blueprint.CanTargetPoint && !blueprint.CanTargetEnemies)
                 {
                     // Point AOE 버프 (아군 타겟은 AOE 범위 효과일 뿐)
-                    Main.LogDebug($"[FamiliarAbilities] {ability.Name}: Point AOE - not Warp Relay target");
+                    Log.Persistence.Debug($"[FamiliarAbilities] {ability.Name}: Point AOE - not Warp Relay target");
                     return false;
                 }
 
-                Main.LogDebug($"[FamiliarAbilities] {ability.Name}: Valid Warp Relay target (Enemy={blueprint.CanTargetEnemies}, Friend={blueprint.CanTargetFriends})");
+                Log.Persistence.Debug($"[FamiliarAbilities] {ability.Name}: Valid Warp Relay target (Enemy={blueprint.CanTargetEnemies}, Friend={blueprint.CanTargetFriends})");
                 return true;
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[FamiliarAbilities] IsWarpRelayTarget error");
+                Log.Persistence.Error(ex, $"[FamiliarAbilities] IsWarpRelayTarget error");
                 return false;
             }
         }
@@ -599,7 +600,7 @@ namespace CompanionAI_v3.Data
                     if (!string.IsNullOrEmpty(guid) && _purificationDischargeGuid == null)
                     {
                         _purificationDischargeGuid = guid;
-                        Main.LogDebug($"[FamiliarAbilities] PurificationDischarge GUID registered: {guid}");
+                        Log.Persistence.Debug($"[FamiliarAbilities] PurificationDischarge GUID registered: {guid}");
                     }
                     return true;
                 }
@@ -1269,14 +1270,14 @@ namespace CompanionAI_v3.Data
                     // 명시적 피해 능력 (CanTargetFriends=True여도 피해)
                     if (DamageDealingAbilityGuids.Contains(guid))
                     {
-                        Main.LogDebug($"[FamiliarAbilities] {ability.Name}: Known damage-dealing (whitelisted GUID)");
+                        Log.Persistence.Debug($"[FamiliarAbilities] {ability.Name}: Known damage-dealing (whitelisted GUID)");
                         return true;
                     }
 
                     // 명시적 비피해 디버프 (실제 피해 컴포넌트 없음)
                     if (NonDamagingDebuffGuids.Contains(guid))
                     {
-                        Main.LogDebug($"[FamiliarAbilities] {ability.Name}: Known non-damaging debuff (whitelisted GUID)");
+                        Log.Persistence.Debug($"[FamiliarAbilities] {ability.Name}: Known non-damaging debuff (whitelisted GUID)");
                         return false;
                     }
                 }
@@ -1291,7 +1292,7 @@ namespace CompanionAI_v3.Data
                 // AttackAbilityType: Melee, Scatter, Pattern, SingleShot
                 if (blueprint.AttackType.HasValue)
                 {
-                    Main.LogDebug($"[FamiliarAbilities] {ability.Name}: Detected as damage-dealing (AttackType={blueprint.AttackType.Value})");
+                    Log.Persistence.Debug($"[FamiliarAbilities] {ability.Name}: Detected as damage-dealing (AttackType={blueprint.AttackType.Value})");
                     return true;
                 }
 
@@ -1303,7 +1304,7 @@ namespace CompanionAI_v3.Data
                 {
                     if (ContainsDamageAction(runAction.Actions.Actions))
                     {
-                        Main.LogDebug($"[FamiliarAbilities] {ability.Name}: Detected as damage-dealing (ContextActionDealDamage found in Actions)");
+                        Log.Persistence.Debug($"[FamiliarAbilities] {ability.Name}: Detected as damage-dealing (ContextActionDealDamage found in Actions)");
                         return true;
                     }
                 }
@@ -1313,7 +1314,7 @@ namespace CompanionAI_v3.Data
                 if (blueprint.CanTargetPoint && blueprint.CanTargetEnemies &&
                     !blueprint.CanTargetFriends && blueprint.EffectOnEnemy == AbilityEffectOnUnit.Harmful)
                 {
-                    Main.LogDebug($"[FamiliarAbilities] {ability.Name}: Detected as damage-dealing (Point AOE enemy-only harmful)");
+                    Log.Persistence.Debug($"[FamiliarAbilities] {ability.Name}: Detected as damage-dealing (Point AOE enemy-only harmful)");
                     return true;
                 }
 
@@ -1321,12 +1322,12 @@ namespace CompanionAI_v3.Data
                 // NotOffensive 플래그는 신뢰할 수 없음 (감각박탈: NotOffensive=false이지만 피해 없음)
                 // EffectOnEnemy도 신뢰할 수 없음 (점화: EffectOnEnemy=None이지만 피해 있음)
                 // 위에서 DealDamage/ApplyDOT 컴포넌트를 찾지 못했으면 비피해 능력으로 판단
-                Main.LogDebug($"[FamiliarAbilities] {ability.Name}: No damage components found → non-damaging");
+                Log.Persistence.Debug($"[FamiliarAbilities] {ability.Name}: No damage components found → non-damaging");
                 return false;
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[FamiliarAbilities] IsDamageDealingAbility error for {ability?.Name}");
+                Log.Persistence.Error(ex, $"[FamiliarAbilities] IsDamageDealingAbility error for {ability?.Name}");
                 return false;
             }
         }
@@ -1463,12 +1464,12 @@ namespace CompanionAI_v3.Data
                 // 4. 추가 턴 능력 제외
                 if (IsExtraTurnAbility(ability)) return false;
 
-                Main.LogDebug($"[FamiliarAbilities] {ability.Name}: Valid damaging psychic attack for Warp Relay");
+                Log.Persistence.Debug($"[FamiliarAbilities] {ability.Name}: Valid damaging psychic attack for Warp Relay");
                 return true;
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[FamiliarAbilities] IsDamagingPsychicAttack error");
+                Log.Persistence.Error(ex, $"[FamiliarAbilities] IsDamagingPsychicAttack error");
                 return false;
             }
         }
@@ -1497,7 +1498,7 @@ namespace CompanionAI_v3.Data
                     if (!string.IsNullOrEmpty(guid) && _extraTurnGuid == null)
                     {
                         _extraTurnGuid = guid;
-                        Main.LogDebug($"[FamiliarAbilities] ExtraTurn GUID registered: {guid}");
+                        Log.Persistence.Debug($"[FamiliarAbilities] ExtraTurn GUID registered: {guid}");
                     }
                     return true;
                 }
@@ -1554,7 +1555,7 @@ namespace CompanionAI_v3.Data
                 var rawAbilities = master?.Abilities?.RawFacts;
                 if (rawAbilities == null || rawAbilities.Count == 0)
                 {
-                    Main.LogDebug($"[FamiliarAbilities] {master.CharacterName}: No abilities in RawFacts");
+                    Log.Persistence.Debug($"[FamiliarAbilities] {master.CharacterName}: No abilities in RawFacts");
                     return result;
                 }
 
@@ -1569,7 +1570,7 @@ namespace CompanionAI_v3.Data
                     {
                         // ★ Reactivate는 항상 수집 — 가용성은 OverseerPlan Phase 2.9에서 CanUseAbilityOn으로 체크
                         // IsAbilityAvailable 필터에서 게임이 unavailability reason을 반환하면 수집 자체가 차단되는 문제 방지
-                        Main.LogDebug($"[FamiliarAbilities] Reactivate ability collected (always-collect bypass)");
+                        Log.Persistence.Debug($"[FamiliarAbilities] Reactivate ability collected (always-collect bypass)");
                         result.Add(ability);
                         continue;
                     }
@@ -1578,7 +1579,7 @@ namespace CompanionAI_v3.Data
                         List<string> commonUnavailableReasons;
                         if (!GameInterface.CombatAPI.IsAbilityAvailable(ability, out commonUnavailableReasons))
                         {
-                            Main.LogDebug($"[FamiliarAbilities] Filtered out {ability.Name}: {string.Join(", ", commonUnavailableReasons)}");
+                            Log.Persistence.Debug($"[FamiliarAbilities] Filtered out {ability.Name}: {string.Join(", ", commonUnavailableReasons)}");
                             continue;
                         }
                         result.Add(ability);
@@ -1595,7 +1596,7 @@ namespace CompanionAI_v3.Data
                     List<string> unavailableReasons;
                     if (!GameInterface.CombatAPI.IsAbilityAvailable(ability, out unavailableReasons))
                     {
-                        Main.LogDebug($"[FamiliarAbilities] Filtered out {ability.Name}: {string.Join(", ", unavailableReasons)}");
+                        Log.Persistence.Debug($"[FamiliarAbilities] Filtered out {ability.Name}: {string.Join(", ", unavailableReasons)}");
                         continue;
                     }
 
@@ -1616,12 +1617,12 @@ namespace CompanionAI_v3.Data
                                 // Overcharge 상태 체크 - FamiliarAPI 사용
                                 if (GameInterface.FamiliarAPI.IsRavenOverchargeActive(master))
                                 {
-                                    Main.LogDebug($"[FamiliarAbilities] Raven attack {ability.Name} collected (Overcharge active)");
+                                    Log.Persistence.Debug($"[FamiliarAbilities] Raven attack {ability.Name} collected (Overcharge active)");
                                     result.Add(ability);
                                 }
                                 else
                                 {
-                                    Main.LogDebug($"[FamiliarAbilities] Raven attack {ability.Name} SKIPPED - Overcharge NOT active (self-damage risk!)");
+                                    Log.Persistence.Debug($"[FamiliarAbilities] Raven attack {ability.Name} SKIPPED - Overcharge NOT active (self-damage risk!)");
                                 }
                             }
                             // 비공격 능력 (Warp Relay, Hex, Cycle 등)은 항상 수집
@@ -1650,18 +1651,18 @@ namespace CompanionAI_v3.Data
                                 isMultiTarget)  // ★ v3.7.30: 모든 MultiTarget Eagle 능력 자동 수집
                             {
                                 if (isMultiTarget)
-                                    Main.LogDebug($"[FamiliarAbilities] Auto-collected MultiTarget: {ability.Name}");
+                                    Log.Persistence.Debug($"[FamiliarAbilities] Auto-collected MultiTarget: {ability.Name}");
                                 result.Add(ability);
                             }
                             break;
                     }
                 }
 
-                Main.LogDebug($"[FamiliarAbilities] Collected {result.Count} familiar abilities for {master.CharacterName} ({familiarType})");
+                Log.Persistence.Debug($"[FamiliarAbilities] Collected {result.Count} familiar abilities for {master.CharacterName} ({familiarType})");
             }
             catch (Exception ex)
             {
-                Main.LogError(ex, $"[FamiliarAbilities] CollectFamiliarAbilities error");
+                Log.Persistence.Error(ex, $"[FamiliarAbilities] CollectFamiliarAbilities error");
             }
 
             return result;
