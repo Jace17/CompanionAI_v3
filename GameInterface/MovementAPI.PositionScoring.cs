@@ -141,7 +141,10 @@ namespace CompanionAI_v3.GameInterface
                                        + HideScore  // ★ v3.110.19 Phase 1a
                                        - (EnemyTurnThreatSum * 8f)  // ★ v3.110.20 Phase 2
                                        + StayingAwayBonus  // ★ v3.110.22 Phase 4
-                                       + AoeHitCountBonus;  // ★ v3.116.8 옵션 B: ranged AoE coverage
+                                       + AoeHitCountBonus  // ★ v3.116.8 옵션 B: ranged AoE coverage
+                                       + PriorityTargetBonus  // ★ v3.116.14 Path C
+                                       + LowHPTargetBonus     // ★ v3.116.14 Path C
+                                       + BodyGuardBonus;      // ★ v3.116.14 Path C
 
             public bool CanStand { get; set; }
             public bool HasLosToEnemy { get; set; }
@@ -155,6 +158,27 @@ namespace CompanionAI_v3.GameInterface
             /// <summary>★ v3.116.12 진단: 이 위치에서 아군 안전 체크에 의해 차단된 AoE 능력 수</summary>
             public int AoeUnsafeBlockedCount { get; set; }
 
+            /// <summary>
+            /// ★ v3.116.14 (Path C cherry-pick): 게임 AttackEffectivenessTileScorer.PriorityScore 포팅.
+            /// 이 위치에서 사거리+LOS 도달 가능한 적 중 UnitPartPriorityTarget (도발/마크/겨냥) 인스턴스 레벨
+            /// 우선 타겟 N명당 ×25. 게임 scorer 인스턴스화 (stateful) 불가능 — per-target 공식만 stateless 포팅.
+            /// </summary>
+            public float PriorityTargetBonus { get; set; }
+
+            /// <summary>
+            /// ★ v3.116.14 (Path C cherry-pick): 게임 EnemyHPLeftScore 포팅 (1/HP → 50/HP).
+            /// 사거리+LOS 도달 가능한 적의 (50 / max(1,HP)) 합. 부상 적 = 킬 기회 가중치.
+            /// HP 200 → 0.25/적, HP 50 → 1/적, HP 10 → 5/적. 5명 부상 sum 시 ~5-25 범위.
+            /// </summary>
+            public float LowHPTargetBonus { get; set; }
+
+            /// <summary>
+            /// ★ v3.116.14 (Path C cherry-pick): 게임 BodyGuardScore 포팅.
+            /// UnitPartBodyGuard.Defendant 위치와의 타일 거리 — 1타일 이내 = 30, 그 외 30/distTiles (cap 30).
+            /// Tank 동료가 보호 대상 옆에서 사격하도록 유도. enemies 와 무관 — 단독 계산.
+            /// </summary>
+            public float BodyGuardBonus { get; set; }
+
             public override string ToString() =>
                 $"Pos({Position.x:F1},{Position.z:F1}) Score={TotalScore:F1}" +
                 (SharedTargetBonus > 0 ? $" [ST:{SharedTargetBonus:F1}]" : "") +
@@ -163,6 +187,9 @@ namespace CompanionAI_v3.GameInterface
                 (HitChanceBonus != 0 ? $" [Hit:{HitChanceBonus:F1}]" : "") +
                 (MeleeAoESplashBonus > 0 ? $" [Splash:{MeleeAoESplashBonus:F1}]" : "") +
                 (AoeHitCountBonus > 0 ? $" [AoeCov:+{AoeHitCountBonus:F1}]" : "") +
+                (PriorityTargetBonus > 0 ? $" [Prio:+{PriorityTargetBonus:F1}]" : "") +
+                (LowHPTargetBonus > 0 ? $" [LowHP:+{LowHPTargetBonus:F1}]" : "") +
+                (BodyGuardBonus > 0 ? $" [BG:+{BodyGuardBonus:F1}]" : "") +
                 (AllyClusterPenalty > 0 ? $" [AllyCluster:-{AllyClusterPenalty:F1}]" : "") +
                 (FlankingScore > 0 ? $" [Flank:+{FlankingScore:F1}]" : "") +
                 (ExposureScore > 0 ? $" [Expo:-{ExposureScore:F1}]" : "") +

@@ -226,6 +226,45 @@ namespace CompanionAI_v3.GameInterface
                     }
                 }
 
+                // ★ v3.116.14 (Path C cherry-pick): 게임 AttackEffectivenessTileScorer per-target axes 포팅.
+                //   PriorityScore + EnemyHPLeftScore + BodyGuardScore — 게임 scorer 인스턴스화 (stateful) 불가능
+                //   확인됨 (DecisionContext pipeline 의존). 하지만 per-target 공식 자체는 stateless — 직접 계산.
+                //   조사: feedback_investigate_before_options.md + 디컴파일 AttackEffectivenessTileScorer.cs:33-44
+                if (score.HittableEnemyCount > 0 && enemies != null && primaryAttack != null)
+                {
+                    float hpSum = 0f;
+                    int priorityCount = 0;
+                    foreach (var enemy in enemies)
+                    {
+                        if (enemy == null || enemy.LifeState.IsDead) continue;
+                        // 사거리 + LOS 도달성 — CountHittableEnemiesFromPosition 와 동일 기준 (CombatCache 활용)
+                        string r;
+                        if (!CombatAPI.CanTargetFromPosition(primaryAttack, score.Node, enemy, out r)) continue;
+
+                        // EnemyHPLeftScore: 부상 적 우선 (게임 1/HP → 우리 50/HP scaled)
+                        int hp = enemy.Health?.HitPointsLeft ?? 100;
+                        hpSum += 50f / Math.Max(1, hp);
+
+                        // PriorityScore: UnitPartPriorityTarget 인스턴스 레벨 우선순위
+                        if (CombatAPI.IsPriorityTargetFor(enemy, unit))
+                            priorityCount++;
+                    }
+                    score.LowHPTargetBonus = hpSum;
+                    score.PriorityTargetBonus = priorityCount * 25f;
+                }
+
+                // BodyGuardBonus: enemies 와 무관, UnitPartBodyGuard.Defendant 거리만
+                {
+                    var bodyGuardPart = unit.GetOptional<Kingmaker.UnitLogic.Parts.UnitPartBodyGuard>();
+                    if (bodyGuardPart != null && bodyGuardPart.Defendant != null
+                        && !bodyGuardPart.Defendant.LifeState.IsDead)
+                    {
+                        float distTiles = CombatAPI.MetersToTiles(
+                            Vector3.Distance(score.Position, bodyGuardPart.Defendant.Position));
+                        score.BodyGuardBonus = (distTiles < 1f) ? 30f : Math.Min(30f, 30f / distTiles);
+                    }
+                }
+
                 // ★ v3.116.8 옵션 B / v3.116.9 fix: 원거리 AoE Coverage Score (Cone/Ray/Sector).
                 //   단발 사격 평가에 묻히던 "Cone 5명 vs 1명" 차이를 위치 점수에 명시 반영.
                 //   가장 가까운 살아있는 적을 패턴 조준점으로 잡고, 그 패턴 안에 추가로 잡히는 적 수에 보너스.
