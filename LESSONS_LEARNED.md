@@ -862,8 +862,41 @@ WORK_TRACKER.md의 "작업 완료 판정 기준"에 6번 항목 추가:
 - 단일 static class 가 region 으로 구획된 god-file
 - 기계적 이동만 원하는 경우 (logic 변경 없이)
 - `partial class` 지원 언어 (C#, VB.NET)
+- **abstract class** 도 동일하게 적용 가능 (Phase 3 BasePlan.cs 검증 — instance 메서드, protected/virtual 멤버, abstract 멤버 모두 정상)
 
-전체 검증 기록: [docs/plans/2026-04-22-phase-d2-combatapi-split.md](docs/plans/2026-04-22-phase-d2-combatapi-split.md)
+전체 검증 기록:
+- [docs/plans/2026-04-22-phase-d2-combatapi-split.md](docs/plans/2026-04-22-phase-d2-combatapi-split.md) — Phase D.2 (CombatAPI static class)
+- [docs/plans/2026-05-03-phase-3-baseplan-split.md](docs/plans/2026-05-03-phase-3-baseplan-split.md) — Phase 3 (BasePlan abstract class)
+
+### Phase 3 추가 검증 사항 (v3.115.0-8, 2026-05-03)
+
+**BasePlan.cs**: 4,396줄 / 14 region → 135줄 residual + 7 partial (총 9 commits 추출, 1 partial 변환).
+
+**static class vs abstract class 차이점**:
+- abstract class 의 `protected` instance 메서드는 partial 간 자유 호출 가능 (cross-partial 마커 § 5 동일 적용)
+- abstract class 의 `private static` 필드 (`_tempAbilities`/`_tempUnits`/`_plannedBuffGuids`) 는 multi-region 사용 시 residual 유지 (§ 3 동일)
+- abstract 멤버 (`RoleName` property) 는 residual 의 `abstract` 키워드 그대로 유지, 모든 partial 에서 자유 참조
+
+**nested region 단위 이동 추가 검증** (§ 8 확장):
+- Movement region (L135-L900) 내부에 `#region Phase 0.2: Common Early Phase` (L523-L591) nested 존재
+- Movement endregion (L900) 안의 orphan Familiar Phase 공통 메서드 (L592-L899) 도 단일 청크로 동반 추출
+- 의미적 재배치는 mechanical refactor 의 범위 밖 — region 경계 그대로 유지
+
+**class close brace 보존 (Phase 3 신규 교훈)**:
+- 마지막 region 추출 시 sed `start,endp` 의 end 가 `#endregion + 빈줄 + class close brace` 까지 포함되는 경우 클래스 닫기 brace 가 함께 삭제됨
+- **검증 절차**: 추출 후 `tail -5` 로 파일 끝 구조 확인 (`#endregion` → `    }` (class) → `}` (namespace) 순서)
+- 누락 시 Edit 으로 복구
+
+**Phase 3 통계** (8 추출 + 1 partial 변환 = 9 commits):
+- 원본 4,396줄 → 최종 4,541줄 (residual 135 + 7 partial 4,406)
+- Scaffold overhead: **+147줄 / 3.34%** (~21줄/partial 평균, Phase D.2 의 2.08% 보다 약간 높음 — partial 수가 적고 using 다양성이 높아서)
+- Lesson 18 §7 catch-and-fix: 평균 **0.5 iteration/세션** (8 추출 중 4번 iteration 발생: Session 5 Pathfinding, Session 6 TargetWrapper×2, Session 8 SC + Designers.Mechanics.Facts)
+
+**`Kingmaker` namespace 발견 사례** (Phase 3 신규 매핑):
+- `TargetWrapper` → `Kingmaker.Utility` (직관: `Kingmaker` 또는 `UnitLogic.Mechanics.Actions` 추측 모두 빗나감)
+- `WarhammerOverrideAbilityCasterPositionByPet/Contextual` → `Kingmaker.Designers.Mechanics.Facts`
+- `PetType` → `Kingmaker.Enums`
+- `CustomGridNodeBase` → `Kingmaker.Pathfinding` (AStar `Pathfinding` 과 분리)
 
 ---
 
