@@ -140,8 +140,11 @@ namespace CompanionAI_v3.GameInterface
             // ★ v3.8.70: 안전 체크용 아군 목록
             // ★ v3.9.24: DangerousAoE도 아군 안전 체크 필요 (Cone/Ray가 아군을 타격)
             //   CanTargetFriends=false라도 DangerousAoE는 AoE 범위 내 아군에 피해
+            // ★ v3.116.12: rangedAoEAbilities 보유 시에도 allies 필요 — 옵션 B 안전 체크용.
             List<BaseUnitEntity> allies = null;
-            if (primaryAttack?.Blueprint?.CanTargetFriends == true || AbilityDatabase.IsDangerousAoE(primaryAttack))
+            if (primaryAttack?.Blueprint?.CanTargetFriends == true
+                || AbilityDatabase.IsDangerousAoE(primaryAttack)
+                || rangedAoEAbilities != null)
                 allies = CombatAPI.GetAllies(unit);
 
             // ★ v3.0.62: 위협 점수 추가 (AoE, AoO, Overwatch)
@@ -248,8 +251,18 @@ namespace CompanionAI_v3.GameInterface
                     {
                         int maxAoeCount = 0;
                         AbilityData bestAoeAbility = null;
+                        int unsafeBlocked = 0;  // ★ v3.116.12 진단: 아군 안전 체크 차단 카운트
                         for (int ai = 0; ai < rangedAoEAbilities.Count; ai++)
                         {
+                            // ★ v3.116.12: 아군 피격 위치 차단 — 게임 IsAttackSafeForTarget 와 동일 기준.
+                            //   unsafe 위치에 보너스 주면 AI 가 이동 후 cone cast 차단되어 MP/AP 낭비.
+                            //   AoE 능력은 보통 CanTargetFriends=false 더라도 패턴 내 아군 피해 발생 가능.
+                            if (allies != null && !CombatHelpers.IsAttackSafeForTargetFromPosition(
+                                    rangedAoEAbilities[ai], score.Position, unit, coneTarget, allies))
+                            {
+                                unsafeBlocked++;
+                                continue;  // 이 ability 평가 스킵
+                            }
                             int aoeCount = CombatAPI.CountEnemiesInPattern(
                                 rangedAoEAbilities[ai], coneTarget.Position, score.Position, enemies);
                             if (aoeCount > maxAoeCount)
@@ -263,6 +276,7 @@ namespace CompanionAI_v3.GameInterface
                         // ★ v3.116.10 진단: best ability + splash 카운트 score 에 임시 저장 (best 위치 로그용)
                         score.BestAoeAbility = bestAoeAbility;
                         score.BestAoeSplash = maxAoeCount;
+                        score.AoeUnsafeBlockedCount = unsafeBlocked;
                     }
                 }
 
@@ -365,15 +379,19 @@ namespace CompanionAI_v3.GameInterface
                         $"Osc=-{best.OscillationPenalty:F1}, " +
                         $"Exposure=-{best.ExposureScore:F1}");
 
-                    // ★ v3.116.10/11 진단: AoE 측정 결과 — rangedAoEAbilities 가 있던 모든 케이스 로그
+                    // ★ v3.116.10/11/12 진단: AoE 측정 결과 — rangedAoEAbilities 가 있던 모든 케이스 로그
                     //   (splash=0 이면 ability=null 도 가능 — 그것도 진단 정보)
+                    //   v3.116.12: unsafeBlocked 카운트 추가 — 아군 피격 위치 차단 효과 가시화
                     if (rangedAoEAbilities != null)
                     {
                         var aoeDiag = best.BestAoeAbility != null
                             ? $"ability={best.BestAoeAbility.Name}, splash={best.BestAoeSplash}"
-                            : $"all {rangedAoEAbilities.Count} AoE abilities returned splash=0";
+                            : $"all {rangedAoEAbilities.Count} AoE abilities returned splash=0 or blocked";
+                        var unsafeNote = best.AoeUnsafeBlockedCount > 0
+                            ? $", unsafeBlocked={best.AoeUnsafeBlockedCount}/{rangedAoEAbilities.Count}"
+                            : "";
                         Log.Engine.Debug($"[MovementAPI] Best AoE diagnostic: {aoeDiag}, " +
-                            $"bonus={best.AoeHitCountBonus:F1} (Best at ({best.Position.x:F1},{best.Position.z:F1}), hittable={best.HittableEnemyCount})");
+                            $"bonus={best.AoeHitCountBonus:F1} (Best at ({best.Position.x:F1},{best.Position.z:F1}), hittable={best.HittableEnemyCount}){unsafeNote}");
                     }
 
                     // ★ v3.110.16: InfluenceMap@Best 진단 로그 제거 — InfT/InfC 축 자체가 사라짐.

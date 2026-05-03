@@ -152,6 +152,8 @@ namespace CompanionAI_v3.GameInterface
             public Kingmaker.UnitLogic.Abilities.AbilityData BestAoeAbility { get; set; }
             /// <summary>★ v3.116.10 진단: Best 위치에서 측정된 splash 카운트</summary>
             public int BestAoeSplash { get; set; }
+            /// <summary>★ v3.116.12 진단: 이 위치에서 아군 안전 체크에 의해 차단된 AoE 능력 수</summary>
+            public int AoeUnsafeBlockedCount { get; set; }
 
             public override string ToString() =>
                 $"Pos({Position.x:F1},{Position.z:F1}) Score={TotalScore:F1}" +
