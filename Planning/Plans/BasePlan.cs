@@ -24,7 +24,7 @@ namespace CompanionAI_v3.Planning.Plans
     /// ★ v3.0.47: 모든 Role Plan의 기본 클래스
     /// Planners에게 위임하는 얇은 래퍼
     /// </summary>
-    public abstract class BasePlan
+    public abstract partial class BasePlan
     {
         #region ★ v3.8.78: Zero-alloc temp lists (static 재사용, GC 0)
 
