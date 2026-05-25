@@ -52,9 +52,6 @@ namespace CompanionAI_v3.Core
         /// <summary>현재 처리 중인 유닛 ID</summary>
         private string _currentUnitId;
 
-        /// <summary>대기 중인 이동 목적지 (유닛별)</summary>
-        private readonly Dictionary<string, UnityEngine.Vector3> _pendingMoveDestinations = new Dictionary<string, UnityEngine.Vector3>();
-
         /// <summary>★ v3.5.00: 마지막으로 처리한 라운드 (TeamBlackboard.OnRoundStart 호출용)</summary>
         private int _lastProcessedRound = -1;
 
@@ -1416,7 +1413,6 @@ namespace CompanionAI_v3.Core
 
             // 이전 턴 상태 정리
             _turnStates.Remove(unitId);
-            _pendingMoveDestinations.Remove(unitId);
 
             // 능력 사용 추적 초기화
             AbilityUsageTracker.ClearForUnit(unitId);
@@ -1515,9 +1511,6 @@ namespace CompanionAI_v3.Core
                 _turnStates.Remove(unitId);
             }
 
-            // ★ 턴 종료 상태 정리
-            _pendingMoveDestinations.Remove(unitId);
-
             // ★ v3.9.02: 게임 AI 타임아웃 복원
             RestoreAiTimeout();
         }
@@ -1567,7 +1560,6 @@ namespace CompanionAI_v3.Core
             CombatReportCollector.Instance.OnCombatEnd("Victory");
             _turnStates.Clear();
             _currentUnitId = null;
-            _pendingMoveDestinations.Clear();
             _lastProcessedRound = -1;  // ★ v3.5.00: 라운드 추적 초기화
             Planning.TurnPlanner.ClearDetectedRolesCache();  // ★ v3.1.15: 역할 감지 캐시 정리
 
@@ -1844,40 +1836,7 @@ namespace CompanionAI_v3.Core
 
         #endregion
 
-        #region Pending Move Destination
-
-        /// <summary>
-        /// 이동 목적지 저장 (FindBetterPlace에서 사용)
-        /// </summary>
-        public void SetPendingMoveDestination(string unitId, UnityEngine.Vector3 destination)
-        {
-            _pendingMoveDestinations[unitId] = destination;
-            Log.Engine.Debug($"[Orchestrator] Pending move set for {unitId}: {destination}");
-        }
-
-        /// <summary>
-        /// 저장된 이동 목적지 가져오기 (사용 후 제거됨)
-        /// </summary>
-        public UnityEngine.Vector3? GetAndClearPendingMoveDestination(string unitId)
-        {
-            if (_pendingMoveDestinations.TryGetValue(unitId, out var destination))
-            {
-                _pendingMoveDestinations.Remove(unitId);
-                Log.Engine.Debug($"[Orchestrator] Pending move consumed for {unitId}: {destination}");
-                return destination;
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// 저장된 이동 목적지가 있는지 확인
-        /// </summary>
-        public bool HasPendingMoveDestination(string unitId)
-        {
-            return _pendingMoveDestinations.ContainsKey(unitId);
-        }
-
-        #endregion
+        // v3.117.59: Pending Move Destination region 제거 — fallback FindBetterPlace 패치와 함께 dead.
 
         // ★ v3.0.72: Cover Seek Once region 제거
         // IsFinishedTurn = true + Status.Success 방식으로 전환하여 불필요해짐
