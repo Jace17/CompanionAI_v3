@@ -59,6 +59,9 @@ namespace CompanionAI_v3.Settings
 
         private static string _modPath;
 
+        // v3.117.60: Load 실패 시 Save 차단 — 빈 설정이 원본 덮어쓰는 것 방지.
+        private static bool _loadFailed = false;
+
         public static AIConfig CreateDefault()
         {
             return new AIConfig
@@ -72,10 +75,11 @@ namespace CompanionAI_v3.Settings
         {
             _modPath = modPath;
             string configPath = Path.Combine(modPath, "aiconfig.json");
+            bool fileExisted = File.Exists(configPath);
 
             try
             {
-                if (File.Exists(configPath))
+                if (fileExisted)
                 {
                     string json = File.ReadAllText(configPath);
                     var config = JsonConvert.DeserializeObject<AIConfig>(json);
@@ -83,6 +87,7 @@ namespace CompanionAI_v3.Settings
                     if (config != null)
                     {
                         Instance = config;
+                        _loadFailed = false;
 
                         // null 보호 (구버전 JSON 호환 또는 필드 누락 시)
                         if (Instance.AoE == null) Instance.AoE = new AoEConfig();
@@ -91,16 +96,45 @@ namespace CompanionAI_v3.Settings
                         Log.Persistence.Info($"[AIConfig] Loaded from {configPath}");
                         return;
                     }
+                    // v3.117.60: deserialize 결과 null → corruption 처리.
+                    BackupCorruptedFile(configPath, "deserialize returned null");
+                    _loadFailed = true;
+                    Log.Persistence.Warn("[AIConfig] aiconfig.json deserialize returned null → 빈 설정 사용, Save 차단됨.");
+                    Instance = CreateDefault();
+                    return;
                 }
             }
             catch (Exception ex)
             {
-                Log.Persistence.Error($"[AIConfig] Failed to load: {ex.Message}");
+                // v3.117.60: 손상 파일 백업 + Save 차단.
+                BackupCorruptedFile(configPath, ex.Message);
+                _loadFailed = true;
+                Log.Persistence.Error($"[AIConfig] Failed to load: {ex.Message}. Save 차단 활성화 — .corrupted-* 백업 확인 필요.");
+                Instance = CreateDefault();
+                return;
             }
 
+            // 파일 자체가 없는 경우만 default 생성 + Save (정상 첫 실행)
             Instance = CreateDefault();
             Save();
             Log.Persistence.Info("[AIConfig] Created default aiconfig.json");
+        }
+
+        /// <summary>v3.117.60: 손상 파일을 timestamp 접미사로 백업.</summary>
+        private static void BackupCorruptedFile(string filePath, string reason)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath)) return;
+                var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+                var backupPath = $"{filePath}.corrupted-{stamp}";
+                File.Copy(filePath, backupPath, overwrite: false);
+                Log.Persistence.Warn($"[AIConfig] Corrupted file backed up: {Path.GetFileName(backupPath)} (reason: {reason})");
+            }
+            catch (Exception ex)
+            {
+                Log.Persistence.Error($"[AIConfig] Backup failed for {filePath}: {ex.Message}");
+            }
         }
 
         public static void Save()
@@ -111,18 +145,38 @@ namespace CompanionAI_v3.Settings
                 return;
             }
 
+            // v3.117.60: Load 실패 후 미해결 상태에서는 Save 차단.
+            if (_loadFailed)
+            {
+                Log.Persistence.Warn("[AIConfig] Save blocked — load 실패 후 미해결. .corrupted-* 백업 확인 후 수동 복구 필요.");
+                return;
+            }
+
             string configPath = Path.Combine(_modPath, "aiconfig.json");
 
             try
             {
                 if (Instance == null) Instance = CreateDefault();
+
+                // v3.117.60: read-only 사전 체크.
+                if (File.Exists(configPath))
+                {
+                    var attrs = File.GetAttributes(configPath);
+                    if ((attrs & FileAttributes.ReadOnly) != 0)
+                    {
+                        Log.Persistence.Error($"[AIConfig] aiconfig.json 가 읽기 전용입니다. " +
+                            "OneDrive/안티바이러스/백업 도구 또는 수동 속성 변경 확인 필요. 설정 변경 사항이 저장되지 않습니다.");
+                        return;
+                    }
+                }
+
                 string json = JsonConvert.SerializeObject(Instance, Formatting.Indented);
                 File.WriteAllText(configPath, json);
                 Log.Persistence.Debug("[AIConfig] Settings saved to aiconfig.json");
             }
             catch (Exception ex)
             {
-                Log.Persistence.Error($"[AIConfig] Failed to save: {ex.Message}");
+                Log.Persistence.Error($"[AIConfig] Failed to save: {ex.Message} ({ex.GetType().Name})");
             }
         }
 

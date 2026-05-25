@@ -100,6 +100,11 @@ namespace CompanionAI_v3.Settings
         private static string _currentGameId = null;
         private static string _modPath = null;
 
+        // v3.117.60: Load 실패 후 Save 차단 flag (per gameId).
+        //   파싱 에러 → 빈 설정으로 fallback. 그 빈 설정이 게임 저장 시점에 원본을 덮어쓰는 것 방지.
+        //   파일 백업 (.corrupted-*) 도 같은 시점에 생성 — 사용자가 복구 가능.
+        private static readonly HashSet<string> _failedGameIds = new HashSet<string>();
+
         /// <summary>캐릭터별 AI 설정</summary>
         [JsonProperty]
         public Dictionary<string, CharacterSettings> CharacterSettings { get; set; }
@@ -177,18 +182,52 @@ namespace CompanionAI_v3.Settings
                 {
                     var json = File.ReadAllText(filePath);
                     _cached = JsonConvert.DeserializeObject<PerSaveSettings>(json);
-                    Log.Persistence.Info($"[PerSaveSettings] Loaded {_cached?.CharacterSettings?.Count ?? 0} settings from {Path.GetFileName(filePath)}");
+                    if (_cached == null)
+                    {
+                        // 파일은 존재하지만 deserialize 결과가 null (빈 파일, "null" 리터럴 등) → corruption 으로 취급.
+                        BackupCorruptedFile(filePath, "deserialize returned null");
+                        _failedGameIds.Add(gameId);
+                        _cached = new PerSaveSettings();
+                    }
+                    else
+                    {
+                        // 정상 로드 → 이전 실패 기록 제거 (사용자가 손상 파일 수동 복구한 케이스)
+                        _failedGameIds.Remove(gameId);
+                        Log.Persistence.Info($"[PerSaveSettings] Loaded {_cached.CharacterSettings?.Count ?? 0} settings from {Path.GetFileName(filePath)} (GameId={gameId})");
+                    }
                 }
                 else
                 {
+                    _failedGameIds.Remove(gameId);
                     Log.Persistence.Info($"[PerSaveSettings] No settings file for GameId={gameId}, creating new");
                     _cached = new PerSaveSettings();
                 }
             }
             catch (Exception ex)
             {
-                Log.Persistence.Error($"[PerSaveSettings] Load error: {ex.Message}");
+                // v3.117.60: 손상된 파일 백업 + Save 차단으로 데이터 손실 방지.
+                BackupCorruptedFile(GetSettingsFilePath(_currentGameId), ex.Message);
+                if (!string.IsNullOrEmpty(_currentGameId))
+                    _failedGameIds.Add(_currentGameId);
+                Log.Persistence.Error($"[PerSaveSettings] Load error (GameId={_currentGameId}): {ex.Message}. Save 차단 활성화 — 손상 파일은 .corrupted-* 로 백업됨.");
                 _cached = new PerSaveSettings();
+            }
+        }
+
+        /// <summary>v3.117.60: 손상 파일을 timestamp 접미사로 백업.</summary>
+        private static void BackupCorruptedFile(string filePath, string reason)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath)) return;
+                var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+                var backupPath = $"{filePath}.corrupted-{stamp}";
+                File.Copy(filePath, backupPath, overwrite: false);
+                Log.Persistence.Warn($"[PerSaveSettings] Corrupted file backed up: {Path.GetFileName(backupPath)} (reason: {reason})");
+            }
+            catch (Exception ex)
+            {
+                Log.Persistence.Error($"[PerSaveSettings] Backup failed for {filePath}: {ex.Message}");
             }
         }
 
@@ -204,6 +243,14 @@ namespace CompanionAI_v3.Settings
                     return;
                 }
 
+                // v3.117.60: 손상 파일 백업 후 빈 설정 fallback 상태에서는 Save 차단.
+                //   사용자가 손상 파일 (.corrupted-*) 을 검토/복구할 시간 확보.
+                if (_failedGameIds.Contains(gameId))
+                {
+                    Log.Persistence.Warn($"[PerSaveSettings] Save blocked for GameId={gameId} — load 실패 후 미해결. .corrupted-* 백업 확인 필요.");
+                    return;
+                }
+
                 var filePath = GetSettingsFilePath(gameId);
                 if (string.IsNullOrEmpty(filePath))
                 {
@@ -213,13 +260,25 @@ namespace CompanionAI_v3.Settings
 
                 if (_cached == null) return;
 
+                // v3.117.60: read-only 속성 사전 체크 — 사용자 인지 가능한 명확한 에러.
+                if (File.Exists(filePath))
+                {
+                    var attrs = File.GetAttributes(filePath);
+                    if ((attrs & FileAttributes.ReadOnly) != 0)
+                    {
+                        Log.Persistence.Error($"[PerSaveSettings] {Path.GetFileName(filePath)} 가 읽기 전용입니다. " +
+                            "OneDrive/안티바이러스/백업 도구 또는 수동 속성 변경 확인 필요. 설정 변경 사항이 저장되지 않습니다.");
+                        return;
+                    }
+                }
+
                 var json = JsonConvert.SerializeObject(_cached, Formatting.Indented);
                 File.WriteAllText(filePath, json);
                 Log.Persistence.Debug($"[PerSaveSettings] Saved {_cached.CharacterSettings.Count} settings to {Path.GetFileName(filePath)}");
             }
             catch (Exception ex)
             {
-                Log.Persistence.Error($"[PerSaveSettings] Save error: {ex.Message}");
+                Log.Persistence.Error($"[PerSaveSettings] Save error: {ex.Message} ({ex.GetType().Name})");
             }
         }
     }
@@ -231,6 +290,9 @@ namespace CompanionAI_v3.Settings
     {
         public static ModSettings Instance { get; private set; }
         private static UnityModManager.ModEntry _modEntry;
+
+        // v3.117.60: Load 실패 시 Save 차단 — 빈 설정이 원본 파일을 덮어쓰는 것 방지.
+        private static bool _loadFailed = false;
 
         public bool EnableDebugLogging { get; set; } = false;
         public bool ShowAIThoughts { get; set; } = false;
@@ -395,11 +457,15 @@ namespace CompanionAI_v3.Settings
                     if (settings != null)
                     {
                         Instance = settings;
+                        _loadFailed = false;
                         Log.Persistence.Info("Settings loaded successfully");
                     }
                     else
                     {
-                        Log.Persistence.Info("Using default settings");
+                        // v3.117.60: deserialize 결과 null 도 corruption 으로 취급 → 백업 + Save 차단.
+                        BackupCorruptedFile(path, "deserialize returned null");
+                        _loadFailed = true;
+                        Log.Persistence.Warn("settings.json deserialize returned null → 빈 설정 사용, Save 차단됨. .corrupted-* 백업 확인 필요.");
                         Instance = new ModSettings();
                     }
                 }
@@ -413,11 +479,15 @@ namespace CompanionAI_v3.Settings
             }
             catch (Exception ex)
             {
-                Log.Persistence.Error($"Failed to load settings: {ex.Message}");
+                // v3.117.60: 손상 파일 백업 후 Save 차단.
+                BackupCorruptedFile(GetSettingsPath(), ex.Message);
+                _loadFailed = true;
+                Log.Persistence.Error($"Failed to load settings: {ex.Message}. Save 차단 활성화 — .corrupted-* 백업 확인 필요.");
                 Instance = new ModSettings();
             }
 
             // ★ v3.54.0: MaxTokens 마이그레이션 (구버전 150/300 → 신버전 500)
+            //   v3.117.60: load 실패 상태에서는 마이그레이션 Save 도 차단 (Save 자체가 거부함 — 안전).
             if (Instance.MachineSpirit.MaxTokens < 500)
             {
                 Instance.MachineSpirit.MaxTokens = 500;
@@ -428,20 +498,57 @@ namespace CompanionAI_v3.Settings
             AIConfig.Load(modEntry.Path);
         }
 
+        /// <summary>v3.117.60: 손상 파일을 timestamp 접미사로 백업.</summary>
+        private static void BackupCorruptedFile(string filePath, string reason)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath)) return;
+                var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+                var backupPath = $"{filePath}.corrupted-{stamp}";
+                File.Copy(filePath, backupPath, overwrite: false);
+                Log.Persistence.Warn($"Corrupted file backed up: {Path.GetFileName(backupPath)} (reason: {reason})");
+            }
+            catch (Exception ex)
+            {
+                Log.Persistence.Error($"Backup failed for {filePath}: {ex.Message}");
+            }
+        }
+
         public static void Save()
         {
             if (Instance == null || _modEntry == null) return;
 
+            // v3.117.60: Load 실패 후 미해결 상태에서는 Save 차단 — 빈 설정이 원본 덮어쓰는 것 방지.
+            if (_loadFailed)
+            {
+                Log.Persistence.Warn("settings.json Save blocked — load 실패 후 미해결. .corrupted-* 백업 확인 후 수동 복구 필요.");
+                return;
+            }
+
             try
             {
                 string path = GetSettingsPath();
+
+                // v3.117.60: read-only 사전 체크.
+                if (File.Exists(path))
+                {
+                    var attrs = File.GetAttributes(path);
+                    if ((attrs & FileAttributes.ReadOnly) != 0)
+                    {
+                        Log.Persistence.Error($"settings.json 가 읽기 전용입니다. " +
+                            "OneDrive/안티바이러스/백업 도구 또는 수동 속성 변경 확인 필요. 설정 변경 사항이 저장되지 않습니다.");
+                        return;
+                    }
+                }
+
                 string json = JsonConvert.SerializeObject(Instance, Formatting.Indented);
                 File.WriteAllText(path, json);
                 Log.Persistence.Debug("Settings saved");
             }
             catch (Exception ex)
             {
-                Log.Persistence.Error($"Failed to save settings: {ex.Message}");
+                Log.Persistence.Error($"Failed to save settings: {ex.Message} ({ex.GetType().Name})");
             }
         }
 
