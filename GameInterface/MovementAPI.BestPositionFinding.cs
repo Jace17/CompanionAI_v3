@@ -602,49 +602,9 @@ namespace CompanionAI_v3.GameInterface
                             $"bonus={best.AoeHitCountBonus:F1} (Best at ({best.Position.x:F1},{best.Position.z:F1}), hittable={best.HittableEnemyCount}){unsafeNote}");
                     }
 
-                    // ★ v3.110.16: InfluenceMap@Best 진단 로그 제거 — InfT/InfC 축 자체가 사라짐.
-
-                    // ★ v3.116.13 진단 (결과 모름): 게임 자체 AttackEffectivenessTileScorer 와
-                    //   우리 best 비교. 시도해야 답을 안다 — DecisionContext/AbilityInfo lazy init/
-                    //   AbilityTargetSelector 등 우리가 한 번도 호출 안 한 경로.
-                    //   try-catch 로 감싸 우리 동작 영향 0. 결과만 로그.
-                    if (primaryAttack != null && scores.Count > 0)
-                    {
-                        try
-                        {
-                            var gameCtx = new Kingmaker.AI.DecisionContext();
-                            gameCtx.InitUnit(unit);
-                            gameCtx.Ability = primaryAttack;
-
-                            var gameOrder = new Kingmaker.AI.AreaScanning.Scoring.ScoreOrder();
-                            var gameScorer = new Kingmaker.AI.AreaScanning.TileScorers.AttackEffectivenessTileScorer();
-
-                            var nodeList = new List<CustomGridNodeBase>(scores.Count);
-                            foreach (var s in scores)
-                                if (s.Node != null) nodeList.Add(s.Node);
-
-                            var gameBestNode = gameScorer.GetHighestScoreNode(gameCtx, nodeList, gameOrder);
-                            if (gameBestNode is CustomGridNodeBase gbn)
-                            {
-                                var gpos = gbn.Vector3Position;
-                                float dx = Math.Abs(gpos.x - best.Position.x);
-                                float dz = Math.Abs(gpos.z - best.Position.z);
-                                bool match = dx < 0.5f && dz < 0.5f;
-                                Log.Engine.Debug($"[GameScorer] BEST COMPARE ({unit.CharacterName}): " +
-                                    $"ours=({best.Position.x:F1},{best.Position.z:F1}) score={best.TotalScore:F1}, " +
-                                    $"game=({gpos.x:F1},{gpos.z:F1}), match={match}, " +
-                                    $"diff=({gpos.x - best.Position.x:F1},{gpos.z - best.Position.z:F1})");
-                            }
-                            else
-                            {
-                                Log.Engine.Debug($"[GameScorer] {unit.CharacterName}: returned null or non-CustomGridNodeBase");
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Engine.Debug($"[GameScorer] {unit.CharacterName}: FAILED at {ex.GetType().Name}: {ex.Message}");
-                        }
-                    }
+                    // v3.117.58: [GameScorer] 진단 코드 제거 (v3.116.13 추가).
+                    //   v3.116.14 에서 게임 AttackEffectivenessTileScorer 의 3축을 우리 코드로 stateless
+                    //   포팅 — 비교 의미 사라짐. NRE 8-10건/세션 noise + 미해소 lazy-init 문제 정리.
                 }
             }
             else
