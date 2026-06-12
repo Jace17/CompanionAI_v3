@@ -894,6 +894,19 @@ namespace CompanionAI_v3.Analysis
                                     Log.Analysis.Debug($"[Analyzer] BuffClassify: {CombatAPI.GetAbilityDisplayName(ability)} → {buffType}");
                                 }
                             }
+                            // Can target friends and has unbuffied allies
+                            else if (bp != null && bp.CanTargetFriends == true)
+                            {
+                                foreach (var ally in situation.Allies)
+                                {
+                                    if (!AllyStateCache.HasBuff(ally, ability))
+                                    {
+                                        situation.AvailableBuffs.Add(ability);
+                                        Log.Analysis.Debug($"[Analyzer] Buff already active but can also target allies: {CombatAPI.GetAbilityDisplayName(ability)}");
+                                        break;
+                                    }
+                                }
+                            }
                         }
                         break;
 
