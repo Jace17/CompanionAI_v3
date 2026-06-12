@@ -49,10 +49,15 @@ namespace CompanionAI_v3.GameInterface
     public static class CustomBehaviourTreePatch
     {
         /// <summary>
-        /// ★ v3.5.28: m_BehaviourTree 필드 리플렉션 캐시
+        /// ★ v3.5.28: BehaviourTree 필드 리플렉션 캐시.
+        /// v3.117.63 (2026-06-12): 게임 업데이트로 `private BehaviourTree m_BehaviourTree` →
+        ///   `public BehaviourTree BehaviourTree { get; private set; }` 로 변경됨.
+        ///   Auto-property 의 backing field 이름 `<BehaviourTree>k__BackingField` 우선 시도,
+        ///   실패 시 옛 `m_BehaviourTree` fallback (이전 게임 버전 호환).
         /// </summary>
-        private static readonly FieldInfo _behaviourTreeField = typeof(PartUnitBrain)
-            .GetField("m_BehaviourTree", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static readonly FieldInfo _behaviourTreeField =
+            typeof(PartUnitBrain).GetField("<BehaviourTree>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?? typeof(PartUnitBrain).GetField("m_BehaviourTree", BindingFlags.NonPublic | BindingFlags.Instance);
 
         // ★ v3.8.48: 리플렉션 캐싱 — 이미 커스텀 트리로 교체된 brain은 리플렉션 스킵
         // 60fps × 5유닛 = 초당 300회 리플렉션 → ~0회로 감소
@@ -131,7 +136,7 @@ namespace CompanionAI_v3.GameInterface
                 // 현재 트리 확인
                 if (_behaviourTreeField == null)
                 {
-                    Log.Engine.Error("[CustomBehaviourTree] m_BehaviourTree field not found!");
+                    Log.Engine.Error("[CustomBehaviourTree] BehaviourTree backing field not found (게임 업데이트로 PartUnitBrain 구조 변경 가능성 — 디컴파일 재확인 필요)");
                     return;
                 }
 
@@ -246,7 +251,7 @@ namespace CompanionAI_v3.GameInterface
                 // m_BehaviourTree 필드 직접 설정
                 if (_behaviourTreeField == null)
                 {
-                    Log.Engine.Error("[CustomBehaviourTree] m_BehaviourTree field not found!");
+                    Log.Engine.Error("[CustomBehaviourTree] BehaviourTree backing field not found (게임 업데이트로 PartUnitBrain 구조 변경 가능성 — 디컴파일 재확인 필요)");
                     return;
                 }
 
@@ -281,11 +286,13 @@ namespace CompanionAI_v3.GameInterface
                 // 이유: Condition 실패 시 CompanionAIDecisionNode에 도달하지 못하고 바로 TaskNodeTryFinishTurn 실행
                 //       → 아무 로그 없이 턴 종료되는 버그 발생 (진단 불가)
                 //       CompanionAIDecisionNode 내부에서 Running을 반환하여 대기할 수 있고, 진단 로그도 남김
+                // v3.117.63: 게임 업데이트로 Condition/Loop 생성자에 `string description` 추가됨 — debug 라벨.
                 var mainSelector = new Selector(
                     new Sequence(
                         new TaskNodeWaitCommandsDone(),
                         new Condition(
                             b => b.Unit.Commands.Empty,
+                            "Commands.Empty",
                             new Sequence(
                                 new AsyncTaskNodeInitializeDecisionContext(),  // ★ v3.7.19: 래퍼 제거, 직접 사용 복원
                                 new AsyncTaskNodeCreateMoveVariants(),  // ★ v3.5.28: 이동 가능 타일 계산 (이동 시 필요)
@@ -294,6 +301,7 @@ namespace CompanionAI_v3.GameInterface
                                     // Path 1: 능력 시전
                                     new Condition(
                                         b => b.DecisionContext?.Ability != null,
+                                        "Ability != null",
                                         new TaskNodeCastAbility()
                                     ),
                                     // Path 2: 이동 실행
@@ -302,6 +310,7 @@ namespace CompanionAI_v3.GameInterface
                                         b => b.DecisionContext != null &&
                                              !b.DecisionContext.FoundBetterPlace.PathData.IsZero &&
                                              CombatAPI.CanMove(b.DecisionContext.Unit),
+                                        "FoundBetterPlace && CanMove",
                                         new Sequence(
                                             TaskNodeSetupMoveCommand.ToBetterPosition(),
                                             new TaskNodeExecuteMoveCommand()
@@ -320,6 +329,7 @@ namespace CompanionAI_v3.GameInterface
                 var rootNode = new Loop(
                     b => { },                    // 초기화 (불필요)
                     b => !b.IsFinishedTurn,      // 턴 종료까지 계속 반복
+                    "CompanionAI main loop until IsFinishedTurn",  // v3.117.63: description
                     mainSelector,
                     Loop.ExitCondition.NoCondition
                 );

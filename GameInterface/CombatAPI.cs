@@ -120,26 +120,24 @@ namespace CompanionAI_v3.GameInterface
                 }
 
                 // Point1 (targetIndex=0)에 사용되는 능력 가져오기
-                Kingmaker.UnitLogic.Abilities.Blueprints.BlueprintAbility point1Blueprint;
-                Kingmaker.EntitySystem.Entities.MechanicEntity point1Caster;
-
-                if (!multiTarget.TryGetNextTargetAbilityAndCaster(rootAbility, 0, out point1Blueprint, out point1Caster))
+                // v3.117.63: 게임 업데이트로 API 변경 — TryGetNextTargetAbilityAndCaster (out Blueprint, out Caster)
+                //   → TryGetNextTargetAbility (out AbilityData). caster 는 AbilityData.Caster 로 내장.
+                AbilityData point1Ability;
+                if (!multiTarget.TryGetNextTargetAbility(rootAbility, 0, out point1Ability))
                 {
                     if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetMultiTargetPoint1Range: TryGetNextTarget failed for index 0");
                     return 30;  // 폴백
                 }
 
-                if (point1Blueprint == null)
+                if (point1Ability == null)
                 {
-                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetMultiTargetPoint1Range: Point1 blueprint is null");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetMultiTargetPoint1Range: Point1 ability is null");
                     return 30;  // 폴백
                 }
 
-                // Point1 능력의 AbilityData 생성하여 RangeCells 가져오기
-                var point1Ability = new AbilityData(point1Blueprint, point1Caster ?? rootAbility.Caster);
                 int point1Range = point1Ability.RangeCells;
 
-                if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetMultiTargetPoint1Range: Point1 ability={point1Blueprint.name}, Range={point1Range} tiles");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetMultiTargetPoint1Range: Point1 ability={point1Ability.Blueprint?.name}, Range={point1Range} tiles");
                 return point1Range;
             }
             catch (Exception ex)
@@ -174,28 +172,25 @@ namespace CompanionAI_v3.GameInterface
                 }
 
                 // Point2 (targetIndex=1)에 사용되는 능력 가져오기
-                Kingmaker.UnitLogic.Abilities.Blueprints.BlueprintAbility point2Blueprint;
-                Kingmaker.EntitySystem.Entities.MechanicEntity point2Caster;
-
-                if (!multiTarget.TryGetNextTargetAbilityAndCaster(rootAbility, 1, out point2Blueprint, out point2Caster))
+                // v3.117.63: TryGetNextTargetAbilityAndCaster → TryGetNextTargetAbility (out AbilityData).
+                //   caster (Pet=Eagle) 는 ability.Caster 로 자동 내장.
+                AbilityData point2Ability;
+                if (!multiTarget.TryGetNextTargetAbility(rootAbility, 1, out point2Ability))
                 {
                     if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetMultiTargetPoint2Range: TryGetNextTarget failed for index 1");
                     return 15;  // 폴백
                 }
 
-                if (point2Blueprint == null)
+                if (point2Ability == null)
                 {
-                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetMultiTargetPoint2Range: Point2 blueprint is null");
+                    if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetMultiTargetPoint2Range: Point2 ability is null");
                     return 15;  // 폴백
                 }
 
-                // Point2 능력의 AbilityData 생성하여 RangeCells 가져오기
-                // ★ caster는 Pet(Eagle) - AbilityMultiTarget.GetDelegateUnit() 참조
-                var point2Ability = new AbilityData(point2Blueprint, point2Caster ?? rootAbility.Caster);
                 int point2Range = point2Ability.RangeCells;
 
-                if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetMultiTargetPoint2Range: Point2 ability={point2Blueprint.name}, " +
-                    $"Caster={(point2Caster as BaseUnitEntity)?.CharacterName ?? "unknown"}, Range={point2Range} tiles");
+                if (Main.IsDebugEnabled) Log.Engine.Debug($"[CombatAPI] GetMultiTargetPoint2Range: Point2 ability={point2Ability.Blueprint?.name}, " +
+                    $"Caster={(point2Ability.Caster as BaseUnitEntity)?.CharacterName ?? "unknown"}, Range={point2Range} tiles");
                 return point2Range;
             }
             catch (Exception ex)

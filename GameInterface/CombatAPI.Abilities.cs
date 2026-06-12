@@ -300,8 +300,10 @@ namespace CompanionAI_v3.GameInterface
             if (ability == null) return false;
             try
             {
+                // v3.117.63: 게임 업데이트로 GetUnavailabilityReasons() 반환 타입 List → IEnumerable.
+                //   .Count property → .Any() 로 short-circuit (전체 enumerate 회피).
                 var unavailabilityReasons = ability.GetUnavailabilityReasons();
-                if (unavailabilityReasons.Count == 0) return false;
+                if (!unavailabilityReasons.Any()) return false;
 
                 // 쿨다운만 문제인지 확인
                 bool onlyOnCooldown = unavailabilityReasons.All(r =>

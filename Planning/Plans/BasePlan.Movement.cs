@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;  // v3.117.63: GetUnavailabilityReasons() 반환 IEnumerable.Any() 사용
 using Kingmaker.EntitySystem.Entities;
 using Kingmaker.Enums;
 using Kingmaker.Pathfinding;
@@ -164,7 +165,8 @@ namespace CompanionAI_v3.Planning.Plans
             if (remainingAP < cost + 1f) return null;  // AP가 버프+최소공격 비용 미만이면 스킵
 
             // 능력 사용 가능 여부 확인
-            if (ability.GetUnavailabilityReasons().Count > 0) return null;
+            // v3.117.63: 게임 업데이트로 GetUnavailabilityReasons() 반환 List → IEnumerable. .Count → .Any()
+            if (ability.GetUnavailabilityReasons().Any()) return null;
             if (ability.IsRestricted) return null;
 
             remainingAP -= cost;
@@ -252,7 +254,8 @@ namespace CompanionAI_v3.Planning.Plans
                 if (alreadyPlanned) continue;
 
                 // 사용 가능 여부 검증
-                if (attack.GetUnavailabilityReasons().Count > 0) continue;
+                // v3.117.63: GetUnavailabilityReasons() 반환 IEnumerable → .Any() 사용
+                if (attack.GetUnavailabilityReasons().Any()) continue;
                 if (attack.IsRestricted) continue;
 
                 // Hittable 적 중 사용 가능한 타겟 찾기
